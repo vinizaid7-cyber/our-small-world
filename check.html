@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>فحص الاتصال — عالمنا الصغير</title>
+<style>
+body{font-family:Cairo,Tahoma,sans-serif;background:#141642;color:#fff;margin:0;padding:20px;line-height:1.7}
+.box{max-width:640px;margin:0 auto}
+h1{font-size:26px;margin:0 0 6px}
+.t{background:#fff;color:#2A1F4D;border-radius:16px;padding:12px 16px;margin:10px 0;display:flex;gap:10px;align-items:flex-start}
+.t b{display:block}.t small{color:#6a5d94}
+.ok{border-inline-start:8px solid #12A594}.bad{border-inline-start:8px solid #D6336C}.wait{border-inline-start:8px solid #FFC24B}
+button{background:#FFC24B;border:0;border-radius:99px;padding:10px 22px;font:inherit;font-weight:700;cursor:pointer}
+#sum{background:#2b2142;border-radius:16px;padding:14px 16px;margin-top:14px}
+</style>
+</head>
+<body><div class="box">
+<h1>🔍 فحص الاتصال</h1>
+<p>هالصفحة بتفحص ليش الموقع ممكن يقول «مشكلة بالإنترنت». استنى ثواني.</p>
+<div id="out"></div><div id="sum"></div>
+<p><button onclick="run()">أعد الفحص</button></p>
+</div>
+<script src="config.js"></script>
+<script>
+const out=document.getElementById('out'), sum=document.getElementById('sum');
+function row(id,title){ let d=document.getElementById(id); if(!d){d=document.createElement('div');d.id=id;out.appendChild(d);} d.className='t wait'; d.innerHTML='<span>⏳</span><div><b>'+title+'</b><small>عم نفحص…</small></div>'; return d; }
+function done(id,title,ok,msg){ const d=document.getElementById(id); d.className='t '+(ok?'ok':'bad'); d.innerHTML='<span>'+(ok?'✅':'❌')+'</span><div><b>'+title+'</b><small>'+msg+'</small></div>'; }
+const load=(src)=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;const t=setTimeout(()=>rej(new Error('انتهى الوقت')),9000);s.onload=()=>{clearTimeout(t);res()};s.onerror=()=>{clearTimeout(t);rej(new Error('ما انفتح'))};document.head.appendChild(s);});
+async function run(){
+  out.innerHTML=''; sum.textContent='';
+  const r={};
+  row('n','1) الإنترنت بشكل عام');
+  try{ await fetch('https://www.gstatic.com/generate_204',{mode:'no-cors',cache:'no-store'}); r.net=true; done('n','1) الإنترنت بشكل عام',true,'الإنترنت شغّال'); }
+  catch(e){ r.net=false; done('n','1) الإنترنت بشكل عام',false,'ما قدرت أوصل لأي موقع: تأكد من الاتصال'); }
+  const cdns=[['jsdelivr','https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'],['unpkg','https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js'],['محلي (supabase.js)','supabase.js']];
+  r.lib=false;
+  for(const [name,url] of cdns){
+    const id='c_'+name; row(id,'2) تحميل المكتبة من: '+name);
+    try{ await load(url); const ok=!!(window.supabase&&window.supabase.createClient); if(ok) r.lib=true; done(id,'2) تحميل المكتبة من: '+name,ok,ok?'تم التحميل':'تحمّل لكن المحتوى غير صحيح'); }
+    catch(e){ done(id,'2) تحميل المكتبة من: '+name,false,e.message); }
+  }
+  const c=window.OSW_CONFIG||{}; row('s','3) الوصول لمشروع Supabase');
+  if(!c.SUPABASE_URL){ done('s','3) الوصول لمشروع Supabase',false,'config.js فاضي (وضع تجريبي)'); }
+  else{
+    try{
+      const res=await fetch(c.SUPABASE_URL+'/auth/v1/settings',{headers:{apikey:c.SUPABASE_ANON_KEY}});
+      r.sb=res.ok; done('s','3) الوصول لمشروع Supabase',res.ok,res.ok?'وصلت للمشروع بنجاح':'وصلت لكن رجع خطأ '+res.status+' (تأكد من المفتاح والرابط، وإنو المشروع مش متوقف Paused)');
+    }catch(e){ r.sb=false; done('s','3) الوصول لمشروع Supabase',false,'ما قدرت أوصل لـ '+c.SUPABASE_URL+' (غالباً محجوب بشبكتك)'); }
+  }
+  let m='';
+  if(!r.net) m='مشكلة بالإنترنت نفسه. جرّب شبكة ثانية.';
+  else if(!r.lib && r.sb===false) m='المكتبة وخادم Supabase الاثنين ما بيوصلوا من شبكتك. جرّب بيانات الموبايل أو VPN، ولو اشتغل فالمشكلة حجب من مزوّد الإنترنت.';
+  else if(!r.lib) m='خادم Supabase بيوصل لكن مكتبة الكود محجوبة. الحل: حمّل ملف المكتبة يدوياً (شوف README) وحطّه باسم supabase.js جنب index.html.';
+  else if(r.sb===false) m='المكتبة تمام لكن خادم Supabase ما بيوصل. غالباً محجوب بشبكتك: جرّب بيانات الموبايل أو VPN. وتأكد إنو المشروع مش «Paused» بلوحة Supabase.';
+  else m='كل شي تمام ✅ إذا لسا بتظهر المشكلة، ابعتلي نص الرسالة بالضبط.';
+  sum.innerHTML='<b>الخلاصة:</b><br>'+m;
+}
+run();
+</script></body></html>

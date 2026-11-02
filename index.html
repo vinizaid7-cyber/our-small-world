@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#141642">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>عالمنا الصغير</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Cairo:wght@400;600;700&family=Lalezar&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="sky"><div id="stars"></div><div id="sun"></div><div id="moon"></div></div>
+  <div id="world"><canvas id="gl"></canvas><div id="labels"></div></div>
+  <canvas id="fx"></canvas>
+
+  <header id="hud" hidden>
+    <div class="hud-top">
+      <div class="pills">
+        <div class="pill" id="dayPill" title="عدّاد الأيام">💞 <b id="dayNum">0</b> <span>يوم</span></div>
+        <div class="pill gold" id="coinPill" title="مصاريكم">🪙 <b id="coinNum">0</b></div>
+      </div>
+      <div class="hud-btns">
+        <button id="btnTasks" class="rbtn" aria-label="مهام اليوم">✅<i id="taskBadge" class="rb" hidden>0</i></button>
+        <button id="btnSound" class="rbtn" aria-label="الصوت">🔇</button>
+        <button id="btnAch" class="rbtn" aria-label="الإنجازات">🏅</button>
+        <button id="btnMenu" class="rbtn" aria-label="القائمة">⚙️</button>
+      </div>
+    </div>
+    <div class="pill presence" id="presence"><i class="dot"></i><span id="presenceText"></span></div>
+  </header>
+
+  <div id="zoomctl" hidden>
+    <button data-z="in" aria-label="تقريب">＋</button>
+    <button data-z="out" aria-label="تبعيد">－</button>
+    <button data-z="walk" aria-label="امشوا سوا" id="btnWalk">🤝</button>
+    <button data-z="home" aria-label="للساحة">🏡</button>
+  </div>
+  <div id="joy" hidden><div id="joyKnob"></div></div>
+
+  <div id="guide" hidden role="button" tabindex="0" aria-label="دليل القرية"><span class="gcat">🐱</span><span id="guideText"></span></div>
+
+  <div id="curtain"></div>
+
+  <section id="room" hidden aria-live="polite">
+    <div class="room-head" id="roomHead"></div>
+    <div class="room-body" id="roomBody"></div>
+  </section>
+
+  <div id="sheet" class="overlay" hidden><div class="sheet-card" id="sheetCard"></div></div>
+  <div id="modal" class="overlay" hidden><div class="modal-card" id="modalCard"></div></div>
+  <div id="lightbox" hidden></div>
+  <div id="toasts" aria-live="polite"></div>
+
+  <div id="auth" class="fullscreen" hidden><div class="auth-card" id="authCard"></div></div>
+  <div id="loading"><div class="ld-house">🏡</div><p>عالمنا الصغير</p></div>
+
+  <script src="config.js"></script>
+  <script src="util.js"></script>
+  <script src="data.js"></script>
+  <script src="content.js"></script>
+  <script src="engine3d.js"></script>
+  <script src="audio.js"></script>
+  <script src="scene_houses.js"></script>
+  <script src="scene_world.js"></script>
+  <script src="chars3d.js"></script>
+  <script src="world3d.js"></script>
+  <script src="ui.js"></script>
+  <script src="game.js"></script>
+  <script src="places.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
