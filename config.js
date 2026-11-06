@@ -4,6 +4,6 @@
    - معبّأين = وضع حقيقي مع Supabase.
    ============================================================ */
 window.OSW_CONFIG = {
-  SUPABASE_URL: "https://vhwkwobsvalxqgijgfwk.supabase.co",
-  SUPABASE_ANON_KEY: "sb_publishable_H2D5MoQBKDjqXLCzOjauEw_fMScicPi"
+  SUPABASE_URL: "https://womcbmpncjrkzzswtusm.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_kOsWJd95dM1cRIJAYi6-RQ_sT9BljqH"
 };
