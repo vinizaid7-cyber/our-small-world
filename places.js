@@ -63,7 +63,7 @@
   };
   function plaza() {
     const d = P.days(), notes = ents("board").slice(0, 12);
-    const feed = db.entries.filter((e) => e.house !== "game").sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 18).map((e) => {
+    const feed = db.entries.filter((e) => e.house !== "game" && e.house !== "chat").sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 18).map((e) => {
       const t = e.house === "secrets" || e.private ? "" : e.title && e.title !== "🔒" ? ` «${esc(e.title)}»` : "";
       return `<div><b style="color:${esc(ui.prof(e.author).color)}">${esc(ui.prof(e.author).name)}</b> · ${VERB[e.house] || "شي جديد"}${t}<small>${timeAgo(e.created_at)}</small></div>`;
     }).join("");
@@ -206,7 +206,10 @@
     ["capsule", "⏳", "كبسولة مدفونة", "دفنتوا كبسولة زمنية", () => cnt("capsule") >= 1],
     ["farm1", "🌾", "أول حصاد", "قطفتوا أول محصول", () => OSW.game.state().harvests >= 1],
     ["rich", "💰", "أغنياء القرية", "جمعتوا 300 كوين", () => OSW.game.state().coins >= 300],
-    ["streak7", "🌹", "ورد أسبوع", "سقيتوا الورد 7 أيام ورا بعض", () => OSW.game.state().streak >= 7 && OSW.game.view().streak >= 7],
+    ["streak7", "🌹", "ورد أسبوع", "سقيتوا الورد 7 أيام ورا بعض", () => OSW.game.view().streak >= 14],
+    ["chat1", "💬", "أول رسالة شات", "حكيتوا بالشات", () => db.entries.some((e) => e.house === "chat")],
+    ["fashion", "👗", "أناقة", "اشتريتوا أول ملابس", () => Object.keys(OSW.game.state().inv).some((k) => /^cl_/.test(k))],
+    ["cart1", "🛒", "شغل جماعي", "سحبتوا العربة سوا", () => OSW.game.state().cart.deliveries >= 1],
     ["bless3", "🤲", "دعوة الحجّي", "نلتوا بركة الحجّي 3 أيام", () => Object.keys(OSW.game.state().blessed).length >= 3],
     ["gift1", "🎁", "هدية من القلب", "أرسلتوا هدية", () => OSW.game.state().gifts.length >= 1],
     ["order3", "📋", "خدّام أهل القرية", "سلّمتوا 3 طلبات", () => Object.keys(OSW.game.state().orders).length >= 3],

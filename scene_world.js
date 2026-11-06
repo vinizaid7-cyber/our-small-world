@@ -9,7 +9,7 @@
   OSW.HOUSES.forEach((h) => (POS[h.id] = { x: (h.x - 1300) / 21, z: (h.y - 940) / 21 }));
   Object.assign(POS, {
     home: { x: 0, z: -14 }, fountain: { x: 0, z: 0 }, tree: { x: -15, z: 0.5 }, plaza: { x: 15, z: -0.5 }, shop: { x: -24, z: 9.5 }, flowers: { x: 24, z: 9 },
-    hajji: { x: -62, z: 8 }, farm: { x: -57, z: 34 }, gate: { x: 0, z: 31 }, garden: { x: 62, z: 19 }, lighthouse: { x: 75, z: -2 }, lake: { x: 72, z: -2 },
+    hajji: { x: -62, z: 8 }, farm: { x: -57, z: 34 }, boutique: { x: -40, z: 31 }, gate: { x: 0, z: 31 }, garden: { x: 62, z: 19 }, lighthouse: { x: 75, z: -2 }, lake: { x: 72, z: -2 },
   });
   OSW.VILLAGERS = [
     { id: "v1", x: -8, z: 42, name: "بيت أبو خالد", wall: "#e8d3b0", roof: "#a4452c", t: 0 },
@@ -42,7 +42,7 @@
     doors.forEach(([x, z]) => PATHS.push([[0, 0], [x * 0.55, z * 0.55 + (z > 0 ? -1 : 1)], [x, z]]));
     PATHS.push([[0, 32], [0, 14]], [[0, -2], [0, -8]]);
     PATHS.push([[-24, 15.6], [-24, 11]], [[-12, 8], [-24, 15.6]], [[24, 15.6], [12, 8]], [[24, 15.6], [24, 11]]);
-    PATHS.push([[-30, 6], [-52, 12], [-62, 14.6]], [[-24, 15.6], [-40, 22], [-56, 24.5]], [[34, 6], [48, 10], [61, 25.6]], [[44, 4], [58, -2]]);
+    PATHS.push([[-30, 24], [-36, 31], [-40, 37.2]], [[-30, 6], [-52, 12], [-62, 14.6]], [[-24, 15.6], [-40, 22], [-56, 24.5]], [[34, 6], [48, 10], [61, 25.6]], [[44, 4], [58, -2]]);
     OSW.VILLAGERS.forEach((v) => PATHS.push([[v.x, v.z - 5.8], [v.x * 0.5, 34.5], [0, 33]]));
     PATHS.push([[0, 33], [0, 14]]);
   }
@@ -75,7 +75,7 @@
     OSW.HOUSES.forEach((h) => { const p = POS[h.id], m = OSW.HMETA[h.id] || {}; S.poi["house:" + h.id] = { x: p.x, z: p.z + (m.dz || 5.6) }; });
     Object.assign(S.poi, {
       home: { x: 0, z: -7.2 }, fountain: { x: 0, z: 5.6 }, plaza: { x: 15, z: 3.4 }, tree: { x: -15, z: 5.2 }, shop: { x: -24, z: 15.8 }, flowers: { x: 22.4, z: 14.6 },
-      hajji: { x: -62, z: 14.8 }, farm: { x: -56, z: 24 }, gate: { x: 0, z: 28.4 }, garden: { x: 62, z: 25.4 }, lighthouse: { x: 61, z: -2 },
+      hajji: { x: -62, z: 14.8 }, farm: { x: -56, z: 24 }, boutique: { x: -40, z: 37.2 }, barn: { x: -74.5, z: 39.4 }, cart: { x: -62, z: 19.4 }, gate: { x: 0, z: 28.4 }, garden: { x: 62, z: 25.4 }, lighthouse: { x: 61, z: -2 },
     });
     OSW.VILLAGERS.forEach((v) => (S.poi[v.id] = { x: v.x, z: v.z - 5.8 }));
     planPaths();
@@ -204,6 +204,22 @@
     for (let i = 0; i < 5; i++) B.sphere(-71 + i * 0.1, 0.2 + i * 0.01, 28.5 + i * 0.7, 0.55, 0.45, 0.55, "#e0cf93", 6);
     reg("farm", -57, 1, 34, 14, S.poi.farm.x, S.poi.farm.z); label("farm", "🌾 المزرعة", -57, 4.4, 28, { act: "farm", max: 85, badge: "farm" });
 
+    /* محل الأناقة */
+    const bq = POS.boutique;
+    B.push(bq.x, 0, bq.z); OSW.hparts.found(B, 8, 5.4);
+    B.box(0, 0.35, 0, 8, 3.7, 5.4, "#f7d6ec"); B.box(0, 4.05, 0, 8.8, 0.4, 6.2, "#8e4a94"); B.box(0, 4.45, 2.4, 7.0, 0.9, 0.4, "#b565b0");
+    B.box(-2.1, 0.6, 2.72, 3.2, 2.6, 0.12, "#6b4a70"); B.box(-2.1, 0.7, 2.8, 2.9, 2.4, 0.1, "#ffe3f3", 1); B.box(2.6, 0.6, 2.72, 2.2, 2.6, 0.12, "#6b4a70"); B.box(2.6, 0.7, 2.8, 1.9, 2.4, 0.1, "#ffe3f3", 1);
+    OSW.hparts.door(B, 0.1, 2.7, "#8e4a94", 1.3, 2.4);
+    for (let i = 0; i < 6; i++) { B.push(-3.4 + i * 1.36, 3.4, 3.4, 0, -0.5); B.box(0, 0, 0, 1.3, 0.1, 2.0, i % 2 ? "#fff" : "#d6639c"); B.pop(); }
+    [[-4.8, "#ff7aa8"], [-5.9, "#6d3fb3"], [4.9, "#2b3a55"]].forEach(([x, c]) => { B.cyl(x, 0, 3.6, 0.5, 0.3, 1.2, c, 8); B.box(x, 1.2, 3.6, 0.5, 0.6, 0.3, c); B.sphere(x, 2.05, 3.6, 0.22, 0.26, 0.22, "#f2d9c8", 7); B.cyl(x, 0, 3.6, 0.06, 0.06, 0.05, "#444", 5); });
+    B.pop(); SH.disc(bq.x, 0.1, bq.z, 6.4, "#000000", 16); col(bq.x, bq.z, 5.0);
+    reg("boutique", bq.x, 2.4, bq.z, 5.6, S.poi.boutique.x, S.poi.boutique.z); label("boutique", "👗 محل الأناقة", bq.x, 8.6, bq.z, { act: "boutique", max: 80 });
+    /* مخزن المزرعة وعربتها وقطع الأرض (تنضغط) */
+    reg("barn", -74.5, 2.0, 34, 4.2, S.poi.barn.x, S.poi.barn.z); label("barn", "🏚️ المخزن", -74.5, 7.6, 34, { act: "barn", max: 70 });
+    S.cartHome = { x: -62, z: 22 }; reg("cart", -62, 1.0, 22, 2.4, S.poi.cart.x, S.poi.cart.z); label("cart", "🛒 العربة", -62, 3.6, 22, { act: "cart", max: 55 });
+    col(-62, 22, 1.6);
+    for (let i = 0; i < 12; i++) { const px = -66 + (i % 4) * 5.4, pz = 28.4 + Math.floor(i / 4) * 5.4; S.poi["plot:" + i] = { x: px, z: pz + 2.7 }; reg("plot:" + i, px, 0.5, pz, 2.0, px, pz + 2.7); }
+
     /* بيوت أهل القرية */
     OSW.VILLAGERS.forEach((v) => {
       B.push(v.x, 0, v.z, PI); OSW.hparts.found(B, 6, 5); B.box(0, 0.35, 0, 6, 3.0, 5, v.wall);
@@ -273,6 +289,14 @@
     for (let i = 0; i < 6; i++) { B.box(-5.4 + i * 0.5, 0, 4.6, 0.12, 0.8, 0.12, "#fff"); } B.box(-4.2, 0.6, 4.6, 2.6, 0.08, 0.1, "#fff");
     B.sphere(-4.6, 0.55, 3.2, 0.7, 0.55, 0.7, "#6ec26e", 7); B.sphere(-3.6, 0.35, 3.8, 0.4, 0.3, 0.4, "#ff8fb1", 6, 0.3);
     B.pop(); swap("home", B);
+  };
+  S.rebuildCart = (colors, name) => {
+    const B = new Builder();
+    B.box(0, 0.45, 0, 2.5, 0.2, 1.6, "#9a6a3a"); [[-1.2, 0], [1.2, 0]].forEach(([x]) => [-0.9, 0.9].forEach((z) => { B.push(x, 0.42, z, 0, PI / 2); B.cyl(0, -0.05, 0, 0.42, 0.42, 0.14, "#4a3320", 10); B.pop(); }));
+    B.box(-1.25, 0.6, 0, 0.1, 0.5, 1.6, "#7a5236"); B.box(1.25, 0.6, 0, 0.1, 0.5, 1.6, "#7a5236"); B.box(0, 0.6, -0.8, 2.5, 0.5, 0.1, "#7a5236"); B.box(0, 0.6, 0.8, 2.5, 0.5, 0.1, "#7a5236");
+    B.box(-1.55, 0.9, 0, 1.2, 0.07, 0.07, "#5b3f27"); B.box(-2.2, 0.9, 0, 0.07, 0.07, 1.0, "#5b3f27");
+    colors.forEach((c, i) => { const col_ = i % 3, row = Math.floor(i / 3) % 2, lay = Math.floor(i / 6); B.push(-0.75 + col_ * 0.75, 0.65 + lay * 0.4, -0.3 + row * 0.6); B.box(0, 0, 0, 0.66, 0.36, 0.52, "#c9a06a"); B.sphere(0, 0.34, 0, 0.26, 0.1, 0.2, c, 5); B.pop(); });
+    swap(name || "cart", B);
   };
   S.rebuildFarm = (plots) => {
     const B = new Builder();

@@ -6,12 +6,13 @@
   const $ = (s) => document.querySelector(s);
 
   const st = { hour: 12, night: 0, season: "summer", paused: false, input: true, t: 0, last: 0, wmode: localStorage.getItem("osw_weather") || "auto", hourOverride: null };
-  const me = { x: 0, z: 38, ry: PI, phase: 0, mv: 0, ch: null, name: "", target: null, act: null, res: null, stuck: 0, prog: 0, px: 0, pz: 0, side: 0, follow: false, lastSent: 0, sentX: 0, sentZ: 0 };
+  const me = { speedMul: 1, sprint: false, vx: 0, vz: 0, x: 0, z: 38, ry: PI, phase: 0, mv: 0, ch: null, name: "", target: null, act: null, res: null, stuck: 0, prog: 0, px: 0, pz: 0, side: 0, follow: false, lastSent: 0, sentX: 0, sentZ: 0 };
   const pa = { x: -4, z: -7, ry: 0.5, phase: 0, mv: 0, ch: null, name: "", tx: -4, tz: -7, vis: false, sleep: false, inside: null, ghost: 0 };
   const cam = { yaw: 0, pitch: 0.5, dist: 26, tx: 0, ty: 1.4, tz: 36, follow: true, anim: null, saved: null };
-  const keys = { l: 0, r: 0, u: 0, d: 0 }, joy = { x: 0, y: 0, on: false };
-  let ctx = {}, labelsEl, tapMark = null, together = 0;
+  const keys = { l: 0, r: 0, u: 0, d: 0, sprint: 0 }, joy = { x: 0, y: 0, on: false };
+  let ctx = {}, labelsEl, tapMark = null, together = 0, holding = false;
   const meshes = {};
+  const carry = { me: [], partner: [] }, bagState = { n: 0 }, cartS = { colors: [], prev: [], lastT: 0, anim: null, home: { x: -62, z: 22 } }, crateCache = {};
   const pet = { x: 4, z: 6, ry: 0, phase: 0, mv: 0, tx: 4, tz: 6, wait: 1 };
   function stepPet(dt) {
     if (pet.tx == null) { pet.wait -= dt; pet.mv *= 0.9; if (pet.wait <= 0) { const a = Math.random() * 6.28, r = 3 + Math.random() * 7; pet.tx = Math.cos(a) * r; pet.tz = 3 + Math.sin(a) * r * 0.7; } return; }
@@ -123,6 +124,8 @@
     meshes.beam = mk((b) => { b.push(0, 0, 0, 0, 0, -PI / 2); b.cyl(0, 0, 0, 0.3, 6, 40, "#fff2b0", 10); b.pop(); b.push(0, 0, 0, 0, 0, PI / 2); b.cyl(0, 0, 0, 0.3, 6, 40, "#fff2b0", 10); b.pop(); });
     meshes.cloud = mk((b) => { [[0, 0, 0, 3.2, 1.7], [-3, -0.3, 0.5, 2.3, 1.3], [3.2, -0.2, -0.3, 2.5, 1.4], [0.6, 0.8, 0.2, 2.2, 1.4]].forEach(([x, y, z, rx, ry]) => b.sphere(x, y, z, rx, ry, rx * 0.8, "#ffffff", 8)); });
     meshes.bird = mk((b) => { b.sphere(0, 0, 0, 0.35, 0.25, 0.6, "#3a3a4a", 6); b.push(0, 0, 0, 0, 0, 0.5); b.box(0.5, 0, 0, 1.0, 0.04, 0.5, "#3a3a4a"); b.pop(); b.push(0, 0, 0, 0, 0, -0.5); b.box(-0.5, 0, 0, 1.0, 0.04, 0.5, "#3a3a4a"); b.pop(); });
+    meshes.link = mk((b) => b.box(0, 0, 0, 0.08, 0.08, 1, "#ff7aa8", 0.9));
+    meshes.bag = mk((b) => { b.box(0, 0, 0, 0.34, 0.42, 0.18, "#f7d6ec"); b.box(0, 0.42, 0, 0.22, 0.05, 0.03, "#8e4a94"); b.box(-0.1, 0.4, 0, 0.03, 0.18, 0.03, "#8e4a94"); b.box(0.1, 0.4, 0, 0.03, 0.18, 0.03, "#8e4a94"); b.box(0, 0.12, 0.1, 0.18, 0.18, 0.02, "#ff7aa8"); });
     meshes.cat = mk((b) => { b.box(0, 0.28, 0, 0.34, 0.3, 0.7, "#e0a050"); b.sphere(0, 0.62, 0.42, 0.2, 0.19, 0.18, "#e0a050", 7); b.box(-0.12, 0.76, 0.42, 0.07, 0.14, 0.05, "#e0a050"); b.box(0.12, 0.76, 0.42, 0.07, 0.14, 0.05, "#e0a050"); b.sphere(-0.07, 0.65, 0.58, 0.03, 0.03, 0.02, "#222", 4); b.sphere(0.07, 0.65, 0.58, 0.03, 0.03, 0.02, "#222", 4); [[-0.12, 0.3], [0.12, 0.3], [-0.12, -0.3], [0.12, -0.3]].forEach(([x, z]) => b.box(x, 0, z, 0.1, 0.18, 0.1, "#c98a3d")); b.push(0, 0.4, -0.38, 0, -0.9); b.box(0, 0, 0, 0.08, 0.5, 0.08, "#e0a050"); b.pop(); });
     meshes.fly = mk((b) => { b.sphere(0, 0, 0, 0.06, 0.06, 0.06, "#fff7a0", 4, 1); });
     meshes.bf = mk((b) => { b.box(-0.18, 0, 0, 0.34, 0.03, 0.3, "#ff9ad5"); b.box(0.18, 0, 0, 0.34, 0.03, 0.3, "#ffd36e"); });
@@ -142,7 +145,7 @@
     if (tag) tag.el.querySelector(".lt").textContent = o.name;
   }
   function remote(p) {
-    pa.tx = p.x; pa.tz = p.z; pa.ry = p.ry != null ? p.ry : pa.ry; pa.vis = true; pa.sleep = false; pa.remoteMv = p.mv ? 1 : 0; pa.lastMsg = performance.now();
+    pa.hold = !!p.h; pa.tx = p.x; pa.tz = p.z; pa.ry = p.ry != null ? p.ry : pa.ry; pa.vis = true; pa.sleep = false; pa.remoteMv = p.mv ? 1 : 0; pa.lastMsg = performance.now();
   }
 
   /* ---------- الحركة والتصادم ---------- */
@@ -174,17 +177,20 @@
         if (me.prog > 14 || me.stuck > 3.5) { me.x = me.target.x; me.z = me.target.z; arrive(); }
       }
     }
-    const moving = dx || dz;
-    if (moving) {
-      me.x += dx * speed * dt; me.z += dz * speed * dt; collide(me, 0.45);
-      const want = Math.atan2(dx, dz); me.ry += angDiff(me.ry, want) * Math.min(1, dt * 14);
-      me.phase += speed * dt * 2.1; me.mv += (1 - me.mv) * Math.min(1, dt * 10);
+    const moving = dx || dz, mul = (me.speedMul || 1) * (me.sprint || keys.sprint ? 1.55 : 1), kk = Math.min(1, dt * (moving ? 9 : 13));
+    me.vx += (dx * speed * mul - me.vx) * kk; me.vz += (dz * speed * mul - me.vz) * kk;
+    const sp = hy(me.vx, me.vz);
+    if (sp > 0.06) {
+      me.x += me.vx * dt; me.z += me.vz * dt; collide(me, 0.45);
+      if (moving) me.ry += angDiff(me.ry, Math.atan2(dx, dz)) * Math.min(1, dt * 14);
+      me.phase += sp * dt * 2.1; me.mv += (clamp(sp / 5.4, 0, 1.5) - me.mv) * Math.min(1, dt * 10);
       if (Math.floor(me.phase / PI) !== me._sp) { me._sp = Math.floor(me.phase / PI); OSW.audio && OSW.audio.sfx("step"); }
     } else me.mv += (0 - me.mv) * Math.min(1, dt * 10);
+    holding = !!(me.follow && pa.vis && !pa.inside && !pa.sleep && hy(me.x - pa.x, me.z - pa.z) < 3.2);
     // إرسال الموقع للشريك (6 مرات بالثانية)
     const now = performance.now();
     if (W.onMove && now - me.lastSent > 160 && (moving || hy(me.x - me.sentX, me.z - me.sentZ) > 0.01 || now - me.lastSent > 2500)) {
-      me.lastSent = now; me.sentX = me.x; me.sentZ = me.z; W.onMove({ x: +me.x.toFixed(2), z: +me.z.toFixed(2), ry: +me.ry.toFixed(2), mv: moving ? 1 : 0 });
+      me.lastSent = now; me.sentX = me.x; me.sentZ = me.z; W.onMove({ x: +me.x.toFixed(2), z: +me.z.toFixed(2), ry: +me.ry.toFixed(2), mv: moving || sp > 0.3 ? 1 : 0, h: holding ? 1 : 0 });
     }
   }
   function arrive() {
@@ -243,6 +249,25 @@
   }
 
   /* ---------- الرسم ---------- */
+  function crateMesh(c) {
+    if (crateCache[c]) return crateCache[c];
+    const b = new Builder(); b.box(0, 0, 0, 0.66, 0.36, 0.5, "#c9a06a"); b.box(0, 0.05, 0.26, 0.6, 0.04, 0.02, "#a97c50"); b.sphere(-0.15, 0.36, 0, 0.17, 0.12, 0.17, c, 5); b.sphere(0.15, 0.36, 0.02, 0.17, 0.12, 0.17, c, 5); b.sphere(0, 0.4, -0.08, 0.15, 0.11, 0.15, c, 5);
+    return (crateCache[c] = b.build(R.gl));
+  }
+  function drawCarried(o, colors, bags) {
+    for (let i = 0; i < colors.length; i++) { M.trs(o.x, 0, o.z, o.ry, 0, 0, 1, 1, 1, m1); M.trs(0, 0.82 + i * 0.4, 0.66, 0, 0, 0, 1, 1, 1, m2); M.mul(m1, m2, m2); R.draw(crateMesh(colors[i]), m2); }
+    for (let i = 0; i < (bags || 0); i++) { M.trs(o.x, 0, o.z, o.ry, 0, 0, 1, 1, 1, m1); M.trs(-0.52 - i * 0.12, 0.28, 0.12 + i * 0.1, 0.2, 0, 0, 1, 1, 1, m2); M.mul(m1, m2, m2); R.draw(meshes.bag, m2); }
+  }
+  const CART_PATH = [[-62, 22], [-48, 20.5], [-34, 18.5], [-26, 17.4]];
+  function drawCart(t) {
+    const D = S.dyn, a = cartS.anim;
+    if (!a) { if (D.cart) { M.trs(cartS.home.x, 0, cartS.home.z, -0.5, 0, 0, 1, 1, 1, m1); R.draw(D.cart, m1); } return; }
+    const el = (performance.now() - a.t0) / 1000, tot = 16;
+    if (el >= tot) { cartS.anim = null; return; }
+    const f = el < 8 ? el / 8 : 1 - (el - 8) / 8, seg = f * (CART_PATH.length - 1), i = Math.min(CART_PATH.length - 2, Math.floor(seg)), u = seg - i;
+    const A = CART_PATH[i], Bp = CART_PATH[i + 1], x = A[0] + (Bp[0] - A[0]) * u, z = A[1] + (Bp[1] - A[1]) * u, hd = Math.atan2(Bp[0] - A[0], Bp[1] - A[1]) + (el < 8 ? 0 : PI) + PI / 2;
+    M.trs(x, 0, z, hd, 0, 0, 1, 1, 1, m1); R.draw(el < 8 ? D.cartTravel : D.cartEmpty, m1);
+  }
   const m1 = new Float32Array(16), m2 = new Float32Array(16);
   function drawScene() {
     const cp = Math.cos(cam.pitch), eye = [cam.tx + Math.sin(cam.yaw) * cp * cam.dist, cam.ty + Math.sin(cam.pitch) * cam.dist, cam.tz + Math.cos(cam.yaw) * cp * cam.dist];
@@ -262,11 +287,16 @@
     if (st.night < 0.6) for (let i = 0; i < 4; i++) { const a = t * 0.18 + i * 1.6, rr = 34 + i * 7; M.trs(Math.cos(a) * rr, 22 + i * 2, Math.sin(a) * rr * 0.7 + 8, -a, 0, Math.sin(t * 6 + i) * 0.35, 1, 1, 1, m1); R.draw(meshes.bird, m1); }
     for (let i = 0; i < 6; i++) { const cx = i < 3 ? S.pos.flowers.x : S.pos.farm.x, cz = i < 3 ? S.pos.flowers.z : S.pos.farm.z, a = t * (0.6 + i * 0.1) + i * 2; M.trs(cx + Math.cos(a) * (3 + i % 3), 1.2 + Math.sin(a * 2) * 0.4, cz + Math.sin(a * 1.3) * 4, a, 0, Math.sin(t * 14 + i) * 0.6, 1, 1, 1, m1); R.draw(meshes.bf, m1); }
     if (st.night > 0.5) for (let i = 0; i < 22; i++) { const a = t * 0.3 + i * 1.7; M.trs(-40 + ((i * 37) % 80) + Math.cos(a) * 2, 0.9 + Math.sin(a * 1.4) * 0.5, -20 + ((i * 53) % 70) + Math.sin(a) * 2, 0, 0, 0, 1, 1, 1, m1); R.draw(meshes.fly, m1); }
+    // عربة المزرعة (وبتتحرك لما الاثنين يسحبوها)
+    drawCart(t);
     // شخصيات
     OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc); });
     M.trs(pet.x, Math.abs(Math.sin(pet.phase)) * 0.08 * pet.mv, pet.z, pet.ry, 0, 0, 1.3, 1.3, 1.3, m1); R.draw(meshes.cat, m1);
-    if (pa.ch && pa.vis && !pa.inside) OSW.drawChar(pa.ch, pa.x, pa.z, pa.ry, pa.phase, pa.mv, t, pa.sleep ? 0.55 : 1);
-    if (me.ch) OSW.drawChar(me.ch, me.x, me.z, me.ry, me.phase, me.mv, t, 1);
+    const dxp = pa.x - me.x, dzp = pa.z - me.z, sideMe = Math.cos(me.ry) * dxp - Math.sin(me.ry) * dzp, sideP = Math.cos(pa.ry) * -dxp - Math.sin(pa.ry) * -dzp;
+    const showLink = pa.vis && !pa.inside && !pa.sleep && (holding || (pa.hold && hy(dxp, dzp) < 4));
+    if (pa.ch && pa.vis && !pa.inside) { OSW.drawChar(pa.ch, pa.x, pa.z, pa.ry, pa.phase, pa.mv, t, pa.sleep ? 0.55 : 1, null, 1, 0, carry.partner.length ? { carry: true } : showLink ? { hold: sideP >= 0 ? 1 : -1 } : null); drawCarried(pa, carry.partner, null); }
+    if (me.ch) { OSW.drawChar(me.ch, me.x, me.z, me.ry, me.phase, me.mv, t, 1, null, 1, 0, carry.me.length ? { carry: true } : showLink ? { hold: sideMe >= 0 ? 1 : -1 } : null); drawCarried(me, carry.me, bagState.n); }
+    if (showLink) { const mx = (me.x + pa.x) / 2, mz = (me.z + pa.z) / 2, len = Math.max(0.4, hy(dxp, dzp) - 0.9); M.trs(mx, 1.0, mz, Math.atan2(dxp, dzp), 0, 0, 1, 1, len, m1); R.draw(meshes.link, m1); }
     // شفّاف: ظلال + شعاع المنارة + علامة اللمس
     R.blend(true);
     R.draw(D.shadow, null, [0, 0, 0], 0.26);
@@ -337,8 +367,8 @@
     labelsEl.addEventListener("click", (e) => { const l = e.target.closest(".l3.tap"); if (l && st.input) tapAct(l.dataset.act); });
     const kmap = { ArrowLeft: "l", a: "l", A: "l", ArrowRight: "r", d: "r", D: "r", ArrowUp: "u", w: "u", W: "u", ArrowDown: "d", s: "d", S: "d" };
     const typing = () => { const a = document.activeElement; return a && /INPUT|TEXTAREA|SELECT/.test(a.tagName); };
-    addEventListener("keydown", (e) => { if (typing() || !st.input) return; const k = kmap[e.key]; if (k) { keys[k] = 1; e.preventDefault(); } });
-    addEventListener("keyup", (e) => { const k = kmap[e.key]; if (k) keys[k] = 0; });
+    addEventListener("keydown", (e) => { if (e.key === "Shift") keys.sprint = 1; if (typing() || !st.input) return; const k = kmap[e.key]; if (k) { keys[k] = 1; e.preventDefault(); } });
+    addEventListener("keyup", (e) => { if (e.key === "Shift") keys.sprint = 0; const k = kmap[e.key]; if (k) keys[k] = 0; });
     addEventListener("blur", () => { keys.l = keys.r = keys.u = keys.d = 0; });
     // عصا الحركة
     const jb = $("#joy"), jk = $("#joyKnob"); let jid = null;
@@ -370,9 +400,10 @@
       fx.cv = $("#fx"); fx.c = fx.cv.getContext("2d"); fx.w = fx.cv.width = innerWidth; fx.h = fx.cv.height = innerHeight;
       updateSky(); setInterval(updateSky, 60000);
       rebuildStatic(); initNpcs(); bindInput();
-      S.rebuildTree(0); S.rebuildBoard(0); S.rebuildHome({ wall: "#FFF1D6", roof: "#E5484D", door: "#8a3b3b" }); S.rebuildFarm([]); S.rebuildFlowers(0, false, false);
+      S.rebuildTree(0); S.rebuildBoard(0); S.rebuildHome({ wall: "#FFF1D6", roof: "#E5484D", door: "#8a3b3b" }); S.rebuildFarm([]); S.rebuildFlowers(0, false, false); S.rebuildCart([], "cart"); S.rebuildCart([], "cartEmpty"); S.rebuildCart([], "cartTravel");
       mkLabel({ id: "home", text: "💞 بيتنا", x: S.pos.home.x, y: 9.4, z: S.pos.home.z, act: "home", max: 80, cls: "home", dynamic: "home" });
       ["me", "partner"].forEach((w) => mkLabel({ id: "tag_" + w, text: "", x: 0, y: 0, z: 0, cls: "tag " + w, max: 70, dynamic: w, follow: () => { const o = w === "me" ? me : pa; if (!o.ch || (w === "partner" && (!pa.vis || pa.inside))) return null; return [o.x, 2.55, o.z]; } }));
+      mkLabel({ id: "holdh", text: "💞", x: 0, y: 0, z: 0, cls: "mood", max: 60, dynamic: "holdh", follow: () => (holding && pa.vis ? [(me.x + pa.x) / 2, 2.9, (me.z + pa.z) / 2] : null) });
       mkLabel({ id: "zz", text: "💤", x: 0, y: 0, z: 0, cls: "mood", max: 40, dynamic: "zz", follow: () => (pa.vis && pa.sleep && !pa.inside ? [pa.x, 3.0, pa.z] : null) });
       mkLabel({ id: "inside", text: "", x: 0, y: 0, z: 0, cls: "inside", max: 70, dynamic: "inside", follow: () => { if (!pa.inside || !S.pos[pa.inside.replace("house:", "")]) return null; const p = S.pos[pa.inside.replace("house:", "")]; return [p.x, 6.4, p.z + 3]; } });
       requestAnimationFrame(frame); return true;
@@ -381,9 +412,9 @@
     resize() { R.resize(); },
     pause(v) { st.paused = !!v; },
     setInputEnabled(v) { st.input = v; if (!v) { joy.x = joy.y = 0; keys.l = keys.r = keys.u = keys.d = 0; } },
-    updateSky, period, get night() { return st.night; }, get season() { return st.season; },
+    updateSky, period,
     setHour(h) { st.hourOverride = h; return updateSky(); },
-    setWeather(m) { st.wmode = m; localStorage.setItem("osw_weather", m); }, get weather() { return st.wmode; },
+    setWeather(m) { st.wmode = m; localStorage.setItem("osw_weather", m); }, 
     poi: (a) => S.poi[/^[a-z]+:/.test(a) || S.poi[a] ? a : "house:" + a],
     setLook, remote,
     spawnMe(x, z) { me.x = x; me.z = z; cam.tx = x; cam.tz = z; },
@@ -422,10 +453,25 @@
     partnerDist() { return pa.vis ? hy(me.x - pa.x, me.z - pa.z) : 1e9; },
     getMe: () => ({ x: me.x, z: me.z }),
     setPlayerLabelsHidden(v) { labs.forEach((l) => { if (l.dynamic === "me" || l.dynamic === "partner") l.hidden = v; }); },
+    setCarry(w, colors) { carry[w] = colors || []; },
+    setBags(n) { bagState.n = n || 0; },
+    setSpeedMul(m) { me.speedMul = m; },
+    setSprint(v) { me.sprint = !!v; },
+    setCart(colors, last) {
+      const prev = cartS.colors; cartS.colors = colors || [];
+      if (last && last.t !== cartS.lastT) {
+        const fresh = cartS.lastT !== 0 && Date.now() - last.t < 20000; cartS.lastT = last.t;
+        if (fresh) { S.rebuildCart(prev.length ? prev : Array(last.n || 1).fill("#e63946"), "cartTravel"); cartS.anim = { t0: performance.now() }; }
+      }
+      if (!last && cartS.lastT === 0) cartS.lastT = -1;
+      S.rebuildCart(cartS.colors, "cart");
+    },
+    distTo: (x, z) => hy(me.x - x, me.z - z),
     petPos: () => ({ x: pet.x, z: pet.z }),
     npcPos: (id) => (npc[id] ? { x: npc[id].x, z: npc[id].z } : null),
     openDoor() {}, closeDoors() {},
     focusFor() { return []; },
   });
+  Object.defineProperties(W, { night: { get: () => st.night }, season: { get: () => st.season }, weather: { get: () => st.wmode }, holding: { get: () => holding } });
   OSW.POI = S.poi;
 })();

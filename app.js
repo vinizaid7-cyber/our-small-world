@@ -8,7 +8,7 @@
   /* ---------- الشخصية (شكلي وشكل الشريك) ---------- */
   app.lookOf = (uid) => {
     const p = db.profiles.find((x) => x.id === uid) || db.me || {}, k = db.kv["look:" + uid] || {};
-    return { gender: k.gender || "boy", hairStyle: k.hairStyle || (k.gender === "girl" ? "long" : "short"), skin: k.skin || "#f2c9a0", color: p.color, hair: p.hair };
+    return { gender: k.gender || "boy", hairStyle: k.hairStyle || (k.gender === "girl" ? "long" : "short"), skin: k.skin || "#f2c9a0", color: p.color, hair: p.hair, outfit: k.outfit || "casual", acc: k.acc || [] };
   };
   app.refreshAvatars = (draft) => {
     if (!db.me || !W.S || !W.S.ready) return;
@@ -75,8 +75,8 @@
 
   /* ---------- دخول القرية ---------- */
   async function enterVillage() {
-    $("#auth").hidden = true; $("#hud").hidden = false; $("#zoomctl").hidden = false; $("#guide").hidden = false; $("#joy").hidden = false;
-    ready = true; G.init(db, ui);
+    $("#auth").hidden = true; $("#hud").hidden = false; $("#zoomctl").hidden = false; $("#guide").hidden = false; $("#joy").hidden = false; $("#btnSprint").hidden = false;
+    ready = true; G.init(db, ui); OSW.chat.init(db, ui, W);
     app.refreshAvatars(); syncAll(); P.checkAchievements();
     db.on("change", onChange); db.on("presence", updatePresence); db.on("pos", onPos);
     W.onMove = (p) => db.sendPos(p);
@@ -121,14 +121,15 @@
 
   /* ---------- أحداث البيانات ---------- */
   let syncTimer, achTimer;
-  const NICE = (e) => (e.house === "game" ? ({ water: "سقى ورود الحب 💦", feed: "أطعم الحجّي والحجّة 🍞", plant: "زرع بالمزرعة 🌱", harvest: "قطف من المزرعة 🧺", sell: "باع محاصيل 🪙", buy: "اشترى من سعدون 🏪", gift: "أرسل هدية 🎁", order: "سلّم طلب لأهل القرية 📋" }[e.title] || "لعب بالمزرعة") : ({ comment: "علّق على شي", fountain: "جاوب سؤال النافورة", wish: "رمى عملة بالنافورة", light: "ضوّى المنارة 🔦", board: "علّق ورقة بالساحة" }[e.house] || ("أضاف شي بـ" + (OSW.HOUSE[e.house] ? OSW.HOUSE[e.house].name : "القرية"))));
+  const NICE = (e) => (e.house === "game" ? ({ water: "سقى ورود الحب 💦", feed: "أطعم الحجّي والحجّة 🍞", plant: "زرع بالمزرعة 🌱", harvest: "قطف من المزرعة 🧺", sell: "باع محاصيل 🪙", buy: "اشترى من سعدون 🏪", gift: "أرسل هدية 🎁", order: "سلّم طلب لأهل القرية 📋", cart_pull: "عم يسحب العربة! 🛒 اضغط «اسحب» الحين" }[e.title] || "لعب بالمزرعة") : ({ comment: "علّق على شي", fountain: "جاوب سؤال النافورة", wish: "رمى عملة بالنافورة", light: "ضوّى المنارة 🔦", board: "علّق ورقة بالساحة" }[e.house] || ("أضاف شي بـ" + (OSW.HOUSE[e.house] ? OSW.HOUSE[e.house].name : "القرية"))));
   function onChange(ev) {
     if (!ready) return;
     clearTimeout(syncTimer); syncTimer = setTimeout(() => { syncAll(); app.refreshAvatars(); updatePresence(); ui.room.refreshSoon(); P.refresh(); }, 90);
     clearTimeout(achTimer); achTimer = setTimeout(() => P.checkAchievements(), 1500);
+    if (ev.remote && ev.table === "entries" && ev.type === "INSERT" && ev.row && ev.row.house === "chat" && ev.row.author !== db.uid) { OSW.chat.incoming(ev.row); return; }
     if (ev.remote && ev.table === "entries" && ev.type === "INSERT" && ev.row && ev.row.author !== db.uid) {
       const n = ui.prof(ev.row.author).name, game = ev.row.house === "game";
-      if (game && ["chat", "together", "harvest", "plant", "sell", "buy", "order"].includes(ev.row.title)) return;
+      if (game && ["story", "together", "harvest", "plant", "sell", "buy", "order", "stash", "cart_load", "sellcrate"].includes(ev.row.title)) return;
       const inside = ui.state.room === ev.row.house;
       if (!inside) { ui.toast("💌 " + esc(n) + ": " + NICE(ev.row), "love", 4500); OSW.audio.sfx("ding"); }
       notify("عالمنا الصغير", `${n}: ${NICE(ev.row)}`);
@@ -186,14 +187,14 @@
     await W.walkToPOI("house:" + id); await W.focusOn("house:" + id, 850);
     OSW.audio.sfx("door"); await sleep(200);
     $("#curtain").classList.add("on"); await sleep(320);
-    $("#hud").hidden = true; $("#zoomctl").hidden = true; $("#guide").hidden = true; $("#joy").hidden = true; W.pause(true);
+    $("#hud").hidden = true; $("#zoomctl").hidden = true; $("#guide").hidden = true; $("#joy").hidden = true; $("#btnSprint").hidden = true; W.pause(true);
     ui.room.open(id); await sleep(60); $("#curtain").classList.remove("on"); busyNav = false;
   }
   async function exitHouse() {
     if (busyNav || !ui.state.room) return; busyNav = true;
     const r = $("#room"); r.classList.add("out"); await sleep(260);
     ui.room.close(); r.classList.remove("out");
-    $("#hud").hidden = false; $("#zoomctl").hidden = false; $("#guide").hidden = false; $("#joy").hidden = false; W.pause(false);
+    $("#hud").hidden = false; $("#zoomctl").hidden = false; $("#guide").hidden = false; $("#joy").hidden = false; $("#btnSprint").hidden = false; W.pause(false);
     OSW.audio.sfx("door"); syncAll(); P.checkAchievements();
     await W.releaseFocus(750); W.setInputEnabled(true); busyNav = false; db.track("village");
   }
@@ -201,12 +202,32 @@
 
   async function goPlace(id) {
     if (!$("#modal").hidden && P.current === id) return;
-    if (!["fountain", "plaza", "tree", "garden", "lighthouse", "gate", "home", "ach", "shop", "farm", "flowers", "hajji", "tasks", "orders", "inv"].includes(id)) return;
+    if (!["fountain", "plaza", "tree", "garden", "lighthouse", "gate", "home", "ach", "shop", "farm", "flowers", "hajji", "tasks", "orders", "inv", "boutique", "wardrobe", "cart"].includes(id)) return;
     if (W.S.poi[id]) await W.walkToPOI(id);
     W.setInputEnabled(false); OSW.audio.sfx("pop"); P.open(id);
     const prev = ui.onModalClose; ui.onModalClose = () => { prev && prev(); W.setInputEnabled(true); };
   }
   app.goPlace = goPlace;
+  // زرع/قطف بالإيد: بتضغط عالأرض، الشخصية بتمشي وبتشتغل
+  function plotAct(i, walk) {
+    if (walk) { const p = W.S.poi["plot:" + i]; return p ? W.goTo(p.x, p.z, "plot:" + i) : null; }
+    const v = G.view(), p = v.plots[i], carried = G.carryOf(db.uid);
+    OSW.audio.sfx("pop");
+    if (!p) {
+      const c = G.CROPS[G.ui.last], fert = !!G.ui.fert && G.has("fert");
+      if (G.state().coins < c.seed) return ui.toast(`ما معك مصاري للبذرة 🪙 (${c.seed})`);
+      W.say("me", "🌱", 1600); return G.do("plant", { plot: i, crop: G.ui.last, fert }).then(() => ui.toast(`${c.e} زرعت ${c.n}${fert ? " بسماد 🌿" : ""}`, "", 1800)).catch((e) => ui.toast("⚠️ " + esc(e.message)));
+    }
+    if (!p.ripe) return ui.toast(`${G.CROPS[p.crop].e} لسا بدها ${p.left >= 60 ? Math.floor(p.left / 60) + " س " + (p.left % 60) : p.left} د`, "", 2200);
+    if (carried.length >= 3) return ui.toast("إيدك مليانة! 📦📦📦 حطّ الصناديق بالمخزن 🏚️ أو بالعربة 🛒", "gold", 3200);
+    W.say("me", "🧺", 1600); return G.do("harvest", { plot: i }).then(() => { OSW.audio.sfx("coin"); ui.toast(`📦 شلت صندوق ${G.CROPS[p.crop].n} (${G.carryOf(db.uid).length}/3)`, "", 1800); }).catch((e) => ui.toast("⚠️ " + esc(e.message)));
+  }
+  function barnAct() {
+    const c = G.carryOf(db.uid);
+    if (c.length) return G.do("stash", {}).then(() => { OSW.audio.sfx("coin"); ui.toast("🏚️ حطّيت الصناديق بالمخزن", "", 2000); }).catch((e) => ui.toast("⚠️ " + esc(e.message)));
+    return goPlace("farm");
+  }
+  app.plotAct = plotAct;
   async function foundHidden(id) {
     const my = ui.my(); if (my.found.includes(id)) return;
     const o = OSW.HIDDEN.find((x) => x.id === id), found = my.found.concat(id);
@@ -221,6 +242,8 @@
     if (k === "house") return enterHouse(v);
     if (k === "hidden") return foundHidden(v);
     if (k === "partner") return toggleWalk();
+    if (k === "plot") return plotAct(+v);
+    if (k === "barn") return barnAct();
     if (k === "pet") { OSW.audio.sfx("heart"); ui.hearts("🐱", 6); W.say("pet", rand(["مياوو 😻", "بدي سمكة 🐟", "فركلي راسي 💕", "بحبكم! مياو"]), 3500); return; }
     if (k === "npc") return npcTalk(v);
     return goPlace(k);
@@ -257,7 +280,8 @@
     const snd = $("#btnSound"); snd.textContent = OSW.audio.enabled ? "🔊" : "🔇";
     snd.onclick = () => { const on = OSW.audio.toggle(); snd.textContent = on ? "🔊" : "🔇"; ui.toast(on ? "الصوت شغّال 🎶" : "الصوت مسكّر", "", 1500); };
     $("#btnAch").onclick = () => !busyNav && goPlace("ach"); $("#btnMenu").onclick = () => !busyNav && goPlace("gate");
-    $("#btnTasks").onclick = () => !busyNav && goPlace("tasks"); $("#coinPill").onclick = () => !busyNav && goPlace("inv"); $("#dayPill").onclick = () => !busyNav && goPlace("plaza");
+    $("#btnTasks").onclick = () => !busyNav && goPlace("tasks"); $("#btnChat").onclick = () => OSW.chat.toggle();
+    const sp = $("#btnSprint"); sp.onpointerdown = (e) => { e.preventDefault(); W.setSprint(true); sp.classList.add("on"); }; const spOff = () => { W.setSprint(false); sp.classList.remove("on"); }; sp.onpointerup = spOff; sp.onpointerleave = spOff; sp.onpointercancel = spOff; $("#coinPill").onclick = () => !busyNav && goPlace("inv"); $("#dayPill").onclick = () => !busyNav && goPlace("plaza");
     $("#guide").onclick = guideTalk;
     $("#zoomctl").onclick = (e) => {
       const b = e.target.closest("[data-z]"); if (!b) return; const z = b.dataset.z;

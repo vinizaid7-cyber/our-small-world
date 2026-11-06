@@ -267,3 +267,27 @@
     skins: ["#f6d2b0", "#f2c9a0", "#e0a97c", "#c68a5e", "#8d5a3b"],
   };
 })();
+
+/* ---------- الملابس (تأثيرها على السرعة) ---------- */
+(function () {
+  const OSW = window.OSW;
+  OSW.CLOTHES = {
+    // outfit = طقم كامل | acc = إكسسوار
+    casual: { n: "لبس عادي", e: "👕", price: 0, kind: "outfit", style: "casual", speed: 1, note: "لبسك الأساسي" },
+    hoodie: { n: "هودي مريح", e: "🧥", price: 60, kind: "outfit", style: "hoodie", speed: 1.03, c1: "#6c7a89", c2: "#2f3a4a", note: "خفيف ومريح (+3% سرعة)" },
+    sport: { n: "لبس رياضة", e: "🏃", price: 90, kind: "outfit", style: "sport", speed: 1.18, c1: "#1fa3d8", c2: "#223344", note: "بتركض أسرع (+18%)" },
+    jacket: { n: "جاكيت جلد", e: "🧥", price: 140, kind: "outfit", style: "jacket", speed: 1, c1: "#3b2f2f", c2: "#2a3140", note: "أناقة بلا تأثير" },
+    suit: { n: "بدلة رسمية", e: "🤵", price: 240, kind: "outfit", style: "suit", speed: 0.8, c1: "#262b38", c2: "#262b38", gender: "boy", note: "ثقيلة (-20% سرعة) بس للمناسبات" },
+    thobe: { n: "ثوب أبيض", e: "🥻", price: 150, kind: "outfit", style: "thobe", speed: 0.9, c1: "#f4f1e8", c2: "#f4f1e8", gender: "boy", note: "تراثي (-10% سرعة)" },
+    dress: { n: "فستان صيفي", e: "👗", price: 170, kind: "outfit", style: "dress", speed: 0.95, c1: "#ff7aa8", c2: "#ff7aa8", gender: "girl", note: "ناعم (-5% سرعة)" },
+    gown: { n: "فستان سهرة", e: "👗", price: 300, kind: "outfit", style: "gown", speed: 0.78, c1: "#6d3fb3", c2: "#6d3fb3", gender: "girl", note: "فخم وثقيل (-22% سرعة)" },
+    pajama: { n: "بيجامة نوم", e: "🛌", price: 70, kind: "outfit", style: "pajama", speed: 1, c1: "#8fb8ff", c2: "#8fb8ff", note: "للنوم المريح" },
+    rain: { n: "معطف مطر", e: "☔", price: 110, kind: "outfit", style: "rain", speed: 0.97, c1: "#ffd23f", c2: "#33415a", note: "للمطر والشتاء" },
+    cap: { n: "كاب", e: "🧢", price: 35, kind: "acc", slot: "head", speed: 1 },
+    shades: { n: "نظارة شمس", e: "🕶️", price: 45, kind: "acc", slot: "face", speed: 1 },
+    scarf: { n: "شال", e: "🧣", price: 40, kind: "acc", slot: "neck", speed: 1 },
+    crown: { n: "تاج ورد", e: "🌸", price: 55, kind: "acc", slot: "head", gender: "girl", speed: 1 },
+    bow: { n: "فيونكة", e: "🎀", price: 30, kind: "acc", slot: "head", gender: "girl", speed: 1 },
+    tie: { n: "ربطة عنق", e: "👔", price: 25, kind: "acc", slot: "neck", gender: "boy", speed: 1 },
+  };
+})();

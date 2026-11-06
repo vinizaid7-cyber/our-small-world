@@ -27,6 +27,7 @@
         <div class="pill gold" id="coinPill" title="مصاريكم">🪙 <b id="coinNum">0</b></div>
       </div>
       <div class="hud-btns">
+        <button id="btnChat" class="rbtn" aria-label="الشات">💬<i id="chatBadge" class="rb" hidden>0</i></button>
         <button id="btnTasks" class="rbtn" aria-label="مهام اليوم">✅<i id="taskBadge" class="rb" hidden>0</i></button>
         <button id="btnSound" class="rbtn" aria-label="الصوت">🔇</button>
         <button id="btnAch" class="rbtn" aria-label="الإنجازات">🏅</button>
@@ -43,6 +44,8 @@
     <button data-z="home" aria-label="للساحة">🏡</button>
   </div>
   <div id="joy" hidden><div id="joyKnob"></div></div>
+  <button id="btnSprint" class="sprint" hidden aria-label="ركض">🏃</button>
+  <section id="chat" hidden><div class="chat-head"><b>💬 شات</b><button id="chatClose" aria-label="إغلاق">✕</button></div><div id="chatList"></div><div id="chatEmo"></div><form id="chatForm"><input id="chatIn" autocomplete="off" maxlength="400" placeholder="اكتب رسالة…"><button class="btn berry" type="submit">أرسل</button></form></section>
 
   <div id="guide" hidden role="button" tabindex="0" aria-label="دليل القرية"><span class="gcat">🐱</span><span id="guideText"></span></div>
 
@@ -73,6 +76,7 @@
   <script src="world3d.js"></script>
   <script src="ui.js"></script>
   <script src="game.js"></script>
+  <script src="chat.js"></script>
   <script src="places.js"></script>
   <script src="app.js"></script>
 </body>

@@ -1,6 +1,6 @@
 /* Service Worker: يخلّي التطبيق يفتح بسرعة وحتى بدون إنترنت (الواجهة بس) */
-const CACHE = "osw-v3";
-const CORE = ["./", "index.html", "check.html", "style.css", "config.js", "util.js", "data.js", "content.js", "engine3d.js", "audio.js", "scene_houses.js", "scene_world.js", "chars3d.js", "world3d.js", "game.js", "ui.js", "places.js", "app.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
+const CACHE = "osw-v4";
+const CORE = ["./", "index.html", "check.html", "style.css", "config.js", "util.js", "data.js", "content.js", "engine3d.js", "audio.js", "scene_houses.js", "scene_world.js", "chars3d.js", "world3d.js", "game.js", "chat.js", "ui.js", "places.js", "app.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
