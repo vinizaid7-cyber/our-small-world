@@ -114,6 +114,7 @@
       return this;
     }
     sphere(x, y, z, rx, ry, rz, col, seg = 8, e = 0, hemi = false) {
+      if (seg >= 7) seg = Math.round(seg * 1.25);
       const c = rgb(col), rings = Math.max(3, Math.round(seg * 0.7)), maxp = hemi ? PI / 2 : PI;
       const P = (i, j) => { const ph = (i / rings) * maxp, th = (j / seg) * PI * 2, sp = sin(ph); return [[x + rx * sp * cos(th), y + ry * cos(ph), z + rz * sp * sin(th)], [sp * cos(th) / rx, cos(ph) / ry, sp * sin(th) / rz]]; };
       for (let i = 0; i < rings; i++) for (let j = 0; j < seg; j++) {
@@ -163,17 +164,21 @@ void main(){
   vec4 wp=uModel*vec4(aPos,1.0);
   wp.x+=sin(uTime*1.3+wp.z*0.4)*uSway*max(aPos.y,0.0)*0.02;
   vec3 n=normalize(mat3(uModel[0].xyz,uModel[1].xyz,uModel[2].xyz)*aNor);
-  float d=max(dot(n,-uSunDir),0.0);
+  float nd=dot(n,-uSunDir);
+  float d=clamp((nd+0.22)/1.22,0.0,1.0);
   vec3 amb=mix(uAmbBot,uAmbTop,n.y*0.5+0.5);
   vec3 base=aCol*uTint.rgb;
-  vec3 lit=base*(amb+uSunCol*d);
+  float ao=mix(0.66,1.0,smoothstep(0.0,1.5,wp.y)); ao=mix(ao,1.0,smoothstep(0.35,0.75,n.y));
+  vec3 vd=normalize(uCam-wp.xyz);
+  float rim=pow(1.0-max(dot(n,vd),0.0),3.0)*0.09*(1.0-uNight);
+  vec3 lit=base*(amb+uSunCol*d)*ao+vec3(1.0,0.93,0.82)*rim*(1.0-aEm);
   vCol=mix(lit,base*1.6,aEm*uNight);
   float dist=length(wp.xyz-uCam);
   vFog=clamp((dist-uFogN)/(uFogF-uFogN),0.0,1.0);
   gl_Position=uVP*wp;
 }`;
   const FS = `precision mediump float;varying vec3 vCol;varying float vFog;uniform float uAlpha;
-void main(){float a=(1.0-vFog)*uAlpha;gl_FragColor=vec4(vCol*a,a);}`;
+void main(){float a=(1.0-vFog)*uAlpha;vec3 c=clamp(vCol,0.0,1.0);float l=dot(c,vec3(0.299,0.587,0.114));c=mix(vec3(l),c,1.16);c=clamp(c,0.0,1.0);c=c*0.62+(c*c*(3.0-2.0*c))*0.38;gl_FragColor=vec4(c*a,a);}`;
 
   const R = (OSW.R = { gl: null, canvas: null, vp: new Float32Array(16), ivp: new Float32Array(16), eye: [0, 0, 0], u: {}, drawn: 0 });
   const mdl = new Float32Array(16);

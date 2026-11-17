@@ -49,7 +49,7 @@
   }
   const period = (h) => (h < 5 ? "night" : h < 11 ? "morning" : h < 16 ? "noon" : h < 20 ? "evening" : "night");
   function envNow() {
-    if (mode === "in") return { sunDir: [0.25, -0.9, 0.35], sunCol: [0.38, 0.34, 0.28], ambTop: [0.93, 0.9, 0.86], ambBot: [0.74, 0.7, 0.66], night: 0.35 + 0.3 * st.night, fogN: 250, fogF: 520, time: st.t };
+    if (mode === "in") return { sunDir: [0.45, -0.8, 0.4], sunCol: [0.5, 0.44, 0.36], ambTop: [0.76, 0.73, 0.74], ambBot: [0.52, 0.48, 0.52], night: 0.35 + 0.3 * st.night, fogN: 250, fogF: 520, time: st.t };
     const h = st.hour, n = st.night, a = (PI * (h - 6)) / 12;
     let sd = h >= 6 && h <= 18 ? [-Math.cos(a) * 0.8, -Math.max(0.28, Math.sin(a)), -0.42] : [0.35, -0.8, 0.35];
     const l = hy(sd[0], sd[1], sd[2]); sd = sd.map((v) => v / l);

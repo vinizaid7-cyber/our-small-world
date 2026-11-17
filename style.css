@@ -409,3 +409,6 @@ html.inside #world{background:radial-gradient(circle at 50% 38%,#3d2f5e,#1b1530 
 #placeBar button{background:#fff;border-radius:50%;width:38px;height:38px;font-size:18px;color:var(--ink)}
 #sleepFade{position:fixed;inset:0;background:#05061a;z-index:98;display:grid;place-items:center;opacity:0;pointer-events:none;transition:opacity 1s}
 #sleepFade.on{opacity:1;pointer-events:auto}#sleepFade span{font-size:90px;animation:bnc 2s ease-in-out infinite}
+
+/* osw-vignette: لمسة جرافيك ناعمة */
+#world::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 58%,rgba(24,14,48,.26) 100%)}
