@@ -76,7 +76,7 @@
   /* ---------- دخول القرية ---------- */
   async function enterVillage() {
     $("#auth").hidden = true; $("#hud").hidden = false; $("#zoomctl").hidden = false; $("#guide").hidden = false; $("#joy").hidden = false; $("#btnSprint").hidden = false;
-    ready = true; G.init(db, ui); OSW.chat.init(db, ui, W);
+    ready = true; G.init(db, ui); OSW.chat.init(db, ui, W); if (OSW.events) OSW.events.start(db, ui, W); if (OSW.law) OSW.law.start(db, ui, W);
     app.refreshAvatars(); syncAll(); P.checkAchievements();
     db.on("change", onChange); db.on("presence", updatePresence); db.on("pos", onPos);
     W.onMove = (p) => db.sendPos(p);
@@ -158,8 +158,9 @@
     if (!p) { el.classList.remove("on"); $("#presenceText").textContent = "بانتظار شريكك يدخل القرية"; W.setPartnerState({ visible: false }); return; }
     const pr = db.presence[p.id];
     if (pr) {
-      const inHouse = OSW.HOUSE[pr.where] ? "house:" + pr.where : null;
-      el.classList.add("on"); $("#presenceText").textContent = `${p.name} موجود هلأ · ${inHouse ? "في " + OSW.HOUSE[pr.where].name : PLACE_NAMES[pr.where] || "بالقرية"}`;
+      const inHouse = OSW.HOUSE[pr.where] ? "house:" + pr.where : null, sp = /^in:/.test(pr.where || "") ? pr.where.slice(3) : null;
+      W.setPartnerSpace(sp);
+      el.classList.add("on"); $("#presenceText").textContent = `${p.name} موجود هلأ · ${inHouse ? "في " + OSW.HOUSE[pr.where].name : sp ? { home: "ببيتكم من جوّا", shop: "جوّا الدكان", boutique: "بمحل الأناقة", police: "بمركز الشرطة" }[sp] || "جوّا" : PLACE_NAMES[pr.where] || "بالقرية"}`;
       W.setPartnerState({ visible: true, sleeping: false, inside: inHouse });
       if (inHouse && W.S.poi[inHouse]) W.remote({ x: W.S.poi[inHouse].x, z: W.S.poi[inHouse].z, ry: 0 });
     } else {
@@ -194,6 +195,7 @@
     if (busyNav || !ui.state.room) return; busyNav = true;
     const r = $("#room"); r.classList.add("out"); await sleep(260);
     ui.room.close(); r.classList.remove("out");
+    if (W.mode === "in") { $("#hud").hidden = false; $("#zoomctl").hidden = false; $("#guide").hidden = false; $("#joy").hidden = false; $("#btnSprint").hidden = false; $("#btnFurn").hidden = W.interior !== "home"; W.pause(false); OSW.audio.sfx("door"); W.setInputEnabled(true); busyNav = false; return; }
     $("#hud").hidden = false; $("#zoomctl").hidden = false; $("#guide").hidden = false; $("#joy").hidden = false; $("#btnSprint").hidden = false; W.pause(false);
     OSW.audio.sfx("door"); syncAll(); P.checkAchievements();
     await W.releaseFocus(750); W.setInputEnabled(true); busyNav = false; db.track("village");
@@ -202,8 +204,8 @@
 
   async function goPlace(id) {
     if (!$("#modal").hidden && P.current === id) return;
-    if (!["fountain", "plaza", "tree", "garden", "lighthouse", "gate", "home", "ach", "shop", "farm", "flowers", "hajji", "tasks", "orders", "inv", "boutique", "wardrobe", "cart"].includes(id)) return;
-    if (W.S.poi[id]) await W.walkToPOI(id);
+    if (!["fountain", "plaza", "tree", "garden", "lighthouse", "gate", "home", "ach", "shop", "farm", "flowers", "hajji", "tasks", "orders", "inv", "boutique", "wardrobe", "cart"].includes(id) && !G.openers[id]) return;
+    if (W.mode === "out" && W.S.poi[id]) await W.walkToPOI(id);
     W.setInputEnabled(false); OSW.audio.sfx("pop"); P.open(id);
     const prev = ui.onModalClose; ui.onModalClose = () => { prev && prev(); W.setInputEnabled(true); };
   }
@@ -243,6 +245,15 @@
     if (k === "hidden") return foundHidden(v);
     if (k === "partner") return toggleWalk();
     if (k === "plot") return plotAct(+v);
+    if (k === "exit") return exitInterior();
+    if (act === "wedding") return goPlace("wedding");
+    if (k === "console") return openConsole(v);
+    if (k === "furn") return furnTap(v);
+    if (k === "counter") return goPlace(W.interior === "boutique" ? "boutique" : "shop");
+    if (k === "shelf") return goPlace("shop");
+    if (k === "rack") return goPlace("boutique");
+    if (k === "mirror") return goPlace("wardrobe");
+    if (W.mode === "out" && (act === "home" || act === "shop" || act === "boutique")) return enterInterior(act);
     if (k === "barn") return barnAct();
     if (k === "pet") { OSW.audio.sfx("heart"); ui.hearts("🐱", 6); W.say("pet", rand(["مياوو 😻", "بدي سمكة 🐟", "فركلي راسي 💕", "بحبكم! مياو"]), 3500); return; }
     if (k === "npc") return npcTalk(v);
@@ -258,6 +269,54 @@
     const on = !W.following; W.followPartner(on); $("#btnWalk").classList.toggle("on", on);
     ui.toast(on ? `💞 ماشي مع ${esc(db.partner.name)}` : "وقفت المشي سوا", on ? "love" : "", 2200); if (on) ui.hearts("💞", 8);
   }
+
+  /* ---------- الدخول لبيتنا والدكان من جوّا ---------- */
+  let placing = null;
+  async function enterInterior(id) {
+    if (busyNav) return; busyNav = true; W.setInputEnabled(false); OSW.audio.sfx("door");
+    await W.walkToPOI(OSW.INT.enterAct[id]); $("#curtain").classList.add("on"); await sleep(330);
+    W.enter(id); G.sync3d(); db.track("in:" + id); $("#btnFurn").hidden = id !== "home";
+    await sleep(80); $("#curtain").classList.remove("on"); W.setInputEnabled(true); busyNav = false;
+    if (id === "home") guideSay("بيتكم من جوّا! 🏡 اضغط 🛋️ للأثاث، وعلى الأسرّة لتناموا 😴", 6500);
+  }
+  async function exitInterior() {
+    if (busyNav || W.mode !== "in") return; busyNav = true; W.setInputEnabled(false); cancelPlacing(); OSW.audio.sfx("door");
+    $("#curtain").classList.add("on"); await sleep(330); W.leave(); $("#btnFurn").hidden = true; db.track("village");
+    await sleep(80); $("#curtain").classList.remove("on"); W.setInputEnabled(true); busyNav = false;
+  }
+  function openConsole(id) { if (busyNav) return; OSW.audio.sfx("pop"); enterHouseDirect(id); }
+  async function enterHouseDirect(id) {
+    busyNav = true; W.setInputEnabled(false); $("#hud").hidden = true; $("#zoomctl").hidden = true; $("#guide").hidden = true; $("#joy").hidden = true; $("#btnSprint").hidden = true; $("#btnFurn").hidden = true; W.pause(true);
+    ui.room.open(id); busyNav = false;
+  }
+  function furnTap(id) { if (placing) return; G.ui.finst = id; W.selectFurn(id); OSW.audio.sfx("pop"); P.open("furnitem"); const prev = ui.onModalClose; ui.onModalClose = () => { prev && prev(); W.selectFurn(null); W.setInputEnabled(true); }; }
+  function startPlacing(item, moveId, rot) {
+    placing = { item, move: moveId || null, rot: rot || 0 }; const F = OSW.FURN[item];
+    $("#placeBar").hidden = false; $("#placeTxt").textContent = `${F.e} ${F.n}: اضغط عالأرض لتضعها`; W.setInputEnabled(true);
+    W.setFloorHandler((x, z) => {
+      if (!placing) return; const sx = Math.round(x * 2) / 2, sz = Math.round(z * 2) / 2, others = G.furnList();
+      if (!OSW.HOME.valid(placing.item, sx, sz, placing.rot, others, placing.move)) { OSW.audio.sfx("pop"); return ui.toast("المكان مش مناسب 🚫 (فوق قطعة ثانية أو عند باب أو برا الغرفة)", "", 2200); }
+      const mv = placing.move, it = placing.item, rt = placing.rot;
+      (mv ? G.do("furn_move", { inst: mv, x: sx, z: sz, rot: rt }) : G.do("furn_place", { item: it, x: sx, z: sz, rot: rt })).then(() => {
+        OSW.audio.sfx("coin"); ui.hearts("✨", 4);
+        if (!mv && G.has("fu_" + it)) { $("#placeTxt").textContent = `${F.e} ${F.n}: بعدك معك قطع، كمّل أو اضغط ✖`; } else cancelPlacing();
+      }).catch((e) => ui.toast("⚠️ " + esc(e.message)));
+    });
+  }
+  function cancelPlacing() { placing = null; $("#placeBar").hidden = true; W.setFloorHandler(null); }
+  function rotateFurn() {
+    if (placing) { placing.rot = (placing.rot + 1) % 4; return ui.toast("🔄 دوّرتها", "", 900); }
+    const f = G.state().furn[G.ui.finst]; if (!f) return;
+    if (!OSW.HOME.valid(f.item, f.x, f.z, (f.rot + 1) % 4, G.furnList(), f.id)) return ui.toast("ما بتنفع تدور هون (ما في مكان) 🚫", "", 1800);
+    G.do("furn_move", { inst: f.id, x: f.x, z: f.z, rot: f.rot + 1 }).then(() => { ui.closeModal(); OSW.audio.sfx("pop"); });
+  }
+  async function goSleep() {
+    if (busyNav) return; busyNav = true; W.setInputEnabled(false);
+    const f = $("#sleepFade"); f.classList.add("on"); OSW.audio.sfx("magic"); await sleep(2200);
+    W.sleepTo(7.5); G.sync3d(); await sleep(600); f.classList.remove("on"); W.setInputEnabled(true); busyNav = false;
+    ui.toast("☀️ صباح الخير! نمتوا زي الملوك", "gold", 4000); ui.hearts("💤", 10); ui.saveMy({ slept: (ui.my().slept || 0) + 1 }); P.checkAchievements();
+  }
+  Object.assign(app, { startPlacing, cancelPlacing, rotateFurn, sleep: goSleep, enterInterior, exitInterior });
 
   /* ---------- الإشعارات والتثبيت والنسخ الاحتياطي ---------- */
   function notify(title, body) {
@@ -280,12 +339,12 @@
     const snd = $("#btnSound"); snd.textContent = OSW.audio.enabled ? "🔊" : "🔇";
     snd.onclick = () => { const on = OSW.audio.toggle(); snd.textContent = on ? "🔊" : "🔇"; ui.toast(on ? "الصوت شغّال 🎶" : "الصوت مسكّر", "", 1500); };
     $("#btnAch").onclick = () => !busyNav && goPlace("ach"); $("#btnMenu").onclick = () => !busyNav && goPlace("gate");
-    $("#btnTasks").onclick = () => !busyNav && goPlace("tasks"); $("#btnChat").onclick = () => OSW.chat.toggle();
+    $("#btnTasks").onclick = () => !busyNav && goPlace("tasks"); $("#btnChat").onclick = () => OSW.chat.toggle(); $("#btnFurn").onclick = () => !busyNav && P.open("furniture"); $("#placeRot").onclick = () => rotateFurn(); $("#placeCancel").onclick = () => cancelPlacing();
     const sp = $("#btnSprint"); sp.onpointerdown = (e) => { e.preventDefault(); W.setSprint(true); sp.classList.add("on"); }; const spOff = () => { W.setSprint(false); sp.classList.remove("on"); }; sp.onpointerup = spOff; sp.onpointerleave = spOff; sp.onpointercancel = spOff; $("#coinPill").onclick = () => !busyNav && goPlace("inv"); $("#dayPill").onclick = () => !busyNav && goPlace("plaza");
     $("#guide").onclick = guideTalk;
     $("#zoomctl").onclick = (e) => {
       const b = e.target.closest("[data-z]"); if (!b) return; const z = b.dataset.z;
-      if (z === "in") W.zoomBy(1.25); else if (z === "out") W.zoomBy(1 / 1.25); else if (z === "walk") toggleWalk(); else { W.resetCam(); W.goTo(0, 8); }
+      if (z === "in") W.zoomBy(1.25); else if (z === "out") W.zoomBy(1 / 1.25); else if (z === "walk") toggleWalk(); else if (W.mode === "in") { W.resetCam(); } else { W.resetCam(); W.goTo(0, 8); }
     };
   }
 

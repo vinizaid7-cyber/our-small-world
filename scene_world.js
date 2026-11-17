@@ -290,6 +290,20 @@
     B.sphere(-4.6, 0.55, 3.2, 0.7, 0.55, 0.7, "#6ec26e", 7); B.sphere(-3.6, 0.35, 3.8, 0.4, 0.3, 0.4, "#ff8fb1", 6, 0.3);
     B.pop(); swap("home", B);
   };
+  S.rebuildWedding = (on) => {
+    const B = new Builder();
+    if (on) {
+      const ax = -7, az = -5.5;
+      [-2.2, 2.2].forEach((dx) => { B.cyl(ax + dx, 0, az, 0.16, 0.16, 3.4, "#fff", 8); for (let k = 0; k < 6; k++) B.sphere(ax + dx, 0.5 + k * 0.5, az + 0.1, 0.17, 0.17, 0.17, ["#ff4d6d", "#ff8fab", "#fff"][k % 3], 5, 0.6); });
+      B.box(ax, 3.3, az, 4.9, 0.18, 0.22, "#fff"); for (let k = 0; k < 14; k++) B.sphere(ax - 2.3 + k * 0.355, 3.45, az, 0.16, 0.14, 0.16, ["#ff4d6d", "#ff8fab", "#ffd23f", "#fff"][k % 4], 5, 0.7);
+      B.box(ax, 0.02, az + 3.5, 2.0, 0.03, 8.0, "#c0392b");
+      [[-4.0, 2], [4.0, 2]].forEach(([dx, dz]) => { B.box(ax + dx, 0, az + dz, 1.0, 0.9, 5.0, "#f4f1e8"); B.box(ax + dx, 0.9, az + dz, 1.1, 0.06, 5.1, "#d7b98a"); for (let k = 0; k < 6; k++) B.sphere(ax + dx - 0.2 + (k % 2) * 0.4, 1.05, az + dz - 2 + k * 0.8, 0.2, 0.12, 0.2, ["#e63946", "#ffd23f", "#7ac74f", "#ff8c42"][k % 4], 5); });
+      for (let k = 0; k < 7; k++) { const bx = ax - 6 + k * 2, y = 4.2 - Math.sin((k / 6) * PI) * 0.7; B.sphere(bx, y, az + 2, 0.18, 0.18, 0.18, ["#ff4d6d", "#ffd23f", "#7bdff2", "#ff9ad5"][k % 4], 5, 1); }
+      B.cyl(ax - 6, 0, az + 2, 0.06, 0.06, 4.2, "#777", 4); B.cyl(ax + 6, 0, az + 2, 0.06, 0.06, 4.2, "#777", 4);
+      [[-3, 5], [3, 5], [0, 6.4]].forEach(([dx, dz], i) => { B.sphere(ax + dx, 1.3, az + dz, 0.4, 0.5, 0.4, ["#ff4d6d", "#4dabf7", "#ffd43b"][i], 6, 0.3); B.cyl(ax + dx, 0, az + dz, 0.015, 0.015, 0.9, "#ddd", 3); });
+    }
+    swap("wedding", B);
+  };
   S.rebuildCart = (colors, name) => {
     const B = new Builder();
     B.box(0, 0.45, 0, 2.5, 0.2, 1.6, "#9a6a3a"); [[-1.2, 0], [1.2, 0]].forEach(([x]) => [-0.9, 0.9].forEach((z) => { B.push(x, 0.42, z, 0, PI / 2); B.cyl(0, -0.05, 0, 0.42, 0.42, 0.14, "#4a3320", 10); B.pop(); }));

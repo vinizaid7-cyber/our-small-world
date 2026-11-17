@@ -400,3 +400,12 @@ input,textarea,select{font:inherit;color:var(--ink)}
 #chatForm{display:flex;gap:8px;padding:8px 10px;border-top:1px solid var(--line)}
 #chatForm input{flex:1;border:2px solid var(--line);border-radius:99px;padding:8px 14px;background:#fff;min-width:0}
 .hcard.mad{background:#ffe1e1;box-shadow:inset 0 0 0 3px #ef4444}
+
+/* ===== التحديث الثاني والثالث: بيتنا من جوّا ===== */
+html.inside #sky,html.inside #fx{display:none}
+html.inside #world{background:radial-gradient(circle at 50% 38%,#3d2f5e,#1b1530 75%)}
+.furnbtn{position:fixed;right:12px;top:50%;margin-top:112px;width:46px;height:46px;border-radius:14px;background:var(--lantern);font-size:22px;z-index:20;box-shadow:0 4px 18px rgba(20,22,66,.3)}
+#placeBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + var(--sab));background:var(--ink);color:#fff;border-radius:99px;padding:8px 10px 8px 16px;display:flex;gap:10px;align-items:center;font-weight:700;z-index:46;box-shadow:0 8px 26px rgba(0,0,0,.4);font-size:14px;max-width:94vw}
+#placeBar button{background:#fff;border-radius:50%;width:38px;height:38px;font-size:18px;color:var(--ink)}
+#sleepFade{position:fixed;inset:0;background:#05061a;z-index:98;display:grid;place-items:center;opacity:0;pointer-events:none;transition:opacity 1s}
+#sleepFade.on{opacity:1;pointer-events:auto}#sleepFade span{font-size:90px;animation:bnc 2s ease-in-out infinite}

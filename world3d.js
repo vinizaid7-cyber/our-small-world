@@ -5,7 +5,7 @@
   const W = (OSW.world = { noGL: false, onAct: null, onMove: null });
   const $ = (s) => document.querySelector(s);
 
-  const st = { hour: 12, night: 0, season: "summer", paused: false, input: true, t: 0, last: 0, wmode: localStorage.getItem("osw_weather") || "auto", hourOverride: null };
+  const st = { hour: 12, night: 0, season: "summer", paused: false, input: true, t: 0, last: 0, wmode: localStorage.getItem("osw_weather") || "auto", hourOverride: null, timeOffset: parseFloat(sessionStorage.getItem("osw_toff") || "0") || 0 };
   const me = { speedMul: 1, sprint: false, vx: 0, vz: 0, x: 0, z: 38, ry: PI, phase: 0, mv: 0, ch: null, name: "", target: null, act: null, res: null, stuck: 0, prog: 0, px: 0, pz: 0, side: 0, follow: false, lastSent: 0, sentX: 0, sentZ: 0 };
   const pa = { x: -4, z: -7, ry: 0.5, phase: 0, mv: 0, ch: null, name: "", tx: -4, tz: -7, vis: false, sleep: false, inside: null, ghost: 0 };
   const cam = { yaw: 0, pitch: 0.5, dist: 26, tx: 0, ty: 1.4, tz: 36, follow: true, anim: null, saved: null };
@@ -13,6 +13,9 @@
   let ctx = {}, labelsEl, tapMark = null, together = 0, holding = false;
   const meshes = {};
   const carry = { me: [], partner: [] }, bagState = { n: 0 }, cartS = { colors: [], prev: [], lastT: 0, anim: null, home: { x: -62, z: 22 } }, crateCache = {};
+  let mode = "out", curInt = null, floorHandler = null, selFurn = null, crowd = null;
+  const inNpcs = [], furn = { list: [], boxes: [], acts: [] };
+  const curSpace = () => (mode === "in" && curInt ? curInt.id : null);
   const pet = { x: 4, z: 6, ry: 0, phase: 0, mv: 0, tx: 4, tz: 6, wait: 1 };
   function stepPet(dt) {
     if (pet.tx == null) { pet.wait -= dt; pet.mv *= 0.9; if (pet.wait <= 0) { const a = Math.random() * 6.28, r = 3 + Math.random() * 7; pet.tx = Math.cos(a) * r; pet.tz = 3 + Math.sin(a) * r * 0.7; } return; }
@@ -30,7 +33,7 @@
   const seasonOf = (m) => (m === 11 || m <= 1 ? "winter" : m <= 4 ? "spring" : m <= 7 ? "summer" : "autumn");
   function updateSky() {
     const d = new Date(), q = new URLSearchParams(location.search);
-    const h = st.hourOverride != null ? st.hourOverride : q.get("hour") != null ? parseFloat(q.get("hour")) : d.getHours() + d.getMinutes() / 60;
+    const h = (((st.hourOverride != null ? st.hourOverride : q.get("hour") != null ? parseFloat(q.get("hour")) : d.getHours() + d.getMinutes() / 60) + (st.timeOffset || 0)) % 24 + 24) % 24;
     const [top, bot] = skyAt(h), root = document.documentElement.style;
     root.setProperty("--sky-top", top); root.setProperty("--sky-bot", bot);
     st.hour = h; st.night = nightFactor(h); root.setProperty("--night", st.night.toFixed(3));
@@ -46,6 +49,7 @@
   }
   const period = (h) => (h < 5 ? "night" : h < 11 ? "morning" : h < 16 ? "noon" : h < 20 ? "evening" : "night");
   function envNow() {
+    if (mode === "in") return { sunDir: [0.25, -0.9, 0.35], sunCol: [0.38, 0.34, 0.28], ambTop: [0.93, 0.9, 0.86], ambBot: [0.74, 0.7, 0.66], night: 0.35 + 0.3 * st.night, fogN: 250, fogF: 520, time: st.t };
     const h = st.hour, n = st.night, a = (PI * (h - 6)) / 12;
     let sd = h >= 6 && h <= 18 ? [-Math.cos(a) * 0.8, -Math.max(0.28, Math.sin(a)), -0.42] : [0.35, -0.8, 0.35];
     const l = hy(sd[0], sd[1], sd[2]); sd = sd.map((v) => v / l);
@@ -101,6 +105,7 @@
     const e = R.eye, W2 = innerWidth, H2 = innerHeight;
     for (const l of labs) {
       let hide = l.hidden;
+      const scp = l.scope || "out"; if (scp !== "both" && (scp === "in") !== (mode === "in")) hide = true;
       let x = l.x, y = l.y, z = l.z;
       if (l.follow) { const p = l.follow(); if (!p) hide = true; else { x = p[0]; y = p[1]; z = p[2]; } }
       let sc = 1, op = 1, px = 0, py = 0;
@@ -124,6 +129,7 @@
     meshes.beam = mk((b) => { b.push(0, 0, 0, 0, 0, -PI / 2); b.cyl(0, 0, 0, 0.3, 6, 40, "#fff2b0", 10); b.pop(); b.push(0, 0, 0, 0, 0, PI / 2); b.cyl(0, 0, 0, 0.3, 6, 40, "#fff2b0", 10); b.pop(); });
     meshes.cloud = mk((b) => { [[0, 0, 0, 3.2, 1.7], [-3, -0.3, 0.5, 2.3, 1.3], [3.2, -0.2, -0.3, 2.5, 1.4], [0.6, 0.8, 0.2, 2.2, 1.4]].forEach(([x, y, z, rx, ry]) => b.sphere(x, y, z, rx, ry, rx * 0.8, "#ffffff", 8)); });
     meshes.bird = mk((b) => { b.sphere(0, 0, 0, 0.35, 0.25, 0.6, "#3a3a4a", 6); b.push(0, 0, 0, 0, 0, 0.5); b.box(0.5, 0, 0, 1.0, 0.04, 0.5, "#3a3a4a"); b.pop(); b.push(0, 0, 0, 0, 0, -0.5); b.box(-0.5, 0, 0, 1.0, 0.04, 0.5, "#3a3a4a"); b.pop(); });
+    meshes.ring = mk((bb) => { bb.cyl(0, 0.12, 0, 1.0, 1.0, 0.02, "#ffffff", 20); bb.cyl(0, 0.13, 0, 0.8, 0.8, 0.03, "#000000", 20); });
     meshes.link = mk((b) => b.box(0, 0, 0, 0.08, 0.08, 1, "#ff7aa8", 0.9));
     meshes.bag = mk((b) => { b.box(0, 0, 0, 0.34, 0.42, 0.18, "#f7d6ec"); b.box(0, 0.42, 0, 0.22, 0.05, 0.03, "#8e4a94"); b.box(-0.1, 0.4, 0, 0.03, 0.18, 0.03, "#8e4a94"); b.box(0.1, 0.4, 0, 0.03, 0.18, 0.03, "#8e4a94"); b.box(0, 0.12, 0.1, 0.18, 0.18, 0.02, "#ff7aa8"); });
     meshes.cat = mk((b) => { b.box(0, 0.28, 0, 0.34, 0.3, 0.7, "#e0a050"); b.sphere(0, 0.62, 0.42, 0.2, 0.19, 0.18, "#e0a050", 7); b.box(-0.12, 0.76, 0.42, 0.07, 0.14, 0.05, "#e0a050"); b.box(0.12, 0.76, 0.42, 0.07, 0.14, 0.05, "#e0a050"); b.sphere(-0.07, 0.65, 0.58, 0.03, 0.03, 0.02, "#222", 4); b.sphere(0.07, 0.65, 0.58, 0.03, 0.03, 0.02, "#222", 4); [[-0.12, 0.3], [0.12, 0.3], [-0.12, -0.3], [0.12, -0.3]].forEach(([x, z]) => b.box(x, 0, z, 0.1, 0.18, 0.1, "#c98a3d")); b.push(0, 0.4, -0.38, 0, -0.9); b.box(0, 0, 0, 0.08, 0.5, 0.08, "#e0a050"); b.pop(); });
@@ -138,19 +144,28 @@
   }
 
   /* ---------- شخصياتي والشريك ---------- */
-  const lookKey = (l) => ({ gender: l.gender || "boy", color: l.color, hair: l.hairColor || l.hair, hairStyle: l.hairStyle, skin: l.skin });
+  const lookKey = (l) => ({ gender: l.gender || "boy", color: l.color, hair: l.hairColor || l.hair, hairStyle: l.hairStyle, skin: l.skin, outfit: l.outfit, acc: l.acc, pants: l.pants, elder: l.elder, cane: l.cane, mustache: l.mustache, cap: l.cap, apron: l.apron, scale: l.scale, shoe: l.shoe });
   function setLook(who, look, name) {
     const o = who === "me" ? me : pa, c = OSW.makeChar(lookKey(look)); o.ch = c; o.name = name || o.name;
     const tag = labs.find((l) => l.dynamic === who);
     if (tag) tag.el.querySelector(".lt").textContent = o.name;
   }
   function remote(p) {
+    if ((p.s || null) !== (pa.space || null)) { pa.space = p.s || null; pa.x = p.x; pa.z = p.z; }
     pa.hold = !!p.h; pa.tx = p.x; pa.tz = p.z; pa.ry = p.ry != null ? p.ry : pa.ry; pa.vis = true; pa.sleep = false; pa.remoteMv = p.mv ? 1 : 0; pa.lastMsg = performance.now();
   }
 
   /* ---------- الحركة والتصادم ---------- */
   const B_ = S.bounds;
   function collide(o, r) {
+    if (mode === "in" && curInt) {
+      const boxes = curInt.boxes.concat(furn.boxes);
+      for (const b of boxes) {
+        const l = b.x0 - r, rr = b.x1 + r, t = b.z0 - r, bo = b.z1 + r;
+        if (o.x > l && o.x < rr && o.z > t && o.z < bo) { const dl = o.x - l, dr = rr - o.x, dt2 = o.z - t, db = bo - o.z, m = Math.min(dl, dr, dt2, db); if (m === dl) o.x = l; else if (m === dr) o.x = rr; else if (m === dt2) o.z = t; else o.z = bo; }
+      }
+      const b = curInt.bounds; o.x = clamp(o.x, b.x0 + r, b.x1 - r); o.z = clamp(o.z, b.z0 + r, b.z1 - r); return;
+    }
     for (const c of S.colliders) { const dx = o.x - c.x, dz = o.z - c.z, rr = c.r + r; if (dx * dx + dz * dz < rr * rr) { const d = hy(dx, dz) || 0.001; o.x = c.x + (dx / d) * rr; o.z = c.z + (dz / d) * rr; } }
     o.x = clamp(o.x, B_.x0, B_.x1); o.z = clamp(o.z, B_.z0, B_.z1);
   }
@@ -186,11 +201,11 @@
       me.phase += sp * dt * 2.1; me.mv += (clamp(sp / 5.4, 0, 1.5) - me.mv) * Math.min(1, dt * 10);
       if (Math.floor(me.phase / PI) !== me._sp) { me._sp = Math.floor(me.phase / PI); OSW.audio && OSW.audio.sfx("step"); }
     } else me.mv += (0 - me.mv) * Math.min(1, dt * 10);
-    holding = !!(me.follow && pa.vis && !pa.inside && !pa.sleep && hy(me.x - pa.x, me.z - pa.z) < 3.2);
+    holding = !!(me.follow && pa.vis && !pa.inside && !pa.sleep && (pa.space || null) === curSpace() && hy(me.x - pa.x, me.z - pa.z) < 3.2);
     // إرسال الموقع للشريك (6 مرات بالثانية)
     const now = performance.now();
     if (W.onMove && now - me.lastSent > 160 && (moving || hy(me.x - me.sentX, me.z - me.sentZ) > 0.01 || now - me.lastSent > 2500)) {
-      me.lastSent = now; me.sentX = me.x; me.sentZ = me.z; W.onMove({ x: +me.x.toFixed(2), z: +me.z.toFixed(2), ry: +me.ry.toFixed(2), mv: moving || sp > 0.3 ? 1 : 0, h: holding ? 1 : 0 });
+      me.lastSent = now; me.sentX = me.x; me.sentZ = me.z; W.onMove({ x: +me.x.toFixed(2), z: +me.z.toFixed(2), ry: +me.ry.toFixed(2), mv: moving || sp > 0.3 ? 1 : 0, h: holding ? 1 : 0, s: curInt ? curInt.id : null });
     }
   }
   function arrive() {
@@ -206,22 +221,27 @@
 
   /* ---------- أهل القرية ---------- */
   const npc = {};
-  function initNpcs() {
-    OSW.NPCS.forEach((n) => {
-      const homeP = n.home ? S.poi[n.home] : null, pos = n.pos || [homeP.x, homeP.z];
-      const o = (npc[n.id] = { def: n, x: pos[0], z: pos[1], ry: n.face || 0, phase: Math.random() * 6, mv: 0, ch: OSW.makeChar(lookKey(n.look)), wait: 1 + Math.random() * 4, tx: null, tz: null, route: [], stuck: 0, mood: "", mark: "", sc: n.look.scale || n.scale || 1 });
-      const nm = mkLabel({ id: "npc_" + n.id, text: n.name, x: 0, y: 0, z: 0, cls: "tag np", max: 34, dynamic: n.id, follow: () => [o.x, 2.7 * o.sc, o.z] });
-      const em = mkLabel({ id: "npcm_" + n.id, text: "", x: 0, y: 0, z: 0, cls: "mood", max: 28, dynamic: "m" + n.id, follow: () => (o.mood || o.mark ? [o.x, 3.35 * o.sc, o.z] : null) });
-      o.moodEl = em; o.nameEl = nm;
-    });
+  function createNpc(n) {
+    const homeP = n.home ? S.poi[n.home] : null, pos = n.pos || [homeP.x, homeP.z];
+    const o = (npc[n.id] = { def: n, x: pos[0], z: pos[1], ry: n.face || 0, phase: Math.random() * 6, mv: 0, ch: OSW.makeChar(lookKey(n.look)), wait: 1 + Math.random() * 4, tx: null, tz: null, route: [], stuck: 0, mood: "", mark: "", sc: n.look.scale || n.scale || 1, dance: false, over: null });
+    const nm = mkLabel({ id: "npc_" + n.id, text: n.name, x: 0, y: 0, z: 0, cls: "tag np", max: 34, dynamic: n.id, follow: () => [o.x, 2.7 * o.sc, o.z] });
+    const em = mkLabel({ id: "npcm_" + n.id, text: "", x: 0, y: 0, z: 0, cls: "mood", max: 28, dynamic: "m" + n.id, follow: () => (o.mood || o.mark ? [o.x, 3.35 * o.sc, o.z] : null) });
+    o.moodEl = em; o.nameEl = nm; return o;
   }
+  function initNpcs() { OSW.NPCS.forEach(createNpc); }
   const SPOTS = () => [[0, 7.5], [6, 6], [-6, 6.5], [8, -3], [-8, -4], [0, -6], [-24, 15.8], [24, 15.8], [15, 3.4], [-15, 5.2], [0, 22], [-28, 8], [28, 8]];
   function pickDest(o) {
     const home = S.poi[o.def.home], r = Math.random();
+    if (crowd && r < 0.85) return [crowd.x + (Math.random() - 0.5) * 6, crowd.z + (Math.random() - 0.5) * 4];
     if (r < 0.28) return [home.x, home.z]; const s = SPOTS(); const p = s[(Math.random() * s.length) | 0]; return [p[0] + (Math.random() - 0.5) * 2, p[1] + (Math.random() - 0.5) * 2];
   }
   function stepNpc(o, dt) {
     const d = o.def;
+    if (o.over) {
+      const dx0 = o.over.x - o.x, dz0 = o.over.z - o.z, dd = hy(dx0, dz0);
+      if (dd < 2.4 || (o.over.t0 && performance.now() - o.over.t0 > 45000)) { const cb = o.over.cb; o.over = null; o.mv = 0; if (cb) cb(); return; }
+      const sp0 = 3.0; o.x += (dx0 / dd) * sp0 * dt; o.z += (dz0 / dd) * sp0 * dt; collide(o, 0.4); o.ry += angDiff(o.ry, Math.atan2(dx0, dz0)) * Math.min(1, dt * 8); o.phase += sp0 * dt * 2.4; o.mv += (1 - o.mv) * Math.min(1, dt * 8); return;
+    }
     if (d.stay) {
       const dm = hy(me.x - o.x, me.z - o.z); if (dm < 9) { const want = Math.atan2(me.x - o.x, me.z - o.z); o.ry += angDiff(o.ry, want) * Math.min(1, dt * 4); } else o.ry += angDiff(o.ry, d.face || 0) * Math.min(1, dt * 2);
       o.mv = 0; return;
@@ -269,13 +289,42 @@
     M.trs(x, 0, z, hd, 0, 0, 1, 1, 1, m1); R.draw(el < 8 ? D.cartTravel : D.cartEmpty, m1);
   }
   const m1 = new Float32Array(16), m2 = new Float32Array(16);
+  function applyFurn() {
+    const B = new Builder(); furn.boxes.length = 0; furn.acts.length = 0;
+    furn.list.forEach((f) => {
+      const F = OSW.FURN[f.item]; if (!F) return;
+      const r = OSW.furnRect(f.item, f.x, f.z, f.rot), rad = Math.max(r.w, r.d) / 2 + 0.3;
+      if (selFurn === f.id) B.cyl(f.x, 0.02, f.z, rad, rad, 0.01, "#ffe066", 18, 0.9);
+      B.push(f.x, 0, f.z, f.rot * PI / 2); F.build(B); B.pop();
+      if (!F.flat) furn.boxes.push({ x0: r.x0, x1: r.x1, z0: r.z0, z1: r.z1 });
+      furn.acts.push({ act: "furn:" + f.id, x: f.x, y: F.flat ? 0.1 : 0.7, z: f.z, r: F.flat ? 0.9 : rad });
+    });
+    if (S.dyn.furn) R.free(S.dyn.furn); S.dyn.furn = B.build(R.gl);
+  }
+  function drawPeople(t) {
+    const same = (pa.space || null) === curSpace();
+    const dxp = pa.x - me.x, dzp = pa.z - me.z, sideMe = Math.cos(me.ry) * dxp - Math.sin(me.ry) * dzp, sideP = Math.cos(pa.ry) * -dxp - Math.sin(pa.ry) * -dzp;
+    const showLink = same && pa.vis && !pa.inside && !pa.sleep && (holding || (pa.hold && hy(dxp, dzp) < 4));
+    if (pa.ch && pa.vis && !pa.inside && same) { OSW.drawChar(pa.ch, pa.x, pa.z, pa.ry, pa.phase, pa.mv, t, pa.sleep ? 0.55 : 1, null, 1, 0, carry.partner.length ? { carry: true } : showLink ? { hold: sideP >= 0 ? 1 : -1 } : null); drawCarried(pa, carry.partner, null); }
+    if (me.ch) { OSW.drawChar(me.ch, me.x, me.z, me.ry, me.phase, me.mv, t, 1, null, 1, 0, carry.me.length ? { carry: true } : showLink ? { hold: sideMe >= 0 ? 1 : -1 } : null); drawCarried(me, carry.me, bagState.n); }
+    if (showLink) { const mx = (me.x + pa.x) / 2, mz = (me.z + pa.z) / 2, len = Math.max(0.4, hy(dxp, dzp) - 0.9); M.trs(mx, 1.0, mz, Math.atan2(dxp, dzp), 0, 0, 1, 1, len, m1); R.draw(meshes.link, m1); }
+  }
+  function drawInside(t) {
+    const D = S.dyn; R.draw(curInt.mesh); if (D.furn) R.draw(D.furn);
+    inNpcs.forEach((o) => OSW.drawChar(o.ch, o.x, o.z, o.ry, 0, 0, t, 1, null, 1));
+    drawPeople(t);
+    R.blend(true); inNpcs.forEach((o) => OSW.drawShadow(o.x, o.z, 0.6)); if ((pa.space || null) === curSpace() && pa.vis) OSW.drawShadow(pa.x, pa.z, 0.62); OSW.drawShadow(me.x, me.z, 0.62);
+    if (tapMark && tapMark.life > 0) { const b = tapMark; M.trs(b.x, 0.05, b.z, 0, 0, 0, 0.8 + (1.6 - b.life) * 0.25, 1, 0.8 + (1.6 - b.life) * 0.25, m1); R.draw(meshes.ring, m1, [1, 0.9, 0.4], Math.max(0, Math.min(1, b.life)) * 0.6); }
+    R.blend(false);
+  }
   function drawScene() {
     const cp = Math.cos(cam.pitch), eye = [cam.tx + Math.sin(cam.yaw) * cp * cam.dist, cam.ty + Math.sin(cam.pitch) * cam.dist, cam.tz + Math.cos(cam.yaw) * cp * cam.dist];
     if (eye[1] < 2.2) eye[1] = 2.2;
     const env = envNow(); R.begin(eye, [cam.tx, cam.ty, cam.tz], R.aspect < 1 ? 1.08 : 0.92, env);
     const t = st.t, D = S.dyn;
+    if (mode === "in") { drawInside(t); return; }
     R.draw(D.main); R.draw(D.foliage, null, null, 1, 1.6);
-    ["tree", "board", "home", "farm", "flowers"].forEach((k) => D[k] && R.draw(D[k], null, null, 1, k === "flowers" ? 1.2 : 0));
+    ["tree", "board", "home", "farm", "flowers", "wedding"].forEach((k) => D[k] && R.draw(D[k], null, null, 1, k === "flowers" ? 1.2 : 0));
     // نافورة: قطرات
     for (let i = 0; i < 14; i++) { const ph = (t * 0.8 + i / 14) % 1, a = i * 2.4, rr = ph * 2.6, y = 4.0 + Math.sin(ph * PI) * 1.7 - ph * 2.6; M.trs(Math.cos(a) * rr, y, Math.sin(a) * rr, 0, 0, 0, 1, 1, 1, m1); R.draw(meshes.drop, m1); }
     // دخان المداخن
@@ -290,13 +339,9 @@
     // عربة المزرعة (وبتتحرك لما الاثنين يسحبوها)
     drawCart(t);
     // شخصيات
-    OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc); });
+    OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc, o.dance ? Math.abs(Math.sin(t * 5 + o.phase)) * 0.16 : 0); });
     M.trs(pet.x, Math.abs(Math.sin(pet.phase)) * 0.08 * pet.mv, pet.z, pet.ry, 0, 0, 1.3, 1.3, 1.3, m1); R.draw(meshes.cat, m1);
-    const dxp = pa.x - me.x, dzp = pa.z - me.z, sideMe = Math.cos(me.ry) * dxp - Math.sin(me.ry) * dzp, sideP = Math.cos(pa.ry) * -dxp - Math.sin(pa.ry) * -dzp;
-    const showLink = pa.vis && !pa.inside && !pa.sleep && (holding || (pa.hold && hy(dxp, dzp) < 4));
-    if (pa.ch && pa.vis && !pa.inside) { OSW.drawChar(pa.ch, pa.x, pa.z, pa.ry, pa.phase, pa.mv, t, pa.sleep ? 0.55 : 1, null, 1, 0, carry.partner.length ? { carry: true } : showLink ? { hold: sideP >= 0 ? 1 : -1 } : null); drawCarried(pa, carry.partner, null); }
-    if (me.ch) { OSW.drawChar(me.ch, me.x, me.z, me.ry, me.phase, me.mv, t, 1, null, 1, 0, carry.me.length ? { carry: true } : showLink ? { hold: sideMe >= 0 ? 1 : -1 } : null); drawCarried(me, carry.me, bagState.n); }
-    if (showLink) { const mx = (me.x + pa.x) / 2, mz = (me.z + pa.z) / 2, len = Math.max(0.4, hy(dxp, dzp) - 0.9); M.trs(mx, 1.0, mz, Math.atan2(dxp, dzp), 0, 0, 1, 1, len, m1); R.draw(meshes.link, m1); }
+    drawPeople(t);
     // شفّاف: ظلال + شعاع المنارة + علامة اللمس
     R.blend(true);
     R.draw(D.shadow, null, [0, 0, 0], 0.26);
@@ -312,7 +357,7 @@
     requestAnimationFrame(frame);
     if (st.paused || document.hidden || !S.ready) { st.last = now; return; }
     const dt = Math.min(0.05, (now - (st.last || now)) / 1000); st.last = now; st.t += dt;
-    stepMe(dt); stepPet(dt); OSW.NPCS.forEach((d) => npc[d.id] && stepNpc(npc[d.id], dt));
+    stepMe(dt); if (mode === "out") { stepPet(dt); OSW.NPCS.forEach((d) => npc[d.id] && stepNpc(npc[d.id], dt)); } else inNpcs.forEach((o) => { const dm = hy(me.x - o.x, me.z - o.z); o.ry += angDiff(o.ry, dm < 8 ? Math.atan2(me.x - o.x, me.z - o.z) : 0) * Math.min(1, dt * 4); });
     // الشريك: تنعيم الحركة
     if (pa.vis) { const k = 1 - Math.exp(-dt * 9), ox = pa.x, oz = pa.z; pa.x += (pa.tx - pa.x) * k; pa.z += (pa.tz - pa.z) * k; const sp = hy(pa.x - ox, pa.z - oz) / Math.max(dt, 0.001); pa.mv += ((sp > 0.6 ? 1 : 0) - pa.mv) * Math.min(1, dt * 8); if (sp > 0.6) { pa.ry += angDiff(pa.ry, Math.atan2(pa.tx - pa.x, pa.tz - pa.z)) * Math.min(1, dt * 10); pa.phase += sp * dt * 2.1; } }
     // مشي سوا: وقت قريب من بعض
@@ -324,10 +369,13 @@
   /* ---------- مدخلات اللمس والماوس ---------- */
   function pick(px, py) {
     const ray = R.ray(px, py); let best = null, bt = 1e9;
-    S.acts.forEach((a) => { const t = R.hitSphere(ray, a.x, a.y, a.z, a.r); if (t > 0 && t < bt) { bt = t; best = a.act; } });
-    OSW.NPCS.forEach((d) => { const o = npc[d.id]; const t = o && R.hitSphere(ray, o.x, 1.0 * o.sc, o.z, 1.35 * o.sc); if (t > 0 && t < bt) { bt = t; best = d.act || "npc:" + d.id; } });
-    { const t = R.hitSphere(ray, pet.x, 0.5, pet.z, 1.0); if (t > 0 && t < bt) { bt = t; best = "pet"; } }
-    if (pa.vis && !pa.inside) { const t = R.hitSphere(ray, pa.x, 1.0, pa.z, 1.4); if (t > 0 && t < bt) { bt = t; best = "partner"; } }
+    const acts = mode === "in" ? curInt.acts.concat(furn.acts) : S.acts;
+    acts.forEach((a) => { const t = R.hitSphere(ray, a.x, a.y, a.z, a.r); if (t > 0 && t < bt) { bt = t; best = a.act; } });
+    if (mode === "out") {
+      OSW.NPCS.forEach((d) => { const o = npc[d.id]; const t = o && R.hitSphere(ray, o.x, 1.0 * o.sc, o.z, 1.35 * o.sc); if (t > 0 && t < bt) { bt = t; best = d.act || "npc:" + d.id; } });
+      { const t = R.hitSphere(ray, pet.x, 0.5, pet.z, 1.0); if (t > 0 && t < bt) { bt = t; best = "pet"; } }
+    } else inNpcs.forEach((o) => { const t = R.hitSphere(ray, o.x, 1.0, o.z, 1.4); if (t > 0 && t < bt) { bt = t; best = o.act || "npc:" + o.id; } });
+    if (pa.vis && !pa.inside && (pa.space || null) === curSpace()) { const t = R.hitSphere(ray, pa.x, 1.0, pa.z, 1.4); if (t > 0 && t < bt) { bt = t; best = "partner"; } }
     if (best) return { act: best };
     const g = R.hitGround(ray); return g ? { ground: g } : null;
   }
@@ -335,7 +383,8 @@
     if (!st.input || !W.onAct) return;
     if (act === "partner") { W.onAct("partner"); return; }
     if (act === "pet") { W.onAct("pet"); return; }
-    let poi = S.poi[act];
+    if (act.startsWith("furn:")) { W.onAct(act); return; }
+    let poi = mode === "in" ? curInt.poi[act] : S.poi[act];
     if (!poi && act.startsWith("npc:")) { const o = npc[act.slice(4)]; if (o) poi = { x: o.x, z: o.z + 2.2 }; }
     if (!poi && act.startsWith("hidden:")) { const h = OSW.HIDDEN.find((x) => x.id === act.slice(7)); if (h) poi = { x: (h.x - 1300) / 21 + 1.2, z: (h.y - 940) / 21 + 1.2 }; }
     if (poi) goTo(poi.x, poi.z, act); else W.onAct(act);
@@ -357,9 +406,10 @@
     const up = (e) => {
       if (!ptr.has(e.pointerId)) return; const was = ptr.size; ptr.delete(e.pointerId); el.classList.remove("dragging"); last = 0;
       if (was === 1 && moved <= 9 && performance.now() - t0 < 600 && st.input) {
+        if (floorHandler) { const g0 = R.hitGround(R.ray(e.clientX, e.clientY)); if (g0) floorHandler(g0[0], g0[1]); return; }
         const r = pick(e.clientX, e.clientY); if (!r) return;
         if (r.act) tapAct(r.act);
-        else { const g = r.ground; goTo(clamp(g[0], B_.x0, B_.x1), clamp(g[1], B_.z0, B_.z1)); }
+        else { const g = r.ground, bb = mode === "in" ? curInt.bounds : B_; goTo(clamp(g[0], bb.x0, bb.x1), clamp(g[1], bb.z0, bb.z1)); }
       }
     };
     el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
@@ -402,8 +452,8 @@
       rebuildStatic(); initNpcs(); bindInput();
       S.rebuildTree(0); S.rebuildBoard(0); S.rebuildHome({ wall: "#FFF1D6", roof: "#E5484D", door: "#8a3b3b" }); S.rebuildFarm([]); S.rebuildFlowers(0, false, false); S.rebuildCart([], "cart"); S.rebuildCart([], "cartEmpty"); S.rebuildCart([], "cartTravel");
       mkLabel({ id: "home", text: "💞 بيتنا", x: S.pos.home.x, y: 9.4, z: S.pos.home.z, act: "home", max: 80, cls: "home", dynamic: "home" });
-      ["me", "partner"].forEach((w) => mkLabel({ id: "tag_" + w, text: "", x: 0, y: 0, z: 0, cls: "tag " + w, max: 70, dynamic: w, follow: () => { const o = w === "me" ? me : pa; if (!o.ch || (w === "partner" && (!pa.vis || pa.inside))) return null; return [o.x, 2.55, o.z]; } }));
-      mkLabel({ id: "holdh", text: "💞", x: 0, y: 0, z: 0, cls: "mood", max: 60, dynamic: "holdh", follow: () => (holding && pa.vis ? [(me.x + pa.x) / 2, 2.9, (me.z + pa.z) / 2] : null) });
+      ["me", "partner"].forEach((w) => mkLabel({ id: "tag_" + w, text: "", x: 0, y: 0, z: 0, cls: "tag " + w, max: 70, dynamic: w, scope: "both", follow: () => { const o = w === "me" ? me : pa; if (!o.ch || (w === "partner" && (!pa.vis || pa.inside || (pa.space || null) !== curSpace()))) return null; return [o.x, 2.55, o.z]; } }));
+      mkLabel({ id: "holdh", text: "💞", x: 0, y: 0, z: 0, cls: "mood", max: 60, dynamic: "holdh", scope: "both", follow: () => (holding && pa.vis ? [(me.x + pa.x) / 2, 2.9, (me.z + pa.z) / 2] : null) });
       mkLabel({ id: "zz", text: "💤", x: 0, y: 0, z: 0, cls: "mood", max: 40, dynamic: "zz", follow: () => (pa.vis && pa.sleep && !pa.inside ? [pa.x, 3.0, pa.z] : null) });
       mkLabel({ id: "inside", text: "", x: 0, y: 0, z: 0, cls: "inside", max: 70, dynamic: "inside", follow: () => { if (!pa.inside || !S.pos[pa.inside.replace("house:", "")]) return null; const p = S.pos[pa.inside.replace("house:", "")]; return [p.x, 6.4, p.z + 3]; } });
       requestAnimationFrame(frame); return true;
@@ -420,7 +470,7 @@
     spawnMe(x, z) { me.x = x; me.z = z; cam.tx = x; cam.tz = z; },
     placeMe(x, z) { me.x = x; me.z = z; },
     goTo, tapAct, cancelAuto,
-    walkToPOI(a) { return new Promise((res) => { const p = S.poi[/^[a-z0-9]+$/.test(a) && !S.poi[a] ? "house:" + a : a]; if (!p) return res(); if (hy(me.x - p.x, me.z - p.z) < 1.2) return res(); goTo(p.x, p.z, null, res); }); },
+    walkToPOI(a) { return new Promise((res) => { const P2 = mode === "in" ? curInt.poi : S.poi; const p = P2[/^[a-z0-9]+$/.test(a) && !P2[a] ? "house:" + a : a]; if (!p) return res(); if (hy(me.x - p.x, me.z - p.z) < 1.2) return res(); goTo(p.x, p.z, null, res); }); },
     followPartner(v) { if (v) cancelAuto(); me.follow = !!v; },
     get following() { return me.follow; },
     focusOn(a, ms = 900) {
@@ -442,7 +492,7 @@
     say(id, text, ms = 5000) {
       const o = id === "me" ? me : id === "partner" ? pa : id === "pet" ? pet : npc[id]; if (!o) return;
       const old = labs.findIndex((l) => l.dynamic === "say_" + id); if (old > -1) { labs[old].el.remove(); labs.splice(old, 1); }
-      const sc = (o.sc || 1), l = mkLabel({ id: "say_" + id, text, x: 0, y: 0, z: 0, cls: "say", max: 60, dynamic: "say_" + id, follow: () => [o.x, 3.6 * sc + 0.4, o.z] });
+      const sc = (o.sc || 1), l = mkLabel({ id: "say_" + id, text, x: 0, y: 0, z: 0, cls: "say", max: 60, scope: "both", dynamic: "say_" + id, follow: () => [o.x, 3.6 * sc + 0.4, o.z] });
       setTimeout(() => { const i = labs.indexOf(l); if (i > -1) { l.el.remove(); labs.splice(i, 1); } }, ms);
     },
     setPartnerState(s) { // {inside:'house:..'|null, sleeping:bool, visible:bool}
@@ -450,7 +500,7 @@
       if ("sleeping" in s) { pa.sleep = s.sleeping; if (s.sleeping) { pa.x = pa.tx = 3.6; pa.z = pa.tz = -8.4; pa.ry = -0.6; pa.vis = true; pa.mv = 0; } }
       if ("visible" in s) pa.vis = s.visible;
     },
-    partnerDist() { return pa.vis ? hy(me.x - pa.x, me.z - pa.z) : 1e9; },
+    partnerDist() { return pa.vis && (pa.space || null) === curSpace() ? hy(me.x - pa.x, me.z - pa.z) : 1e9; },
     getMe: () => ({ x: me.x, z: me.z }),
     setPlayerLabelsHidden(v) { labs.forEach((l) => { if (l.dynamic === "me" || l.dynamic === "partner") l.hidden = v; }); },
     setCarry(w, colors) { carry[w] = colors || []; },
@@ -470,8 +520,32 @@
     petPos: () => ({ x: pet.x, z: pet.z }),
     npcPos: (id) => (npc[id] ? { x: npc[id].x, z: npc[id].z } : null),
     openDoor() {}, closeDoors() {},
+    enter(id) {
+      const I = OSW.INT.get(id); cancelAuto(); curInt = I; mode = "in"; me.x = I.spawn.x; me.z = I.spawn.z; me.vx = me.vz = 0; me.ry = PI; cam.tx = me.x; cam.tz = me.z; cam.ty = 1.2; cam.yaw = 0; cam.pitch = I.camPitch; cam.dist = I.camDist; cam.follow = true; cam.anim = null; me.follow = false;
+      I.labels.forEach((d) => mkLabel(Object.assign({ dynamic: "int" }, d)));
+      inNpcs.length = 0; I.npcs.forEach((n) => { const def = OSW.NPC_BY[n.ref]; const o = { id: n.id, def, x: n.x, z: n.z, ry: n.face || 0, ch: OSW.makeChar(lookKey(def.look)), act: n.act }; inNpcs.push(o); mkLabel({ id: "in_" + n.id, text: def.name, cls: "tag np", max: 34, scope: "in", dynamic: "int", x: 0, y: 0, z: 0, follow: () => [o.x, 2.7, o.z] }); });
+      document.documentElement.classList.add("inside"); if (id === "home") applyFurn();
+    },
+    leave() {
+      for (let i = labs.length - 1; i >= 0; i--) if (labs[i].dynamic === "int") { labs[i].el.remove(); labs.splice(i, 1); }
+      const out = OSW.INT.outAt[curInt.id]; mode = "out"; inNpcs.length = 0; document.documentElement.classList.remove("inside"); curInt = null; floorHandler = null;
+      me.x = out.x; me.z = out.z; me.vx = me.vz = 0; cam.tx = me.x; cam.tz = me.z; cam.yaw = 0; cam.pitch = 0.55; cam.dist = 17; cam.follow = true; cam.anim = null;
+    },
+    setFurniture(list) { furn.list = list || []; if (mode === "in" && curInt.id === "home") applyFurn(); },
+    selectFurn(id) { selFurn = id; if (mode === "in" && curInt.id === "home") applyFurn(); },
+    setFloorHandler(f) { floorHandler = f; },
+    sleepTo(h) { const d = new Date(), real = d.getHours() + d.getMinutes() / 60; st.timeOffset = (((h - real) % 24) + 24) % 24; sessionStorage.setItem("osw_toff", String(st.timeOffset)); return updateSky(); },
+    resetTime() { st.timeOffset = 0; sessionStorage.removeItem("osw_toff"); return updateSky(); },
+    setPartnerSpace(sp) { pa.space = sp || null; },
+    addNpc(def) { if (!npc[def.id]) { OSW.NPCS.push(def); OSW.NPC_BY[def.id] = def; createNpc(def); } return npc[def.id]; },
+    removeNpc(id) { const i = OSW.NPCS.findIndex((n) => n.id === id); if (i > -1) OSW.NPCS.splice(i, 1); delete npc[id]; for (let k = labs.length - 1; k >= 0; k--) if (labs[k].dynamic === id || labs[k].dynamic === "m" + id) { labs[k].el.remove(); labs.splice(k, 1); } },
+    npcGoto(id, x, z, cb) { const o = npc[id]; if (!o) return false; o.tx = null; o.route = []; o.over = { x, z, cb, t0: performance.now() }; return true; },
+    npcProps(id, props) { const o = npc[id]; if (o) Object.assign(o, props); },
+    npcSetPos(id, x, z, ry) { const o = npc[id]; if (o) { o.x = x; o.z = z; if (ry != null) o.ry = ry; } },
+    setCrowd(x, z) { crowd = x == null ? null : { x, z }; },
+    setWedding(on) { S.rebuildWedding(!!on); },
     focusFor() { return []; },
   });
-  Object.defineProperties(W, { night: { get: () => st.night }, season: { get: () => st.season }, weather: { get: () => st.wmode }, holding: { get: () => holding } });
+  Object.defineProperties(W, { night: { get: () => st.night }, season: { get: () => st.season }, weather: { get: () => st.wmode }, holding: { get: () => holding }, mode: { get: () => mode }, interior: { get: () => (curInt ? curInt.id : null) }, timeOffset: { get: () => st.timeOffset } });
   OSW.POI = S.poi;
 })();

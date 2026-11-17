@@ -37,7 +37,8 @@
   });
   const SUPPLY = (G.SUPPLY = { wcan: { n: "ماء سقاية الورد", e: "💦", price: 3, note: "سقية وحدة" }, fert: { n: "سماد المزرعة", e: "🌿", price: 8, note: "بيسرّع نمو الزرعة 25%" } });
   const CLOTH = (G.CLOTH = Object.fromEntries(Object.entries(OSW.CLOTHES).filter(([k]) => k !== "casual")));
-  const ITEM = (G.ITEM = Object.assign({}, FOOD, SUPPLY, GIFTS, Object.fromEntries(Object.entries(CLOTH).map(([k, v]) => ["cl_" + k, Object.assign({ cloth: 1 }, v)])), Object.fromEntries(Object.entries(CROPS).map(([k, v]) => [k, { n: v.n, e: v.e, price: v.seed, crop: 1 }]))));
+  const FURNITEMS = Object.fromEntries(Object.entries(OSW.FURN).map(([k, f]) => ["fu_" + k, { n: f.n, e: f.e, price: f.price, furn: 1 }]));
+  const ITEM = (G.ITEM = Object.assign({}, FOOD, SUPPLY, GIFTS, FURNITEMS, Object.fromEntries(Object.entries(CLOTH).map(([k, v]) => ["cl_" + k, Object.assign({ cloth: 1 }, v)])), Object.fromEntries(Object.entries(CROPS).map(([k, v]) => [k, { n: v.n, e: v.e, price: v.seed, crop: 1 }]))));
   const PLOTS = 12, SALARY = 100, CART_MAX = 12, CARRY_MAX = 3, PULL_MS = 20000;
   const DECAY = { food: 100 / (22 * 3600000), drink: 100 / (16 * 3600000), joy: 100 / (40 * 3600000) };
   const SLOT_MS = 12 * 3600000, SLOT_OFF = 2 * 3600000;                                 // جولتين بكل يوم: 5ص و5م (بتوقيت عمّان)
@@ -68,7 +69,8 @@
   function fold(events) {
     const S = { coins: 50, inv: {}, plots: Array(PLOTS).fill(null), m: { hajji: { food: 70, drink: 70, joy: 60, up: false }, hajjeh: { food: 70, drink: 70, joy: 60, up: false } }, mt: 0,
       slots: {}, comp: {}, streak: 0, lastComp: -99, runStart: 0, paidMile: {}, orders: {}, till: {}, tillPaid: {}, buys: 0, harvests: 0, plants: 0, sells: 0, feeds: 0, refused: 0, blessed: {}, gifts: [],
-      tog: {}, acts: {}, fed: {}, carry: {}, cart: { crates: [], pulls: [], deliveries: 0, last: null }, barnT: 0 };
+      tog: {}, acts: {}, fed: {}, carry: {}, cart: { crates: [], pulls: [], deliveries: 0, last: null }, barnT: 0, furn: {}, scenes: {}, sceneCoins: {}, wedGifts: {}, weddings: 0 };
+    OSW.HOME.defaults.forEach((d) => (S.furn[d.id] = { id: d.id, item: d.item, x: d.x, z: d.z, rot: d.rot }));
     const ev = events.slice().sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : a.id < b.id ? -1 : 1));
     S.mt = ev.length ? new Date(ev[0].created_at).getTime() : Date.now();
     const decay = (t) => { const dt = Math.max(0, t - S.mt); ["hajji", "hajjeh"].forEach((w) => { const m = S.m[w]; m.food = Math.max(0, m.food - dt * DECAY.food); m.drink = Math.max(0, m.drink - dt * DECAY.drink); m.joy = Math.max(0, m.joy - dt * DECAY.joy); if (m.food < 15 || m.drink < 15) m.up = true; }); S.mt = t; };
@@ -124,6 +126,25 @@
         add(o.crop, -o.qty); S.coins += o.reward; S.orders[d.day + ":" + d.idx] = 1; mark();
       } else if (ty === "gift") {
         const g = GIFTS[d.id]; if (!g || S.coins < g.price) return; S.coins -= g.price; S.gifts.push({ id: d.id, from: a, note: String(d.note || "").slice(0, 140), t, key: e.id }); mark();
+      } else if (ty === "scene") {
+        const sc = OSW.events && OSW.events.SCENES.find((x) => x.id === d.id); if (!sc) return; const key = day + ":" + sc.id; if (S.scenes[key]) return;
+        let rw = d.ok ? sc.win : sc.lose; if (rw > 0) { S.sceneCoins[day] = S.sceneCoins[day] || 0; rw = Math.min(rw, Math.max(0, 40 - S.sceneCoins[day])); S.sceneCoins[day] += rw; }
+        S.coins = Math.max(0, S.coins + rw); if (d.ok && sc.item) add(sc.item, 1); S.scenes[key] = 1; mark();
+      } else if (ty === "wedding_gift") {
+        const w = OSW.events && OSW.events.weddingAt(t); if (!w || d.day !== day || ![10, 25, 50].includes(d.amt) || S.coins < d.amt) return;
+        const k = day + ":" + a; if ((S.wedGifts[k] || 0) >= 2) return;
+        S.coins -= d.amt; S.wedGifts[k] = (S.wedGifts[k] || 0) + 1; add("baklava", 1); if (d.formal) S.coins += Math.floor(d.amt * 0.3); S.weddings++; mark();
+      } else if (ty === "furn_place") {
+        const it = d.item, f = OSW.FURN[it]; if (!f || (S.inv["fu_" + it] || 0) < 1) return;
+        const rot = ((d.rot | 0) % 4 + 4) % 4; if (!OSW.HOME.valid(it, +d.x, +d.z, rot, Object.values(S.furn), null)) return;
+        add("fu_" + it, -1); S.furn[e.id] = { id: e.id, item: it, x: +d.x, z: +d.z, rot }; mark();
+      } else if (ty === "furn_move") {
+        const f = S.furn[d.inst]; if (!f) return; const rot = ((d.rot | 0) % 4 + 4) % 4;
+        if (!OSW.HOME.valid(f.item, +d.x, +d.z, rot, Object.values(S.furn), f.id)) return; f.x = +d.x; f.z = +d.z; f.rot = rot; mark();
+      } else if (ty === "furn_pick") {
+        const f = S.furn[d.inst]; if (!f) return; add("fu_" + f.item, 1); delete S.furn[d.inst]; mark();
+      } else if (ty === "furn_sell") {
+        const f = S.furn[d.inst]; if (!f) return; S.coins += Math.floor(OSW.FURN[f.item].price * 0.7); delete S.furn[d.inst]; mark();
       } else if (ty === "together") {
         S.tog[day] = (S.tog[day] || 0) + 1; if (S.tog[day] <= 10) S.coins += 3;
       }
@@ -135,6 +156,7 @@
     if (G._k !== key) { G._s = fold(evs); G._k = key; }
     return G._s;
   };
+  G.furnList = () => Object.values(G.state().furn);
   G.carryOf = (uid) => G.state().carry[uid] || [];
   G.view = () => {
     const s = G.state(), now = Date.now(), dt = Math.max(0, now - s.mt), v = { m: {} }, day = dayKey(now), cs = slotOf(now);
@@ -168,6 +190,7 @@
     W.setCarry("me", G.carryOf(db.uid).map((c) => CROPS[c.crop].c)); if (db.partner) W.setCarry("partner", G.carryOf(db.partner.id).map((c) => CROPS[c.crop].c));
     W.setCart(s.cart.crates.map((c) => CROPS[c.crop].c), s.cart.last);
     W.setSpeedMul(G.speedMul());
+    const fk = JSON.stringify(G.furnList()); if (G._fk !== fk) { G._fk = fk; W.setFurniture(G.furnList()); }
     const lc = s.lastCloth, bags = lc && lc.a === db.uid && (ui.my().bagsSeen || 0) < lc.t ? Math.min(3, db.entries.filter((e) => e.house === "game" && e.title === "buy" && e.author === db.uid && new Date(e.created_at).getTime() > (ui.my().bagsSeen || 0) && /^cl_/.test((e.data || {}).id)).length) : 0;
     W.setBags(bags);
     const ripe = v.plots.filter((p) => p && p.ripe).length, lowH = ["hajji", "hajjeh"].some((w) => v.m[w].up || Math.min(v.m[w].food, v.m[w].drink) < 40) ? 1 : 0;
@@ -295,6 +318,19 @@
       ui.openModal(`<h3>🎒 مخزنكم</h3>${coinBar()}<div class="chips" style="gap:8px">${items.map((k) => `<span class="tag" style="font-size:15px">${ITEM[k].e} ${esc(ITEM[k].n)} ×${s.inv[k]}</span>`).join("") || '<span class="hint">فاضي</span>'}</div>
         <div class="sep"></div><b>هدايا وصلتني 💝</b>${got.map((g) => `<div class="ans">${GIFTS[g.id].e} ${esc(GIFTS[g.id].n)} من ${esc(ui.prof(g.from).name)}${g.note ? ` — «${esc(g.note)}»` : ""}</div>`).join("") || '<div class="hint">لسا ما وصلتك هدايا</div>'}`);
     },
+    furniture() {
+      const s = G.state(), tab = G.ui.ftab || "living", list = Object.values(OSW.FURN).filter((f) => f.cat === tab);
+      const placedCount = G.furnList().length;
+      ui.openModal(`<h3>🛋️ موسوعة الأثاث</h3>${coinBar()}<p class="hint">اشتروا قطع وركّبوها بغرف البيت. القطع اللي معكم بتضغطوا «ضع» وبعدين بتضغطوا عالأرض بالغرفة. (بالبيت ${placedCount} قطعة)</p>
+        <div class="seg" style="margin:8px 0">${OSW.FURN_CATS.map(([k, t]) => `<button class="${tab === k ? "on" : ""}" data-act="g-ftab" data-k="${k}">${t}</button>`).join("")}</div>
+        <div class="items">${list.map((f) => { const own = s.inv["fu_" + f.id] || 0; return irow(f.e, f.n, `${f.w}×${f.d} م · عندك ${own}`, `<button class="btn sm gold" data-act="g-buy" data-id="fu_${f.id}" data-q="1" ${s.coins < cost(f.price, 1, s.buys) ? "disabled" : ""}>${cost(f.price, 1, s.buys)}🪙</button>${own ? `<button class="btn sm berry" data-act="g-place" data-item="${f.id}">ضع (${own})</button>` : ""}`); }).join("")}</div>`);
+    },
+    furnitem() {
+      const f = G.state().furn[G.ui.finst]; if (!f) return ui.closeModal(); const F = OSW.FURN[f.item];
+      ui.openModal(`<h3>${F.e} ${esc(F.n)}</h3><p class="hint">اللي بدك تعمله فيها؟</p>
+        <div class="row" style="gap:8px;margin:10px 0"><button class="btn gold" data-act="g-frot">🔄 دوّرها</button><button class="btn alt" data-act="g-fmove">✋ انقلها</button><button class="btn alt" data-act="g-fpick">📦 للمخزن</button><button class="btn alt" data-act="g-fsell">🪙 بيع (${Math.floor(F.price * 0.7)})</button></div>
+        ${F.sleep ? `<div class="row" style="justify-content:center"><button class="btn berry" data-act="g-sleep">😴 نام للصبح</button></div>` : ""}`);
+    },
     boutique() {
       const s = G.state(), lk = OSW.app.lookOf(db.uid), gender = lk.gender, tab = G.ui.wtab;
       const list = Object.entries(CLOTH).filter(([, c]) => (tab === "outfit" ? c.kind === "outfit" : c.kind === "acc") && (!c.gender || c.gender === gender));
@@ -320,6 +356,13 @@
   G.click = (a, el) => {
     const P = OSW.places, st = G.ui, v = () => G.view(), busy = async (f) => { try { await f(); } catch (e) { toast("⚠️ " + esc(e.message)); } };
     switch (a) {
+      case "g-ftab": st.ftab = el.dataset.k; return P.refresh();
+      case "g-place": ui.closeModal(); return OSW.app.startPlacing(el.dataset.item, null);
+      case "g-frot": return OSW.app.rotateFurn();
+      case "g-fmove": { const f = G.state().furn[st.finst]; ui.closeModal(); return f && OSW.app.startPlacing(f.item, f.id, f.rot); }
+      case "g-fpick": return busy(async () => { await G.do("furn_pick", { inst: st.finst }); ui.closeModal(); OSW.world.selectFurn(null); toast("📦 رجعت للمخزن"); });
+      case "g-fsell": return busy(async () => { await G.do("furn_sell", { inst: st.finst }); ui.closeModal(); OSW.world.selectFurn(null); OSW.audio.sfx("coin"); toast("🪙 انباعت"); });
+      case "g-sleep": ui.closeModal(); return OSW.app.sleep();
       case "g-tab": st.tab = el.dataset.k; return P.refresh();
       case "g-wtab": st.wtab = el.dataset.k; return P.refresh();
       case "g-buy": { const it = ITEM[el.dataset.id], q = +el.dataset.q, c = cost(it.price, q, G.state().buys); if (needCoins(c)) return; return busy(async () => { await G.do("buy", { id: el.dataset.id, qty: q }); OSW.audio.sfx("coin"); toast(`${it.e} اشتريت ${it.cloth ? "(الكيس بإيدك 🛍️)" : "×" + q}`); }); }

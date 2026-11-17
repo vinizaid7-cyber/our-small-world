@@ -45,6 +45,9 @@
   </div>
   <div id="joy" hidden><div id="joyKnob"></div></div>
   <button id="btnSprint" class="sprint" hidden aria-label="ركض">🏃</button>
+  <button id="btnFurn" class="furnbtn" hidden aria-label="الأثاث">🛋️</button>
+  <div id="placeBar" hidden><span id="placeTxt"></span><button id="placeRot">🔄</button><button id="placeCancel">✖</button></div>
+  <div id="sleepFade"><span>💤</span></div>
   <section id="chat" hidden><div class="chat-head"><b>💬 شات</b><button id="chatClose" aria-label="إغلاق">✕</button></div><div id="chatList"></div><div id="chatEmo"></div><form id="chatForm"><input id="chatIn" autocomplete="off" maxlength="400" placeholder="اكتب رسالة…"><button class="btn berry" type="submit">أرسل</button></form></section>
 
   <div id="guide" hidden role="button" tabindex="0" aria-label="دليل القرية"><span class="gcat">🐱</span><span id="guideText"></span></div>
@@ -73,10 +76,13 @@
   <script src="scene_houses.js"></script>
   <script src="scene_world.js"></script>
   <script src="chars3d.js"></script>
+  <script src="furniture.js"></script>
+  <script src="interior.js"></script>
   <script src="world3d.js"></script>
   <script src="ui.js"></script>
   <script src="game.js"></script>
   <script src="chat.js"></script>
+  <script src="events.js"></script>
   <script src="places.js"></script>
   <script src="app.js"></script>
 </body>
