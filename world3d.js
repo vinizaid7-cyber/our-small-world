@@ -328,7 +328,7 @@
     // نافورة: قطرات
     for (let i = 0; i < 14; i++) { const ph = (t * 0.8 + i / 14) % 1, a = i * 2.4, rr = ph * 2.6, y = 4.0 + Math.sin(ph * PI) * 1.7 - ph * 2.6; M.trs(Math.cos(a) * rr, y, Math.sin(a) * rr, 0, 0, 0, 1, 1, 1, m1); R.draw(meshes.drop, m1); }
     // دخان المداخن
-    [[2.4, 8.2, -15.2], [-21.9, 0, 0]].slice(0, 1).concat([[S.pos.memories.x + 2.1, 8.6, S.pos.memories.z - 1.2], [S.pos.hajji.x - 2.4, 6, S.pos.hajji.z - 1.2]]).forEach((c, k) => { for (let i = 0; i < 3; i++) { const ph = (t * 0.25 + i / 3 + k * 0.3) % 1; M.trs(c[0] + ph * 1.4, c[1] + ph * 3, c[2], 0, 0, 0, 0.3 + ph * 0.7, 0.3 + ph * 0.7, 0.3 + ph * 0.7, m1); R.draw(meshes.puff, m1, [1, 1, 1], (1 - ph) * 0.45); } });
+    [[2.4, 8.2, -15.2], [-21.9, 0, 0]].slice(0, 1).concat([[S.pos.hajji.x - 2.4, 6, S.pos.hajji.z - 1.2]]).forEach((c, k) => { for (let i = 0; i < 3; i++) { const ph = (t * 0.25 + i / 3 + k * 0.3) % 1; M.trs(c[0] + ph * 1.4, c[1] + ph * 3, c[2], 0, 0, 0, 0.3 + ph * 0.7, 0.3 + ph * 0.7, 0.3 + ph * 0.7, m1); R.draw(meshes.puff, m1, [1, 1, 1], (1 - ph) * 0.45); } });
     // طاحونة وقطار وغيوم وطيور
     M.trs(-56, 8.4, 49.2, 0, 0, t * 0.7, 1, 1, 1, m1); R.draw(meshes.blades, m1);
     const ph = (Math.sin(t * 0.12) + 1) / 2; M.trs(36 + ph * 22, 0.2, 7.9, 0, 0, 0, 1, 1, 1, m1); R.draw(meshes.train, m1);

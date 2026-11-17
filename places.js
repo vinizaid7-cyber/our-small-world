@@ -196,7 +196,7 @@
     ["d30", "🌙", "شهر معاً", "30 يوم", () => (P.days() || 0) >= 30],
     ["d100", "💯", "مية يوم", "100 يوم معاً", () => (P.days() || 0) >= 100],
     ["d365", "🎉", "سنة كاملة", "365 يوم معاً", () => (P.days() || 0) >= 365],
-    ["allhouses", "🏘️", "زرت كل البيوت", "دخلت كل بيت", () => OSW.HOUSES.every((h) => ui.my().visited.includes(h.id))],
+    ["allhouses", "🏘️", "زرنا كل ركن", "فتحتوا كل الأماكن بالبيت", () => ["photos", "songs", "memories", "letters", "dreams"].every((id) => ui.my().visited.includes(id))],
     ["treasure", "🧭", "صيّاد الكنوز", "لقيت كل العناصر المخفية", () => OSW.HIDDEN.every((o) => ui.my().found.includes(o.id))],
     ["qa7", "❓", "سبعة أسئلة", "جاوبتوا 7 أسئلة بالنافورة", () => new Set(db.entries.filter((e) => e.house === "fountain").map((e) => e.data.day)).size >= 7],
     ["story", "✍️", "حكاية مشتركة", "كمّلتوا حكاية سوا", () => db.entries.some((e) => e.house === "comment" && e.data.kind === "continue")],

@@ -6,7 +6,7 @@
 
   /* ---------- المواقع ---------- */
   const POS = S.pos;
-  OSW.HOUSES.forEach((h) => (POS[h.id] = { x: (h.x - 1300) / 21, z: (h.y - 940) / 21 }));
+  const VH = []; // بيوت القرية: ما بقى فيه، كل الأماكن صارت جوّا بيتنا
   Object.assign(POS, {
     home: { x: 0, z: -14 }, fountain: { x: 0, z: 0 }, tree: { x: -15, z: 0.5 }, plaza: { x: 15, z: -0.5 }, shop: { x: -24, z: 9.5 }, flowers: { x: 24, z: 9 },
     hajji: { x: -62, z: 8 }, farm: { x: -57, z: 34 }, boutique: { x: -40, z: 31 }, gate: { x: 0, z: 31 }, garden: { x: 62, z: 19 }, lighthouse: { x: 75, z: -2 }, lake: { x: 72, z: -2 },
@@ -38,7 +38,7 @@
   const PATHS = [];
   function planPaths() {
     const doors = [];
-    OSW.HOUSES.forEach((h) => { if (h.id === "capsule" || h.id === "surprise") return; const p = S.poi["house:" + h.id]; doors.push([p.x, p.z]); });
+    VH.forEach((h) => { if (h.id === "capsule" || h.id === "surprise") return; const p = S.poi["house:" + h.id]; doors.push([p.x, p.z]); });
     doors.forEach(([x, z]) => PATHS.push([[0, 0], [x * 0.55, z * 0.55 + (z > 0 ? -1 : 1)], [x, z]]));
     PATHS.push([[0, 32], [0, 14]], [[0, -2], [0, -8]]);
     PATHS.push([[-24, 15.6], [-24, 11]], [[-12, 8], [-24, 15.6]], [[24, 15.6], [12, 8]], [[24, 15.6], [24, 11]]);
@@ -72,7 +72,7 @@
     const rnd = OSW.seeded(4242);
 
     /* مواقع الاستقبال (POI) قبل رسم الطرق */
-    OSW.HOUSES.forEach((h) => { const p = POS[h.id], m = OSW.HMETA[h.id] || {}; S.poi["house:" + h.id] = { x: p.x, z: p.z + (m.dz || 5.6) }; });
+    VH.forEach((h) => { const p = POS[h.id], m = OSW.HMETA[h.id] || {}; S.poi["house:" + h.id] = { x: p.x, z: p.z + (m.dz || 5.6) }; });
     Object.assign(S.poi, {
       home: { x: 0, z: -7.2 }, fountain: { x: 0, z: 5.6 }, plaza: { x: 15, z: 3.4 }, tree: { x: -15, z: 5.2 }, shop: { x: -24, z: 15.8 }, flowers: { x: 22.4, z: 14.6 },
       hajji: { x: -62, z: 14.8 }, farm: { x: -56, z: 24 }, boutique: { x: -40, z: 37.2 }, barn: { x: -74.5, z: 39.4 }, cart: { x: -62, z: 19.4 }, gate: { x: 0, z: 28.4 }, garden: { x: 62, z: 25.4 }, lighthouse: { x: 61, z: -2 },
@@ -98,7 +98,7 @@
     for (let i = 0; i < 24; i++) { const a = (i / 24) * PI * 2; B.disc(Math.cos(a) * 10.1, 0.11, Math.sin(a) * 10.1, 0.5, "#cdbb90", 6); }
 
     /* البيوت الرئيسية (كل بيت بشكله) */
-    OSW.HOUSES.forEach((h) => {
+    VH.forEach((h) => {
       const p = POS[h.id], m = OSW.HMETA[h.id] || { r: 5, dz: 5.6, ly: 9 }, d = OSW.HDESIGN[h.id];
       if (!d) return;
       B.push(p.x, 0, p.z); d(B, h); B.pop();
@@ -239,12 +239,12 @@
     Object.keys(POS).forEach((k) => anchors.push([POS[k].x, POS[k].z, k === "lake" ? 17 : k === "farm" ? 20 : 8.4]));
     const okSpot = (x, z, r) => !(x < S.bounds.x0 + 2 || x > S.bounds.x1 - 2 || z < S.bounds.z0 + 1 || z > S.bounds.z1 - 1) && !anchors.some((a) => hy(x - a[0], z - a[1]) < a[2] + r) && hy(x, z) > 14.5 && !nearPath(x, z, 3.2) && !(x > -75 && x < -44 && z > 23 && z < 49) && !(x > 58 && x < 90 && z > -20 && z < 14);
     let nt = 0;
-    for (let t = 0; t < 4000 && nt < 150; t++) {
+    for (let t = 0; t < 4000 && nt < 85; t++) {
       const x = -84 + rnd() * 174, z = -36 + rnd() * 88; if (!okSpot(x, z, 1.4)) continue;
       nt++; const k = rnd(); tree(B, F, x, z, k, P.l1, P.l2, rnd); col(x, z, 0.8); SH.disc(x, 0.1, z, 1.7, "#000000", 8);
       anchors.push([x, z, 0.5]);
     }
-    for (let t = 0, n = 0; t < 3000 && n < 110; t++) {
+    for (let t = 0, n = 0; t < 3000 && n < 55; t++) {
       const x = -84 + rnd() * 174, z = -36 + rnd() * 88; if (!okSpot(x, z, 0.4)) continue; n++;
       if (rnd() < 0.4) F.sphere(x, 0.5, z, 0.8, 0.6, 0.8, rnd() < 0.5 ? P.l1 : dk(P.l1, 0.1), 6);
       else for (let k = 0; k < 6; k++) F.sphere(x + rnd() * 1.6 - 0.8, 0.18, z + rnd() * 1.6 - 0.8, 0.17, 0.15, 0.17, ["#ff8fb1", "#ffd34e", "#ffffff", "#c9a6ff", "#ff6b6b"][(rnd() * 5) | 0], 4, 0.15);

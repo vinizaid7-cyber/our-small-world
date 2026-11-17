@@ -50,6 +50,12 @@
     { id: "love", npc: "khalasuad", q: "بتحبوا بعض كتير؟ 🥰", opts: ["كتير كتير 💞", "شوي 😂"], okIdx: [0], win: 4, lose: 1, say: ["الله يتمم لكم عالخير 💖", "هههه الله يهديكم 😄"] },
     { id: "math", npc: "samer", q: "حساب سريع: كم 7 × 8؟ 🧮", opts: ["54", "56", "63"], okIdx: [1], win: 6, lose: 0, say: ["ممتاز! ٥٦ 👏", "لأ، جرّبوا مرة ثانية 😊"] },
     { id: "tug", npc: "fadi", q: "بدنا نلعب شد حبل؟ اللي بيخسر بيشتري بوظة! 🪢", opts: ["أنا مع الحجّي 😂", "بلا بلا 🙃"], okIdx: [0], win: 3, lose: 0, say: ["هههه الحجّي قوي! خدوا هاي 😆", "ماشي، مرة ثانية 😄"] },
+    /* مشاهد من جوّا البيت (مرة باليوم لكل مشهد) */
+    { id: "cook", home: 1, e: "🍳", title: "اطبخوا سوا", q: "قررتوا تطبخوا سوا اليوم! 🍳 شو بتحبوا تعملوا؟", opts: ["مقلوبة بالفرن 🍚", "بيض مقلي على السريع 🍳", "نطلب دليفري وخلص 🛵"], okIdx: [0, 1], win: 6, lose: 1, item: "mansaf", itemLabel: " + 🍲 صحن منسف", say: ["المقلوبة قلبتوها بنجاح! 👏", "بيض مقلي وضحك… أحلى طبخة 😂", "ههه الدليفري أسرع، بس الطبخ أحلى 🛵"] },
+    { id: "movie", home: 1, e: "📺", title: "سهرة فيلم", q: "سهرة فيلم 🍿 شو بدكم تشوفوا؟", opts: ["فيلم رومانسي 💕", "فيلم رعب 😱", "كرتون بيضحّك 😂"], okIdx: [0, 2], win: 6, lose: 2, say: ["دموع وفشار… ليلة مثالية 🥹", "خفتوا وغطّيتوا وشكم ببعض 🙈", "ضحكتوا لحد ما دمعت عيونكم 😂"] },
+    { id: "stars", home: 1, e: "🔭", title: "نجوم الليل", q: "السما صافية! 🌌 تمنّوا أمنية على نجمة 🌠", opts: ["نتقابل قريب 🫶", "سفرة سوا ✈️", "بيت مثل هاد 🏡"], okIdx: [0, 1, 2], win: 7, lose: 0, say: ["الله يحقق! النجمة سمعتكم 💫", "حقائب جاهزة بالقلب ✈️", "وهاد البيت بالبداية 🏡💖"] },
+    { id: "goodnight", home: 1, e: "🌙", title: "قبل النوم", q: "لمبة القمر نوّرت 🌙 شو بتقولوا لبعض قبل النوم؟", opts: ["تصبح على خير يا قلبي 💞", "نام بدري! 😴", "ولا كلمة… بس حضن 🤗"], okIdx: [0, 1, 2], win: 5, lose: 0, say: ["وإنت من أهله يا عمري 💞", "حاضر يا ماما 😂", "أحلى حضن بالعالم 🤗"] },
+    { id: "selfie", home: 1, e: "📸", title: "سيلفي", q: "كاميرا السيلفي جاهزة 🤳 شو الوضعية؟", opts: ["ابتسامة كبيرة 😁", "وجه مضحك 🤪", "بوسة بالهوا 😘"], okIdx: [0, 1, 2], win: 5, lose: 0, say: ["كليك! أحلى ابتسامة 📸", "هاي للألبوم السري 🤪", "💋 الصورة طلعت قمر"] },
     { id: "runner", npc: "abuali", q: "شفتوا حدا بيركض بالساحة؟ ممنوع! 👮", opts: ["لا والله ما شفت", "شفتك إنت بتركض 😂"], okIdx: [0], win: 2, lose: -2, say: ["الله يعطيكم العافية، قلب نظيف 👍", "ههه ما بصير! خدوا غرامة صغيرة 😅"] },
   ]);
   E.sceneDone = (id) => !!(G.state().scenes || {})[G.today() + ":" + id];
@@ -61,7 +67,7 @@
   E.tickScene = () => {
     const now = Date.now();
     if (now < nextScene || sceneBusy || !W || W.mode !== "out" || !document.getElementById("modal").hidden || !document.getElementById("room").hidden || (OSW.app.state && OSW.app.state().busyNav)) return;
-    const avail = SC.filter((s) => !E.sceneDone(s.id) && OSW.NPC_BY[s.npc]); if (!avail.length) { nextScene = now + 600000; return; }
+    const avail = SC.filter((s) => !s.home && !E.sceneDone(s.id) && OSW.NPC_BY[s.npc]); if (!avail.length) { nextScene = now + 600000; return; }
     const sc = rand(avail); sceneBusy = true; nextScene = now + (240 + Math.random() * 180) * 1000;
     const me = W.getMe(); W.npcProps(sc.npc, { mark: "❗" }); W.say(sc.npc, rand(["يا نشامى! بدي أسألكم شي 🙋", "لحظة لحظة! عندي سؤال 🤚", "ممكن مساعدة؟ 🙏"]), 4000);
     OSW.audio.sfx("ding");
@@ -69,12 +75,12 @@
     if (!ok) sceneBusy = false;
     setTimeout(() => { sceneBusy = false; W.npcProps(sc.npc, { mark: "" }); }, 60000);
   };
-  E.openScene = (id) => { const sc = SC.find((s) => s.id === id); if (!sc || E.sceneDone(id) || !document.getElementById("modal").hidden) return; E.scene = Object.assign({}, sc, sceneOpts(sc)); OSW.places.open("scene"); };
+  E.openScene = (id) => { const sc = SC.find((s) => s.id === id); if (!sc || !document.getElementById("modal").hidden) return; if (E.sceneDone(id)) return ui.toast("خلصتوا هالمشهد اليوم 😊 ارجعوا بكرة", "", 2200); E.scene = Object.assign({}, sc, sceneOpts(sc)); OSW.places.open("scene"); };
 
   /* ---------- نوافذ ---------- */
   G = OSW.game;
   G.openers.scene = () => {
-    const sc = E.scene; if (!sc) return ui.closeModal(); const n = OSW.NPC_BY[sc.npc];
+    const sc = E.scene; if (!sc) return ui.closeModal(); const n = sc.home ? { emoji: sc.e, name: sc.title } : OSW.NPC_BY[sc.npc];
     ui.openModal(`<h3>${n.emoji} ${esc(n.name)}</h3><div class="pick" style="font-size:21px;margin:8px 0">${esc(sc.q)}</div><div class="items">${sc.opts.map((o, i) => `<button class="btn alt" style="padding:12px;text-align:start;font-size:15px" data-act="e-scene" data-i="${i}">${esc(o)}</button>`).join("")}</div>`);
   };
   G.openers.wedding = () => {
@@ -88,11 +94,11 @@
   const base = G.click;
   G.click = (a, el) => {
     if (a === "e-scene") {
-      const sc = E.scene; if (!sc) return; const i = +el.dataset.i, ok = sc.okIdx.includes(i), n = OSW.NPC_BY[sc.npc]; ui.closeModal();
+      const sc = E.scene; if (!sc) return; const i = +el.dataset.i, ok = sc.okIdx.includes(i); ui.closeModal();
       G.do("scene", { id: sc.id, i, ok }).then(() => {
         const rw = ok ? sc.win : sc.lose; OSW.audio.sfx(ok ? "fanfare" : "pop"); if (ok) ui.hearts("⭐", 10);
-        W.say(sc.npc, sc.say[ok ? (sc.say.length > 2 ? i : 0) : sc.say.length > 2 ? i : 1] || sc.say[0], 5000);
-        ui.toast(`${ok ? "✅ صح!" : "😅"} ${rw > 0 ? "+" + rw + "🪙" : rw < 0 ? rw + "🪙" : ""}${ok && sc.item ? " + 🍲 صحن منسف" : ""}`, ok ? "gold" : "", 3500);
+        W.say(sc.home ? "me" : sc.npc, sc.say[ok ? (sc.say.length > 2 ? i : 0) : sc.say.length > 2 ? i : 1] || sc.say[0], 5000);
+        ui.toast(`${ok ? "✅ صح!" : "😅"} ${rw > 0 ? "+" + rw + "🪙" : rw < 0 ? rw + "🪙" : ""}${ok && sc.item ? sc.itemLabel || " + 🍲 صحن منسف" : ""}`, ok ? "gold" : "", 3500);
       }).catch((e) => ui.toast("⚠️ " + esc(e.message))); return;
     }
     if (a === "e-wish") { OSW.audio.sfx("heart"); ui.hearts("💖", 12); ["wed_groom", "wed_bride"].forEach((id) => W.say(id, rand(["الله يبارك فيكم! 🥰", "يسلمو! 💖", "عقبالكم! 😍"]), 4000)); return; }

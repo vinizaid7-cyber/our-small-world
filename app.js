@@ -248,6 +248,7 @@
     if (k === "exit") return exitInterior();
     if (act === "wedding") return goPlace("wedding");
     if (k === "console") return openConsole(v);
+    if (k === "scene") return OSW.events && OSW.events.openScene(v);
     if (k === "furn") return furnTap(v);
     if (k === "counter") return goPlace(W.interior === "boutique" ? "boutique" : "shop");
     if (k === "shelf") return goPlace("shop");
@@ -277,7 +278,7 @@
     await W.walkToPOI(OSW.INT.enterAct[id]); $("#curtain").classList.add("on"); await sleep(330);
     W.enter(id); G.sync3d(); db.track("in:" + id); $("#btnFurn").hidden = id !== "home";
     await sleep(80); $("#curtain").classList.remove("on"); W.setInputEnabled(true); busyNav = false;
-    if (id === "home") guideSay("بيتكم من جوّا! 🏡 اضغط 🛋️ للأثاث، وعلى الأسرّة لتناموا 😴", 6500);
+    if (id === "home") guideSay("بيتكم من جوّا! 🏡 خمس غرف: النوم (فيه رف الصور والأغاني)، الذكريات، المطبخ، الصالون، الشرفة. اضغط 🛋️ للأثاث 😴", 6500);
   }
   async function exitInterior() {
     if (busyNav || W.mode !== "in") return; busyNav = true; W.setInputEnabled(false); cancelPlacing(); OSW.audio.sfx("door");
