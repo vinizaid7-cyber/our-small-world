@@ -1,30 +1,39 @@
 /* بناء القرية ثلاثية الأبعاد: الأرض، الطرق، الأماكن الخاصة، الزينة */
 (function () {
-  const OSW = window.OSW, R = OSW.R, Builder = OSW.Builder, M = OSW.M;
+  const OSW = window.OSW, X = OSW.EX, R = OSW.R, Builder = OSW.Builder, M = OSW.M;
   const dk = OSW.col.dk, lt = OSW.col.lt, PI = Math.PI, hy = Math.hypot;
-  const S = (OSW.S = { acts: [], colliders: [], labels: [], poi: {}, pos: {}, dyn: {}, ready: false, bounds: { x0: -84, x1: 90, z0: -36, z1: 52 } });
+  const S = (OSW.S = { acts: [], colliders: [], labels: [], poi: {}, pos: {}, dyn: {}, ready: false, bounds: { x0: -112, x1: 112, z0: -62, z1: 98 } });
 
   /* ---------- المواقع ---------- */
   const POS = S.pos;
   const VH = []; // بيوت القرية: ما بقى فيه، كل الأماكن صارت جوّا بيتنا
   Object.assign(POS, {
     home: { x: 0, z: -14 }, fountain: { x: 0, z: 0 }, tree: { x: -15, z: 0.5 }, plaza: { x: 15, z: -0.5 }, shop: { x: -24, z: 9.5 }, flowers: { x: 24, z: 9 },
-    hajji: { x: -62, z: 8 }, farm: { x: -57, z: 34 }, boutique: { x: -40, z: 31 }, gate: { x: 0, z: 31 }, garden: { x: 62, z: 19 }, lighthouse: { x: 75, z: -2 }, lake: { x: 72, z: -2 },
+    hajji: { x: -62, z: 8 }, farm: { x: -22, z: -28 }, boutique: { x: -40, z: 31 }, gate: { x: 0, z: 31 }, garden: { x: 62, z: 19 }, lighthouse: { x: 75, z: -2 }, lake: { x: 72, z: -2 },
   });
   OSW.VILLAGERS = [
-    { id: "v1", x: -8, z: 42, name: "بيت أبو خالد", wall: "#e8d3b0", roof: "#a4452c", t: 0 },
-    { id: "v2", x: -28, z: 41, name: "بيت أم أحمد", wall: "#f2c6c6", roof: "#7a3b69", t: 1 },
-    { id: "v3", x: 12, z: 42, name: "بيت المعلّم سامر", wall: "#cde4d3", roof: "#2e6f5e", t: 2 },
-    { id: "v4", x: 31, z: 40, name: "بيت الخالة سعاد", wall: "#f3e2a9", roof: "#c0642a", t: 3 },
-    { id: "v5", x: 52, z: 37, name: "بيت أبو علي", wall: "#cfd8f0", roof: "#3a4f9a", t: 4 },
-    { id: "v6", x: 69, z: 38, name: "بيت الولد فادي", wall: "#f0d0f5", roof: "#8a3fa8", t: 5 },
+    { id: "v1", x: -12, z: 40, name: "بيت أبو خالد", wall: "#e8d3b0", roof: "#a4452c", t: 0 },
+    { id: "v2", x: 12, z: 40, name: "بيت أم أحمد", wall: "#f2c6c6", roof: "#7a3b69", t: 1 },
+    { id: "v3", x: -30, z: 40, name: "بيت المعلّم سامر", wall: "#cde4d3", roof: "#2e6f5e", t: 2 },
+    { id: "v4", x: 30, z: 40, name: "بيت الخالة سعاد", wall: "#f3e2a9", roof: "#c0642a", t: 3 },
+    { id: "v5", x: -48, z: 40, name: "بيت أبو علي", wall: "#cfd8f0", roof: "#3a4f9a", t: 4 },
+    { id: "v6", x: 48, z: 40, name: "بيت الولد فادي", wall: "#f0d0f5", roof: "#8a3fa8", t: 5 },
+    { id: "v7", x: -66, z: 40, name: "بيت أبو سليمان", wall: "#f1e3c6", roof: "#9b3b2b", t: 6 },
+    { id: "v8", x: 66, z: 40, name: "المزرعة الصغيرة", wall: "#f6f0e0", roof: "#2f7d46", t: 7 },
+    { id: "v9", x: -57, z: 66, name: "الفيلا الزرقاء", wall: "#d6e6f5", roof: "#2f5d9a", t: 0 },
+    { id: "v10", x: -38, z: 66, name: "بيت الحجر", wall: "#e9d6b0", roof: "#6b8e5a", t: 1 },
+    { id: "v11", x: -20, z: 66, name: "بيت الزجاج", wall: "#8e9aa8", roof: "#334155", t: 2 },
+    { id: "v12", x: 20, z: 66, name: "كوخ الورد", wall: "#f7d6e0", roof: "#b5476b", t: 3 },
+    { id: "v13", x: 38, z: 66, name: "القصر الصغير", wall: "#efe7d2", roof: "#7a3b69", t: 4 },
+    { id: "v14", x: 57, z: 66, name: "بيت الدائرة", wall: "#e0f0d8", roof: "#d97a2b", t: 5 },
   ];
   OSW.VILLAGERS.forEach((v) => (POS[v.id] = { x: v.x, z: v.z }));
 
+  S.col = null;
   const reg = (act, x, y, z, r, px, pz) => { S.acts.push({ act, x, y, z, r }); if (px != null) S.poi[act] = { x: px, z: pz }; };
   const col = (x, z, r) => S.colliders.push({ x, z, r });
   const label = (id, text, x, y, z, o = {}) => S.labels.push(Object.assign({ id, text, x, y, z, cls: "", max: 60 }, o));
-  S.reg = reg; S.label = label;
+  S.reg = reg; S.label = label; S.col = col;
 
   /* ---------- ألوان المواسم ---------- */
   const SEAS = {
@@ -42,9 +51,10 @@
     doors.forEach(([x, z]) => PATHS.push([[0, 0], [x * 0.55, z * 0.55 + (z > 0 ? -1 : 1)], [x, z]]));
     PATHS.push([[0, 32], [0, 14]], [[0, -2], [0, -8]]);
     PATHS.push([[-24, 15.6], [-24, 11]], [[-12, 8], [-24, 15.6]], [[24, 15.6], [12, 8]], [[24, 15.6], [24, 11]]);
-    PATHS.push([[-30, 24], [-36, 31], [-40, 37.2]], [[-30, 6], [-52, 12], [-62, 14.6]], [[-24, 15.6], [-40, 22], [-56, 24.5]], [[34, 6], [48, 10], [61, 25.6]], [[44, 4], [58, -2]]);
-    OSW.VILLAGERS.forEach((v) => PATHS.push([[v.x, v.z - 5.8], [v.x * 0.5, 34.5], [0, 33]]));
-    PATHS.push([[0, 33], [0, 14]]);
+    PATHS.push([[-30, 6], [-44, 7.5], [-62, 14.6]], [[34, 6], [48, 10], [61, 25.6]], [[44, 4], [58, -2]]);
+    PATHS.push([[-12, -3], [-24, -4], [-24, -9], [-24, -12]], [[-24, -4], [-30, 6]], [[-44, 7.5], [-44, 5]]);
+    PATHS.push([[0, 33], [0, 58]], [[-72, 34.5], [72, 34.5]], [[-72, 57], [72, 57]]);
+    OSW.VILLAGERS.forEach((v) => { const z = v.z > 50 ? 57 : 34.5; PATHS.push([[v.x, v.z - 5.8], [v.x, z]]); });
   }
   function distSeg(px, pz, a, b) {
     const dx = b[0] - a[0], dz = b[1] - a[1], l2 = dx * dx + dz * dz || 1; let t = ((px - a[0]) * dx + (pz - a[1]) * dz) / l2; t = Math.max(0, Math.min(1, t));
@@ -75,7 +85,7 @@
     VH.forEach((h) => { const p = POS[h.id], m = OSW.HMETA[h.id] || {}; S.poi["house:" + h.id] = { x: p.x, z: p.z + (m.dz || 5.6) }; });
     Object.assign(S.poi, {
       home: { x: 0, z: -7.2 }, fountain: { x: 0, z: 5.6 }, plaza: { x: 15, z: 3.4 }, tree: { x: -15, z: 5.2 }, shop: { x: -24, z: 15.8 }, flowers: { x: 22.4, z: 14.6 },
-      hajji: { x: -62, z: 14.8 }, farm: { x: -56, z: 24 }, boutique: { x: -40, z: 37.2 }, barn: { x: -74.5, z: 39.4 }, cart: { x: -62, z: 19.4 }, gate: { x: 0, z: 28.4 }, garden: { x: 62, z: 25.4 }, lighthouse: { x: 61, z: -2 },
+      hajji: { x: -62, z: 14.8 }, boutique: { x: -40, z: 37.2 }, gate: { x: 0, z: 28.4 }, garden: { x: 62, z: 25.4 }, lighthouse: { x: 61, z: -2 },
     });
     OSW.VILLAGERS.forEach((v) => (S.poi[v.id] = { x: v.x, z: v.z - 5.8 }));
     planPaths();
@@ -189,20 +199,6 @@
     B.pop(); SH.disc(hj.x, 0.1, hj.z, 6, "#000000", 14); col(hj.x, hj.z, 4.6);
     reg("hajji", hj.x, 2.4, hj.z, 5.4, S.poi.hajji.x, S.poi.hajji.z); label("hajji", "🧓 بيت الحجّي والحجّة", hj.x, 8, hj.z, { act: "hajji", max: 80, badge: "hajji" });
 
-    /* المزرعة */
-    const fx0 = -69, fx1 = -45, fz0 = 25.2, fz1 = 43;
-    B.push(0, 0.06, 0, 0, 0, 0); B.box((fx0 + fx1) / 2, 0, (fz0 + fz1) / 2, fx1 - fx0, 0.05, fz1 - fz0, "#9bc47a"); B.pop();
-    for (let i = 0; i < 12; i++) { const x = -66 + (i % 4) * 5.4, z = 28.4 + Math.floor(i / 4) * 5.4; B.box(x, 0.08, z, 4.4, 0.3, 4.4, "#6b4a30"); for (let k = -1; k <= 1; k++) B.box(x + k * 1.2, 0.38, z, 0.5, 0.1, 4.0, "#553820"); }
-    const fence = (x, z, rot) => { B.box(x, 0, z, 0.22, 1.0, 0.22, "#b98d5e"); col(x, z, 0.55); };
-    for (let x = fx0; x <= fx1 + 0.1; x += 2.4) { if (x < -58.4 || x > -53.6) fence(x, fz0); fence(x, fz1); }
-    for (let z = fz0; z <= fz1 + 0.1; z += 2.4) { fence(fx0, z); fence(fx1, z); }
-    B.box((fx0 + -58.4) / 2 + 0.2, 0.5, fz0, -58.4 - fx0, 0.14, 0.12, "#a97c50"); B.box((fx1 + -53.6) / 2 - 0.2, 0.5, fz0, fx1 - -53.6, 0.14, 0.12, "#a97c50");
-    B.box((fx0 + fx1) / 2, 0.5, fz1, fx1 - fx0, 0.14, 0.12, "#a97c50"); B.box(fx0, 0.5, (fz0 + fz1) / 2, 0.12, 0.14, fz1 - fz0, "#a97c50"); B.box(fx1, 0.5, (fz0 + fz1) / 2, 0.12, 0.14, fz1 - fz0, "#a97c50");
-    B.push(-74.5, 0, 34); B.box(0, 0, 0, 6.4, 3.4, 5.4, "#b3452c"); B.prism(0, 3.4, 0, 7.2, 2.6, 6, "#7a2e1f"); B.box(0, 0, 2.7, 3.0, 2.8, 0.1, "#f4ead2"); B.box(0, 0.1, 2.76, 2.6, 2.6, 0.06, "#8a2f1e"); B.pop(); col(-74.5, 34, 4.2);
-    B.push(-56, 0, 47.5); B.cyl(0, 0, 0, 2.0, 1.3, 7.2, "#efe6d2", 10); B.cyl(0, 7.2, 0, 1.6, 0, 1.8, "#8a3b2e", 10); B.pop(); col(-56, 47.5, 2.2);
-    B.cyl(-47.5, 0, 27.5, 0.1, 0.1, 2.4, "#7a5236", 5); B.box(-47.5, 1.7, 27.5, 1.9, 0.14, 0.14, "#7a5236"); B.sphere(-47.5, 2.5, 27.5, 0.35, 0.38, 0.35, "#e9d8a6", 7); B.cyl(-47.5, 2.8, 27.5, 0.6, 0.3, 0.2, "#6b4a30", 8); B.box(-47.5, 1.0, 27.5, 0.7, 0.9, 0.3, "#c4573a");
-    for (let i = 0; i < 5; i++) B.sphere(-71 + i * 0.1, 0.2 + i * 0.01, 28.5 + i * 0.7, 0.55, 0.45, 0.55, "#e0cf93", 6);
-    reg("farm", -57, 1, 34, 14, S.poi.farm.x, S.poi.farm.z); label("farm", "🌾 المزرعة", -57, 4.4, 28, { act: "farm", max: 85, badge: "farm" });
 
     /* محل الأناقة */
     const bq = POS.boutique;
@@ -214,45 +210,54 @@
     [[-4.8, "#ff7aa8"], [-5.9, "#6d3fb3"], [4.9, "#2b3a55"]].forEach(([x, c]) => { B.cyl(x, 0, 3.6, 0.5, 0.3, 1.2, c, 8); B.box(x, 1.2, 3.6, 0.5, 0.6, 0.3, c); B.sphere(x, 2.05, 3.6, 0.22, 0.26, 0.22, "#f2d9c8", 7); B.cyl(x, 0, 3.6, 0.06, 0.06, 0.05, "#444", 5); });
     B.pop(); SH.disc(bq.x, 0.1, bq.z, 6.4, "#000000", 16); col(bq.x, bq.z, 5.0);
     reg("boutique", bq.x, 2.4, bq.z, 5.6, S.poi.boutique.x, S.poi.boutique.z); label("boutique", "👗 محل الأناقة", bq.x, 8.6, bq.z, { act: "boutique", max: 80 });
-    /* مخزن المزرعة وعربتها وقطع الأرض (تنضغط) */
-    reg("barn", -74.5, 2.0, 34, 4.2, S.poi.barn.x, S.poi.barn.z); label("barn", "🏚️ المخزن", -74.5, 7.6, 34, { act: "barn", max: 70 });
-    S.cartHome = { x: -62, z: 22 }; reg("cart", -62, 1.0, 22, 2.4, S.poi.cart.x, S.poi.cart.z); label("cart", "🛒 العربة", -62, 3.6, 22, { act: "cart", max: 55 });
-    col(-62, 22, 1.6);
-    for (let i = 0; i < 12; i++) { const px = -66 + (i % 4) * 5.4, pz = 28.4 + Math.floor(i / 4) * 5.4; S.poi["plot:" + i] = { x: px, z: pz + 2.7 }; reg("plot:" + i, px, 0.5, pz, 2.0, px, pz + 2.7); }
 
-    /* بيوت أهل القرية */
-    OSW.VILLAGERS.forEach((v) => {
-      B.push(v.x, 0, v.z, PI); OSW.hparts.found(B, 6, 5); B.box(0, 0.35, 0, 6, 3.0, 5, v.wall);
-      if (v.t === 0) { B.prism(0, 3.35, 0, 6.8, 2.2, 5.8, v.roof); B.box(1.8, 4.2, -1, 0.8, 2.6, 0.8, "#8a5a44"); }
-      else if (v.t === 1) { B.box(0, 3.35, 0, 6.6, 0.4, 5.6, v.roof); B.box(1.6, 3.75, -0.6, 2.2, 2.4, 2.2, dk(v.wall, 0.08)); B.cyl(1.6, 6.15, -0.6, 1.7, 0, 1.4, v.roof, 4); }
-      else if (v.t === 2) { B.sphere(0, 3.3, 0, 3.6, 2.6, 3.0, v.roof, 12, 0, true); B.cyl(0, 3.2, 0, 3.7, 3.7, 0.2, dk(v.roof, 0.2), 14); }
-      else if (v.t === 3) { B.prism(0, 3.35, 0, 6.8, 3.6, 5.8, v.roof); }
-      else if (v.t === 4) { B.prism(0, 3.35, 0, 6.8, 2.0, 5.8, v.roof); B.box(-1.6, 4.4, 1.6, 1.6, 1.2, 1.2, v.wall); B.prism(-1.6, 5.6, 1.6, 2.0, 1.0, 1.5, dk(v.roof, 0.15)); }
-      else { B.cyl(0, 3.3, 0, 3.7, 0, 3.2, v.roof, 14); }
-      OSW.hparts.win(B, -1.8, 1.5, 2.5, 1.0, 1.2); OSW.hparts.win(B, 1.9, 1.5, 2.5, 1.0, 1.2); OSW.hparts.door(B, 0, 2.5, dk(v.roof, 0.1), 1.2, 2.2);
-      B.sphere(-3.4, 0.4, 3.0, 0.5, 0.4, 0.5, "#6ec26e", 6); B.pop(); SH.disc(v.x, 0.1, v.z, 5, "#000000", 12); col(v.x, v.z, 3.8);
-      label(v.id, "🏠 " + v.name, v.x, 8.2, v.z, { max: 48, cls: "sm" });
-    });
+    /* بيوت أهل القرية: صفين وشوارع منظمة */
+    OSW.VILLAGERS.forEach((v) => X.buildVillager({ B, SH, col, label }, v));
+    X.buildFarm({ B, F, SH, S, reg, label, col, rnd }); X.buildButcher({ B, SH, S, reg, label, col }); X.buildPier({ B, S, reg, label });
 
-    /* زينة: أشجار وشجيرات وزهور */
+    /* زينة: أشجار متنوعة وشجيرات وزهور وأحجار */
     const anchors = [];
-    Object.keys(POS).forEach((k) => anchors.push([POS[k].x, POS[k].z, k === "lake" ? 17 : k === "farm" ? 20 : 8.4]));
-    const okSpot = (x, z, r) => !(x < S.bounds.x0 + 2 || x > S.bounds.x1 - 2 || z < S.bounds.z0 + 1 || z > S.bounds.z1 - 1) && !anchors.some((a) => hy(x - a[0], z - a[1]) < a[2] + r) && hy(x, z) > 14.5 && !nearPath(x, z, 3.2) && !(x > -75 && x < -44 && z > 23 && z < 49) && !(x > 58 && x < 90 && z > -20 && z < 14);
+    Object.keys(POS).forEach((k) => anchors.push([POS[k].x, POS[k].z, k === "lake" ? 17 : k === "farm" ? 3 : 8.4]));
+    anchors.push([X.BUTCHER.x, X.BUTCHER.z, 9], [X.SQUARE.x, X.SQUARE.z, 12]);
+    const inRect = (x, z, a, b, c2, d) => x > a && x < b && z > c2 && z < d;
+    const okSpot = (x, z, r) => !(x < S.bounds.x0 + 2 || x > S.bounds.x1 - 2 || z < S.bounds.z0 + 1 || z > S.bounds.z1 - 1) && !anchors.some((a) => hy(x - a[0], z - a[1]) < a[2] + r) && hy(x, z) > 14.5 && !nearPath(x, z, 3.4) && !inRect(x, z, -64, -8, -50, -6) && !inRect(x, z, -4, 10, -52, -34) && !inRect(x, z, 58, 92, -20, 14) && !inRect(x, z, -76, 76, 31, 75);
+    const kinds = ["oak", "pine", "cypress", "olive", "birch", "round"];
+    function deco(x, z, k, s) {
+      if (k === "pine") { B.cyl(x, 0, z, 0.25 * s, 0.2 * s, 1.2 * s, "#6b4a30", 6); for (let i = 0; i < 4; i++) F.cyl(x, (0.9 + i * 1.05) * s, z, (1.8 - i * 0.4) * s, 0.1, 1.9 * s, dk(P.l1, 0.2 + i * 0.04), 8); }
+      else if (k === "cypress") { B.cyl(x, 0, z, 0.2 * s, 0.18 * s, 0.8 * s, "#6b4a30", 5); F.sphere(x, 2.6 * s, z, 0.8 * s, 2.6 * s, 0.8 * s, dk(P.l1, 0.3), 7); }
+      else if (k === "olive") { B.cyl(x, 0, z, 0.32 * s, 0.22 * s, 1.3 * s, "#8a7a62", 6); B.push(x, 1.0 * s, z, 0.5, 0, 0.4); B.cyl(0, 0, 0, 0.16 * s, 0.1 * s, 1.2 * s, "#8a7a62", 5); B.pop(); [[0, 2.3, 0, 1.5], [-1.0, 2.0, 0.3, 1.1], [1.0, 2.1, -0.3, 1.2]].forEach(([dx, dy, dz, r]) => F.sphere(x + dx * s, dy * s, z + dz * s, r * s, r * s * 0.6, r * s, "#8aa07a", 6)); }
+      else if (k === "birch") { B.cyl(x, 0, z, 0.2 * s, 0.16 * s, 2.6 * s, "#efe9dc", 6); for (let i = 0; i < 3; i++) B.box(x - 0.1 * s, (0.6 + i * 0.7) * s, z + 0.1 * s, 0.25 * s, 0.08 * s, 0.1 * s, "#444"); [[0, 3.2, 0, 1.3], [-0.7, 2.8, 0.2, 1.0], [0.7, 3.0, -0.2, 1.0]].forEach(([dx, dy, dz, r]) => F.sphere(x + dx * s, dy * s, z + dz * s, r * s, r * s * 0.95, r * s, lt(P.l1, 0.15), 6)); }
+      else if (k === "round") { B.cyl(x, 0, z, 0.3 * s, 0.24 * s, 1.5 * s, "#7a5236", 6); F.sphere(x, 2.7 * s, z, 1.7 * s, 1.5 * s, 1.7 * s, rnd() < 0.5 ? P.l1 : dk(P.l1, 0.1), 8); F.sphere(x + 0.6 * s, 3.3 * s, z - 0.3 * s, 1.0 * s, 0.9 * s, 1.0 * s, lt(P.l1, 0.08), 7); }
+      else tree(B, F, x, z, rnd() * 0.5, P.l1, P.l2, rnd);
+      S._sh(x, z, 1.7 * s);
+    }
     let nt = 0;
-    for (let t = 0; t < 4000 && nt < 85; t++) {
-      const x = -84 + rnd() * 174, z = -36 + rnd() * 88; if (!okSpot(x, z, 1.4)) continue;
-      nt++; const k = rnd(); tree(B, F, x, z, k, P.l1, P.l2, rnd); col(x, z, 0.8); SH.disc(x, 0.1, z, 1.7, "#000000", 8);
-      anchors.push([x, z, 0.5]);
+    for (let t = 0; t < 9000 && nt < 190; t++) {
+      const x = S.bounds.x0 + rnd() * (S.bounds.x1 - S.bounds.x0), z = S.bounds.z0 + rnd() * (S.bounds.z1 - S.bounds.z0); if (!okSpot(x, z, 1.4)) continue;
+      nt++; deco(x, z, kinds[(rnd() * kinds.length) | 0], 0.85 + rnd() * 0.6); col(x, z, 0.8); anchors.push([x, z, 0.5]);
     }
-    for (let t = 0, n = 0; t < 3000 && n < 55; t++) {
-      const x = -84 + rnd() * 174, z = -36 + rnd() * 88; if (!okSpot(x, z, 0.4)) continue; n++;
-      if (rnd() < 0.4) F.sphere(x, 0.5, z, 0.8, 0.6, 0.8, rnd() < 0.5 ? P.l1 : dk(P.l1, 0.1), 6);
-      else for (let k = 0; k < 6; k++) F.sphere(x + rnd() * 1.6 - 0.8, 0.18, z + rnd() * 1.6 - 0.8, 0.17, 0.15, 0.17, ["#ff8fb1", "#ffd34e", "#ffffff", "#c9a6ff", "#ff6b6b"][(rnd() * 5) | 0], 4, 0.15);
-      if (rnd() < 0.12) B.sphere(x + 1.2, 0.3, z + 0.4, 0.55, 0.4, 0.5, "#9aa0a8", 5);
+    for (let t = 0, n = 0; t < 7000 && n < 150; t++) {
+      const x = S.bounds.x0 + rnd() * (S.bounds.x1 - S.bounds.x0), z = S.bounds.z0 + rnd() * (S.bounds.z1 - S.bounds.z0); if (!okSpot(x, z, 0.4)) continue; n++;
+      const r = rnd();
+      if (r < 0.3) F.sphere(x, 0.5, z, 0.8, 0.6, 0.8, rnd() < 0.5 ? P.l1 : dk(P.l1, 0.1), 6);
+      else if (r < 0.8) for (let k = 0; k < 8; k++) { const fx = x + rnd() * 1.8 - 0.9, fz = z + rnd() * 1.8 - 0.9; F.cyl(fx, 0.04, fz, 0.03, 0.02, 0.28, "#4f9a52", 4); F.sphere(fx, 0.34, fz, 0.13, 0.11, 0.13, ["#ff8fb1", "#ffd34e", "#ffffff", "#c9a6ff", "#ff6b6b"][(rnd() * 5) | 0], 4, 0.15); }
+      else { B.sphere(x, 0.3, z, 0.7, 0.45, 0.6, "#9aa0a8", 5); B.sphere(x + 0.7, 0.2, z + 0.3, 0.4, 0.28, 0.4, "#aab0b8", 5); }
     }
-    // أعمدة إنارة
-    [[-7, 9], [7, 9], [-7, 22], [7, 22], [-10, -10], [10, -10], [-14, 14], [14, 14], [0, 26], [-40, 8], [40, 6], [-56, 20], [60, 14]].forEach(([x, z]) => { B.cyl(x, 0, z, 0.1, 0.1, 3.4, "#4a3d38", 6); B.sphere(x, 3.6, z, 0.34, 0.4, 0.34, "#ffe7a0", 7, 1); col(x, z, 0.3); S.labels; });
-    S.lamps = [[-7, 9], [7, 9], [-7, 22], [7, 22], [-10, -10], [10, -10], [-14, 14], [14, 14], [0, 26], [-40, 8], [40, 6], [-56, 20], [60, 14]];
+    // عشب طويل متفرق
+    for (let t = 0, n = 0; t < 6000 && n < 320; t++) { const x = S.bounds.x0 + rnd() * (S.bounds.x1 - S.bounds.x0), z = S.bounds.z0 + rnd() * (S.bounds.z1 - S.bounds.z0); if (!okSpot(x, z, 0.2)) continue; n++; for (let k = 0; k < 4; k++) F.cyl(x + (k - 1.5) * 0.12, 0, z + (k % 2) * 0.1, 0.07, 0.01, 0.55 + rnd() * 0.3, dk(P.g1, 0.12), 3); }
+    // أعمدة إنارة وكراسي
+    S.lamps = [[-7, 9], [7, 9], [-7, 22], [7, 22], [-10, -10], [10, -10], [-14, 14], [14, 14], [0, 26], [-40, 8], [40, 6], [-30, -8], [60, 14], [-6, 37], [6, 37], [-36, 37], [36, 37], [-60, 37], [60, 37], [-6, 55], [6, 55], [-36, 56], [36, 56], [-60, 56], [60, 56], [-2, 46], [2, 46]];
+    S.lamps.forEach(([x, z]) => { B.cyl(x, 0, z, 0.1, 0.1, 3.4, "#4a3d38", 6); B.sphere(x, 3.6, z, 0.34, 0.4, 0.34, "#ffe7a0", 7, 1); col(x, z, 0.3); });
+    [[-8, 4, 0], [8, 4, 0], [-12, -6, 0.3], [12, -6, -0.3], [-4, 36.5, 0], [4, 36.5, 0], [-4, 57, 0], [4, 57, 0], [26, 12, 0], [-26, 17.5, 0]].forEach(([x, z, r]) => { B.push(x, 0, z, r); B.box(0, 0.4, 0, 1.8, 0.1, 0.55, "#a97c50"); B.box(0, 0.8, -0.22, 1.8, 0.45, 0.08, "#a97c50"); B.box(-0.8, 0, 0, 0.1, 0.4, 0.5, "#555"); B.box(0.8, 0, 0, 0.1, 0.4, 0.5, "#555"); B.pop(); });
+    // ساحة السوق الجنوبية: بئر + برج ساعة + بسطات
+    const sq = X.SQUARE;
+    B.disc(sq.x, 0.08, sq.z, 11, "#d3c196", 32); B.disc(sq.x, 0.09, sq.z, 10.2, "#e9dcba", 32);
+    for (let i = 0; i < 20; i++) { const a = (i / 20) * PI * 2; B.disc(sq.x + Math.cos(a) * 8.4, 0.1, sq.z + Math.sin(a) * 8.4, 0.45, "#cdbb90", 6); }
+    B.cyl(sq.x, 0, sq.z, 2.0, 2.0, 0.7, "#9aa7b8", 14); B.cyl(sq.x, 0.6, sq.z, 1.7, 1.7, 0.1, "#63b6ee", 14);
+    B.cyl(sq.x, 0, sq.z + 0.0, 0.1, 0.1, 0.1, "#fff", 4); col(sq.x, sq.z, 2.2);
+    B.box(sq.x, 0.7, sq.z - 7.5, 1.8, 7.5, 1.8, "#e9dcc0"); B.box(sq.x, 8.2, sq.z - 7.5, 2.4, 0.4, 2.4, "#8a3b2e"); B.prism(sq.x, 8.6, sq.z - 7.5, 2.6, 1.6, 2.6, "#8a3b2e"); B.cyl(sq.x, 5.3, sq.z - 6.6, 0.8, 0.8, 0.1, "#fffdf5", 12); B.box(sq.x, 5.2, sq.z - 6.55, 0.08, 0.8, 0.05, "#333"); col(sq.x, sq.z - 7.5, 1.6); S._sh(sq.x, sq.z - 7.5, 2.4);
+    [[-6.5, 2, "#c0392b"], [6.5, 2, "#2a9d8f"], [-6.5, -3, "#e0a200"], [6.5, -3, "#6e4bc4"]].forEach(([dx, dz, cc]) => { const x = sq.x + dx, z = sq.z + dz; B.box(x, 0, z, 2.6, 1.0, 1.4, "#a97c50"); [[-1.2, -0.6], [1.2, -0.6], [-1.2, 0.6], [1.2, 0.6]].forEach(([px, pz]) => B.box(x + px, 1.0, z + pz, 0.1, 1.6, 0.1, "#7a5236")); for (let i = 0; i < 4; i++) { B.push(x - 1.4 + i * 0.95, 2.4, z, 0, 0, 0.12); B.box(0, 0, 0, 0.93, 0.08, 1.8, i % 2 ? "#fff" : cc); B.pop(); } for (let k = 0; k < 5; k++) B.sphere(x - 0.9 + k * 0.45, 1.15, z, 0.2, 0.17, 0.2, ["#e63946", "#ffd23f", "#7ac74f", "#ff8c42", "#9b5de5"][k], 5); col(x, z, 1.5); });
+    label("square", "🏘️ ساحة السوق", sq.x, 7, sq.z, { cls: "sm", max: 60 });
 
     S.dyn.main = B.build(gl); S.dyn.foliage = F.build(gl); S.dyn.shadow = SH.build(gl);
 
@@ -316,7 +321,7 @@
     const B = new Builder();
     plots.forEach((p, i) => {
       if (!p) return;
-      const x = -66 + (i % 4) * 5.4, z = 28.4 + Math.floor(i / 4) * 5.4, g = p.progress, ripe = g >= 1;
+      const pp = OSW.EX.plotPos(i), x = pp.x, z = pp.z, g = p.progress, ripe = g >= 1;
       const n = 6, sz = ripe ? 1 : 0.35 + 0.6 * g;
       for (let k = 0; k < n; k++) {
         const px = x - 1.5 + (k % 3) * 1.5, pz = z - 0.9 + Math.floor(k / 3) * 1.8, hgt = (0.25 + 0.55 * sz);

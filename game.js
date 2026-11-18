@@ -35,10 +35,17 @@
     teddy: { n: "دبدوب", e: "🧸", price: 40 }, perfume: { n: "عطر", e: "🧴", price: 45 }, musicbox: { n: "صندوق موسيقى", e: "🎵", price: 60 }, watch: { n: "ساعة", e: "⌚", price: 90 },
     necklace: { n: "عقد", e: "📿", price: 110 }, ring: { n: "خاتم", e: "💍", price: 120 },
   });
-  const SUPPLY = (G.SUPPLY = { wcan: { n: "ماء سقاية الورد", e: "💦", price: 3, note: "سقية وحدة" }, fert: { n: "سماد المزرعة", e: "🌿", price: 8, note: "بيسرّع نمو الزرعة 25%" } });
+  const HOUR = 3600000;
+  const AN = (G.AN = {
+    chicken: { n: "دجاجة", e: "🐔", price: 15, mature: 24 * HOUR, sell: 32, cap: 8, prod: "egg", period: 8 * HOUR, note: "بتبيّض كل 8 ساعات بعد ما تكبر (يوم)" },
+    sheep: { n: "خروف", e: "🐑", price: 60, mature: 72 * HOUR, sell: 170, cap: 6, note: "بيكبر بـ3 أيام وبعدين بتبيعه للملحمة" },
+    cow: { n: "بقرة", e: "🐄", price: 130, mature: 96 * HOUR, sell: 380, cap: 3, prod: "milk", period: 12 * HOUR, note: "بتعطي حليب كل 12 ساعة بعد ما تكبر (4 أيام)" },
+  });
+  const PRODUCE = (G.PRODUCE = { egg: { n: "بيض", e: "🥚", sell: 4 }, milk: { n: "حليب طازج", e: "🥛", sell: 11 }, fish_s: { n: "سمكة صغيرة", e: "🐟", sell: 6 }, fish_m: { n: "سمكة كبيرة", e: "🐠", sell: 16 }, fish_g: { n: "سمكة ذهبية", e: "✨🐟", sell: 80 }, boot: { n: "حذاء قديم", e: "🥾", sell: 1 } });
+  const SUPPLY = (G.SUPPLY = { hay: { n: "علف الحيوانات", e: "🌾", price: 6, note: "بيطعم كل الحيوانات 24 ساعة" }, wcan: { n: "ماء سقاية الورد", e: "💦", price: 3, note: "سقية وحدة" }, fert: { n: "سماد المزرعة", e: "🌿", price: 8, note: "بيسرّع نمو الزرعة 25%" } });
   const CLOTH = (G.CLOTH = Object.fromEntries(Object.entries(OSW.CLOTHES).filter(([k]) => k !== "casual")));
   const FURNITEMS = Object.fromEntries(Object.entries(OSW.FURN).map(([k, f]) => ["fu_" + k, { n: f.n, e: f.e, price: f.price, furn: 1 }]));
-  const ITEM = (G.ITEM = Object.assign({}, FOOD, SUPPLY, GIFTS, FURNITEMS, Object.fromEntries(Object.entries(CLOTH).map(([k, v]) => ["cl_" + k, Object.assign({ cloth: 1 }, v)])), Object.fromEntries(Object.entries(CROPS).map(([k, v]) => [k, { n: v.n, e: v.e, price: v.seed, crop: 1 }]))));
+  const ITEM = (G.ITEM = Object.assign({}, FOOD, SUPPLY, Object.fromEntries(Object.entries(PRODUCE).map(([k, v]) => [k, { n: v.n, e: v.e, price: 0, produce: 1 }])), GIFTS, FURNITEMS, Object.fromEntries(Object.entries(CLOTH).map(([k, v]) => ["cl_" + k, Object.assign({ cloth: 1 }, v)])), Object.fromEntries(Object.entries(CROPS).map(([k, v]) => [k, { n: v.n, e: v.e, price: v.seed, crop: 1 }]))));
   const PLOTS = 12, SALARY = 100, CART_MAX = 12, CARRY_MAX = 3, PULL_MS = 20000;
   const DECAY = { food: 100 / (22 * 3600000), drink: 100 / (16 * 3600000), joy: 100 / (40 * 3600000) };
   const SLOT_MS = 12 * 3600000, SLOT_OFF = 2 * 3600000;                                 // جولتين بكل يوم: 5ص و5م (بتوقيت عمّان)
@@ -69,12 +76,14 @@
   function fold(events) {
     const S = { coins: 50, inv: {}, plots: Array(PLOTS).fill(null), m: { hajji: { food: 70, drink: 70, joy: 60, up: false }, hajjeh: { food: 70, drink: 70, joy: 60, up: false } }, mt: 0,
       slots: {}, comp: {}, streak: 0, lastComp: -99, runStart: 0, paidMile: {}, orders: {}, till: {}, tillPaid: {}, buys: 0, harvests: 0, plants: 0, sells: 0, feeds: 0, refused: 0, blessed: {}, gifts: [],
-      tog: {}, acts: {}, fed: {}, carry: {}, cart: { crates: [], pulls: [], deliveries: 0, last: null }, barnT: 0, furn: {}, scenes: {}, sceneCoins: {}, wedGifts: {}, weddings: 0 };
+      tog: {}, acts: {}, fed: {}, carry: {}, cart: { crates: [], pulls: [], deliveries: 0, last: null }, barnT: 0, animals: [], acarry: {}, asold: 0, sheepSold: 0, draws: {}, drawCoins: {}, furn: {}, scenes: {}, sceneCoins: {}, wedGifts: {}, weddings: 0 };
     OSW.HOME.defaults.forEach((d) => (S.furn[d.id] = { id: d.id, item: d.item, x: d.x, z: d.z, rot: d.rot }));
     const ev = events.slice().sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : a.id < b.id ? -1 : 1));
     S.mt = ev.length ? new Date(ev[0].created_at).getTime() : Date.now();
     const decay = (t) => { const dt = Math.max(0, t - S.mt); ["hajji", "hajjeh"].forEach((w) => { const m = S.m[w]; m.food = Math.max(0, m.food - dt * DECAY.food); m.drink = Math.max(0, m.drink - dt * DECAY.drink); m.joy = Math.max(0, m.joy - dt * DECAY.joy); if (m.food < 15 || m.drink < 15) m.up = true; }); S.mt = t; };
     const add = (id, n) => (S.inv[id] = (S.inv[id] || 0) + n);
+    const adv = (an, t) => { if (t <= an.mt) return; const A = AN[an.kind], dt = Math.max(0, Math.min(t, an.fedUntil) - an.mt); an.age += dt; if (A.prod) { const md = Math.max(0, Math.min(dt, an.age - A.mature)); an.prod = Math.min(3 * A.period, an.prod + md); } an.mt = t; };
+    const acar = (a) => (S.acarry[a] = S.acarry[a] || []);
     const car = (a) => (S.carry[a] = S.carry[a] || []);
     ev.forEach((e) => {
       const t = new Date(e.created_at).getTime(), d = e.data || {}, day = dayKey(t), a = e.author, ty = e.title;
@@ -145,6 +154,30 @@
         const f = S.furn[d.inst]; if (!f) return; add("fu_" + f.item, 1); delete S.furn[d.inst]; mark();
       } else if (ty === "furn_sell") {
         const f = S.furn[d.inst]; if (!f) return; S.coins += Math.floor(OSW.FURN[f.item].price * 0.7); delete S.furn[d.inst]; mark();
+      } else if (ty === "abuy") {
+        const A = AN[d.kind]; if (!A || S.coins < A.price || S.animals.filter((x) => x.kind === d.kind).length >= A.cap) return;
+        S.coins -= A.price; S.animals.push({ id: e.id, kind: d.kind, born: t, mt: t, age: 0, prod: 0, fedUntil: t + 6 * HOUR }); mark();
+      } else if (ty === "afeed") {
+        if ((S.inv.hay || 0) < 1 || !S.animals.length) return; add("hay", -1);
+        S.animals.forEach((an) => { adv(an, t); an.fedUntil = Math.min(t + 48 * HOUR, Math.max(t, an.fedUntil) + 24 * HOUR); }); mark();
+      } else if (ty === "acollect") {
+        let eg = 0, mk = 0; S.animals.forEach((an) => { adv(an, t); const A = AN[an.kind]; if (!A.prod) return; const u = Math.floor(an.prod / A.period); an.prod -= u * A.period; if (A.prod === "egg") eg += u; else mk += u; });
+        if (!eg && !mk) return; if (eg) add("egg", eg); if (mk) add("milk", mk); mark();
+      } else if (ty === "acarry") {
+        const i = S.animals.findIndex((x) => x.id === d.id), cs = acar(a); if (i < 0 || cs.length >= 2) return; const an = S.animals[i]; adv(an, t); if (an.age < AN[an.kind].mature) return;
+        S.animals.splice(i, 1); cs.push(an); mark();
+      } else if (ty === "adrop") {
+        const cs = acar(a); if (!cs.length) return; const back = []; cs.forEach((an) => { if (S.animals.filter((x) => x.kind === an.kind).length < AN[an.kind].cap) { an.mt = t; S.animals.push(an); } else back.push(an); }); S.acarry[a] = back; mark();
+      } else if (ty === "asell") {
+        const cs = acar(a); if (!cs.length) return; cs.forEach((an) => { S.coins += AN[an.kind].sell; S.asold++; if (an.kind === "sheep") S.sheepSold++; }); S.acarry[a] = []; mark();
+      } else if (ty === "fish") {
+        if (PRODUCE[d.id] && d.id !== "egg" && d.id !== "milk") { add(d.id, 1); S.fished = (S.fished || 0) + 1; mark(); }
+      } else if (ty === "psell") {
+        const p = PRODUCE[d.id], q = d.qty; if (!p || !(q >= 1) || (S.inv[d.id] || 0) < q) return; add(d.id, -q); S.coins += Math.floor(p.sell * (d.stand ? 0.8 : 1)) * q; mark();
+      } else if (ty === "draw") {
+        const r = (S.draws[d.round] = S.draws[d.round] || { by: {}, prompt: d.prompt }); r.by[a] = e.id;
+        if (Object.keys(r.by).length >= 2 && !r.paid) { r.paid = 1; const k = day; S.drawCoins[k] = (S.drawCoins[k] || 0) + 1; if (S.drawCoins[k] <= 2) S.coins += 20; }
+        mark();
       } else if (ty === "together") {
         S.tog[day] = (S.tog[day] || 0) + 1; if (S.tog[day] <= 10) S.coins += 3;
       }
@@ -168,11 +201,18 @@
     v.pullWait = (() => { const me = s.cart.pulls.find((p) => p.a === db.uid && now - p.t <= PULL_MS), ot = s.cart.pulls.find((p) => p.a !== db.uid && now - p.t <= PULL_MS); return { me: !!me, other: !!ot, left: me ? Math.ceil((PULL_MS - (now - me.t)) / 1000) : 0 }; })();
     return Object.assign(v, { s });
   };
+  G.animalsView = () => {
+    const s = G.state(), now = Date.now(), out = [];
+    s.animals.forEach((an) => { const A = AN[an.kind], c = Object.assign({}, an); const dt = Math.max(0, Math.min(now, c.fedUntil) - c.mt); c.age += dt; let prod = c.prod; if (A.prod) { const md = Math.max(0, Math.min(dt, c.age - A.mature)); prod = Math.min(3 * A.period, prod + md); }
+      const prog = Math.min(1, c.age / A.mature); out.push({ id: an.id, kind: an.kind, A, age: c.age, prog, mature: prog >= 1, size: 0.45 + 0.55 * prog, units: A.prod ? Math.floor(prod / A.period) : 0, fed: an.fedUntil > now, fedLeft: Math.max(0, an.fedUntil - now), left: Math.max(0, A.mature - c.age) }); });
+    return out;
+  };
+  G.animalCarry = (uid) => (G.state().acarry[uid] || []);
   const mine = (day, ty) => !!((G.state().acts[day] || {})[db.uid + ":" + ty]);
   G.has = (id) => (G.state().inv[id] || 0) >= 1;
   G.speedMul = () => {
     const lk = (db.kv["look:" + db.uid] || {}), o = OSW.CLOTHES[lk.outfit || "casual"] || OSW.CLOTHES.casual;
-    return (o.speed || 1) * Math.pow(0.92, G.carryOf(db.uid).length);
+    return (o.speed || 1) * Math.pow(0.92, G.carryOf(db.uid).length) * Math.pow(0.88, G.animalCarry(db.uid).length);
   };
 
   /* ---------- تنفيذ الأفعال ---------- */
@@ -190,11 +230,12 @@
     W.setCarry("me", G.carryOf(db.uid).map((c) => CROPS[c.crop].c)); if (db.partner) W.setCarry("partner", G.carryOf(db.partner.id).map((c) => CROPS[c.crop].c));
     W.setCart(s.cart.crates.map((c) => CROPS[c.crop].c), s.cart.last);
     W.setSpeedMul(G.speedMul());
+    if (W.setAnimals) { const av = G.animalsView(); W.setAnimals(av.map((a) => ({ id: a.id, kind: a.kind, size: a.size }))); W.setAnimalCarry("me", G.animalCarry(db.uid).map((a) => a.kind)); if (db.partner) W.setAnimalCarry("partner", G.animalCarry(db.partner.id).map((a) => a.kind)); }
     const fk = JSON.stringify(G.furnList()); if (G._fk !== fk) { G._fk = fk; W.setFurniture(G.furnList()); }
     const lc = s.lastCloth, bags = lc && lc.a === db.uid && (ui.my().bagsSeen || 0) < lc.t ? Math.min(3, db.entries.filter((e) => e.house === "game" && e.title === "buy" && e.author === db.uid && new Date(e.created_at).getTime() > (ui.my().bagsSeen || 0) && /^cl_/.test((e.data || {}).id)).length) : 0;
     W.setBags(bags);
     const ripe = v.plots.filter((p) => p && p.ripe).length, lowH = ["hajji", "hajjeh"].some((w) => v.m[w].up || Math.min(v.m[w].food, v.m[w].drink) < 40) ? 1 : 0;
-    G.badges = { farm: ripe, hajji: lowH, flowers: v.myWater ? 0 : 1 };
+    const av2 = G.animalsView(); G.badges = { farm: ripe, hajji: lowH, flowers: v.myWater ? 0 : 1, pens: av2.reduce((n, a) => n + a.units, 0) + (av2.some((a) => !a.fed) ? 1 : 0), butcher: av2.filter((a) => a.mature && a.kind === "sheep").length };
     const pill = document.getElementById("coinNum"); if (pill) pill.textContent = s.coins;
     const tb = document.getElementById("taskBadge"); if (tb) { const n = G.tasks().filter((t) => !t.done).length; tb.textContent = n; tb.hidden = !n; }
     OSW.app && OSW.app.updateBadges && OSW.app.updateBadges();
@@ -219,6 +260,7 @@
       { e: "💞", t: `${db.partner ? db.partner.name : "شريكك"} سقى/سقت كمان`, done: v.partnerWater, go: "flowers", soft: 1 },
       { e: "🧓", t: "أطعم الحجّي والحجّة", done: !!(fedToday.hajji && fedToday.hajjeh), go: "hajji" },
       { e: "🌾", t: "ازرع أو اقطف من المزرعة", done: mine(d, "plant") || mine(d, "harvest"), go: "farm" },
+      ...(s.animals.length ? [{ e: "🐄", t: "اطعم الحيوانات واجمع الحليب والبيض", done: mine(d, "afeed") || mine(d, "acollect"), go: "pens" }] : []),
       { e: "🏪", t: "مرّ على سعدون واشترِ أو بيع", done: mine(d, "buy") || mine(d, "sell") || mine(d, "sellcrate"), go: "shop" },
     ];
   };
@@ -239,7 +281,7 @@
       if (tab === "food" || tab === "drink" || tab === "sweet") body = foodTab(tab);
       else if (tab === "farm") body = Object.entries(SUPPLY).map(([k, f]) => buy(k, f, `${f.note} · عندك ${s.inv[k] || 0}`, k === "wcan" ? [1, 3, 7] : [1, 3])).join("");
       else if (tab === "gift") body = `<p class="hint">اشترِ هدية وسعدون بيوصّلها لـ${esc(ui.partnerName())} مع كلمة منك 💌</p><input class="in" id="giftNote" maxlength="120" placeholder="اكتب كلمة حلوة مع الهدية…" style="margin-bottom:8px">` + Object.entries(GIFTS).map(([k, g]) => irow(g.e, g.n, "", `<button class="btn sm berry" data-act="g-gift" data-id="${k}" ${s.coins < g.price ? "disabled" : ""}>أرسل · ${g.price}🪙</button>`)).join("");
-      else body = `<p class="hint">أسعار اليوم بتتغير كل يوم ▲▼. المحاصيل اللي بمخزن المزرعة ببيعها هون:</p>` + (Object.keys(CROPS).filter((k) => s.inv[k] > 0).map((k) => { const c = CROPS[k]; return irow(c.e, `${c.n} ×${s.inv[k]}`, `سعر اليوم ${G.priceOf(k, G.today())}🪙 ${G.trend(k, G.today())}`, `<button class="btn sm gold" data-act="g-sell" data-id="${k}" data-q="1">بيع 1</button><button class="btn sm gold" data-act="g-sell" data-id="${k}" data-q="${s.inv[k]}">الكل</button>`); }).join("") || `<div class="empty">ما عندك محاصيل بالمخزن. اقطفوا من المزرعة وحطوا الصناديق بالمخزن 🌾</div>`);
+      else body = `<p class="hint">أسعار اليوم بتتغير كل يوم ▲▼. المحاصيل اللي بمخزن المزرعة ببيعها هون:</p>` + (Object.keys(PRODUCE).filter((k) => s.inv[k] > 0).map((k) => { const c = PRODUCE[k]; return irow(c.e, `${c.n} ×${s.inv[k]}`, `سعر ${c.sell}🪙 للواحدة`, `<button class="btn sm gold" data-act="g-psell" data-id="${k}" data-q="1">بيع 1</button><button class="btn sm gold" data-act="g-psell" data-id="${k}" data-q="${s.inv[k]}">الكل</button>`); }).join("") + Object.keys(CROPS).filter((k) => s.inv[k] > 0).map((k) => { const c = CROPS[k]; return irow(c.e, `${c.n} ×${s.inv[k]}`, `سعر اليوم ${G.priceOf(k, G.today())}🪙 ${G.trend(k, G.today())}`, `<button class="btn sm gold" data-act="g-sell" data-id="${k}" data-q="1">بيع 1</button><button class="btn sm gold" data-act="g-sell" data-id="${k}" data-q="${s.inv[k]}">الكل</button>`); }).join("") || `<div class="empty">ما عندك محاصيل بالمخزن. اقطفوا من المزرعة وحطوا الصناديق بالمخزن 🌾</div>`);
       const carried = G.carryOf(db.uid);
       ui.openModal(`<h3>🏪 بقالة سعدون</h3>${coinBar()}
         <div class="npc-say"><span class="nav">🧑‍🍳</span><div class="res-say"><small>سعدون</small>${esc(lines[Math.floor(Date.now() / 60000) % lines.length])}</div></div>
@@ -265,7 +307,7 @@
     },
     cart() {
       const v = G.view(), s = v.s, carried = G.carryOf(db.uid), crates = s.cart.crates, pw = v.pullWait;
-      const cart = OSW.world.S.cartHome || { x: -62, z: 22 }, both = db.partner && OSW.world.partnerDist() < 14 && OSW.world.distTo(cart.x, cart.z) < 12;
+      const cart = OSW.world.S.cartHome || { x: -18.5, z: -12.6 }, both = db.partner && OSW.world.partnerDist() < 14 && OSW.world.distTo(cart.x, cart.z) < 12;
       ui.openModal(`<h3>🛒 عربة المزرعة</h3>${coinBar()}
         <p class="hint">العربة بتشيل لحد ${CART_MAX} صندوق، وبتنباع بسعر أحسن بـ15% عند سعدون. بس بتحتاج <b>الاثنين</b> يسحبوها سوا (اضغطوا «اسحب» خلال 20 ثانية) 🤝</p>
         <div class="two"><div class="chk">📦<b>${crates.length}/${CART_MAX}</b> بالعربة</div><div class="chk">🧍<b>${carried.length}/3</b> معك</div></div>
@@ -303,6 +345,36 @@
         <div id="hStory" class="pick" style="display:none;margin-top:10px;font-size:19px"></div>`);
       G._stories = stories;
     },
+    pens() {
+      const s = G.state(), av = G.animalsView(), carry = G.animalCarry(db.uid), fedAll = av.length && av.every((a) => a.fed), minLeft = av.length ? Math.min(...av.map((a) => a.fedLeft)) : 0, eg = av.filter((a) => a.kind === "chicken").reduce((n, a) => n + a.units, 0), mk = av.filter((a) => a.kind === "cow").reduce((n, a) => n + a.units, 0);
+      const days = (ms) => (ms >= 86400000 ? Math.floor(ms / 86400000) + " يوم " + Math.floor((ms % 86400000) / 3600000) + " س" : Math.max(1, Math.ceil(ms / 60000 / 60 * 10) / 10) + " س");
+      const cards = Object.entries(AN).map(([k, A]) => { const n = av.filter((a) => a.kind === k).length; return `<div class="seed"><span>${A.e}</span><b>${A.n}</b><small>${A.price}🪙 · ${n}/${A.cap}</small><button class="btn sm gold" data-act="g-abuy" data-k="${k}" ${s.coins < A.price || n >= A.cap ? "disabled" : ""}>اشتري صغير</button><small>${A.note}</small></div>`; }).join("");
+      const rows = av.map((a, i) => irow(a.A.e, `${a.A.n} #${i + 1}${a.mature ? " ✅ كبير" : ""}`, `<div class="progress" style="height:8px;margin:4px 0"><i style="width:${Math.round(a.prog * 100)}%"></i></div>${a.mature ? (a.units ? `جاهز: ${a.units} ${a.A.prod === "egg" ? "🥚" : "🥛"}` : a.A.prod ? "بينتج…" : `جاهز للملحمة (${a.A.sell}🪙)`) : "بيكبر… باقي " + days(a.left)}${a.fed ? "" : " · 😢 جوعان"}`, a.mature ? `<button class="btn sm berry" data-act="g-acarry" data-id="${a.id}" ${carry.length >= 2 ? "disabled" : ""}>🧍 شيله</button>` : "")).join("");
+      ui.openModal(`<h3>🐾 حيوانات المزرعة</h3>${coinBar()}
+        <p class="hint">اطعموا الحيوانات كل يوم عشان تكبر وتنتج 🌾. الدجاج بيعطي بيض، البقر حليب، والخرفان لما يكبروا (3 أيام) بتشيلوهم وبتبيعوهم للملحمة 🥩.</p>
+        <div class="chk" style="margin:6px 0;justify-content:center">${!av.length ? "ما عندكم حيوانات لسا — اشتروا من تحت 👇" : fedAll ? `😊 شبعانين لمدة ${days(minLeft)}` : "😢 في حيوانات جوعانة! اطعموهم"}</div>
+        <div class="row" style="margin:6px 0"><button class="btn gold sm" data-act="g-afeed" ${s.inv.hay && av.length ? "" : "disabled"}>🌾 اطعم الكل (عندك ${s.inv.hay || 0})</button><button class="btn alt sm" data-act="g-gotoshop-hay">اشتري علف 🏪</button><button class="btn berry sm" data-act="g-acollect" ${eg + mk ? "" : "disabled"}>🧺 اجمع (${eg}🥚 ${mk}🥛)</button></div>
+        ${carry.length ? `<div class="pick" style="margin:8px 0;font-size:18px">معك: ${carry.map((c) => AN[c.kind].e).join(" ")} <button class="btn sm gold" data-act="g-gotobutcher">للملحمة 🥩</button> <button class="btn sm alt" data-act="g-adrop">رجّعهم</button></div>` : ""}
+        ${(s.inv.egg || s.inv.milk) ? `<div class="chk" style="margin:6px 0">مخزن المنتجات: ${s.inv.egg || 0}🥚 ${s.inv.milk || 0}🥛 <button class="btn sm alt" data-act="g-pstand">بيع ببسطة المزرعة (-20%)</button></div>` : ""}
+        <b>الحيوانات (${av.length})</b><div class="items" style="margin:8px 0">${rows || '<div class="empty">الحظيرة فاضية</div>'}</div>
+        <b>اشتري حيوانات صغيرة</b><div class="seeds">${cards}</div>`);
+    },
+    fishing() {
+      const f = G.ui.fish || (G.ui.fish = { st: "idle" }), s = G.state(), tot = ["fish_s", "fish_m", "fish_g", "boot"].map((k) => PRODUCE[k].e + "×" + (s.inv[k] || 0)).join("  ");
+      const body = f.st === "idle" ? `<button class="btn gold" style="font-size:20px;padding:14px 30px" data-act="g-cast">🎣 ارمي الصنارة</button>${f.msg ? `<p class="hint" style="font-size:18px;margin-top:10px">${f.msg}</p>` : ""}` : f.st === "wait" ? `<div style="font-size:54px;animation:pop 1s infinite alternate">🎣</div><p class="hint">استنى لحد ما تهتز العوامة… 🌊</p>` : `<button class="btn berry" style="font-size:26px;padding:18px 34px;animation:pop .3s infinite alternate" data-act="g-reel">🐟 اسحب!!</button>`;
+      ui.openModal(`<h3>🎣 صيد السمك</h3>${coinBar()}<p class="hint">ارمي الصنارة وأول ما تطلع 🐟 اسحب بسرعة! الصيد بتبيعه عند سعدون أو ببسطة المزرعة.</p><div style="text-align:center;margin:14px 0;min-height:110px">${body}</div><div class="chk" style="justify-content:center">${tot}</div>`);
+    },
+    butcher() {
+      const s = G.state(), carry = G.animalCarry(db.uid), av = G.animalsView(), ready = av.filter((a) => a.mature && (a.kind === "sheep"));
+      const lines = ["أهلين! عندك خروف كبير؟ بدفع أحسن سعر بالقرية 🐑", "اللحمة الطازة سر الأكلة الحلوة! 🥩", "الخروف لازم يكبر ثلاث أيام، ما بشتري صغار 😄", "جيبوا الخرفان وأنا بدفع كاش 💰", "المنسف بدو لحمة بلدي! 🍲"];
+      const total = carry.reduce((n, c) => n + AN[c.kind].sell, 0);
+      ui.openModal(`<h3>🥩 ملحمة أبو سليمان</h3>${coinBar()}
+        <div class="npc-say"><span class="nav">🧔</span><div class="res-say"><small>أبو سليمان</small>${esc(lines[Math.floor(Date.now() / 60000) % lines.length])}</div></div>
+        <div class="items" style="margin:10px 0">${Object.entries(AN).map(([k, A]) => irow(A.e, A.n, `بيشتريه لما يكبر · ${A.sell}🪙`, "")).join("")}</div>
+        ${carry.length ? `<div class="pick" style="font-size:20px">معك: ${carry.map((c) => AN[c.kind].e).join(" ")}<br><button class="btn gold" data-act="g-asell">بيع الكل · ${total}🪙</button></div>` : `<div class="chk" style="justify-content:center">ما معك حيوانات. ${ready.length ? `عندكم ${ready.length} خروف كبير جاهز! 🐑` : "كبّروا الخرفان بالحظيرة أول 🐾"}</div>`}
+        <div class="row" style="margin-top:10px;justify-content:center"><button class="btn alt" data-act="g-gotopens">للحظيرة 🐾</button></div>
+        <p class="hint" style="text-align:center">🥩 بعتوا ${s.asold} حيوان · ${s.sheepSold} خروف</p>`);
+    },
     orders() {
       const s = G.state(), day = G.today(), os = G.ordersOf(day);
       ui.openModal(`<h3>📋 طلبات أهل القرية</h3>${coinBar()}<p class="hint">كل يوم 3 طلبات جديدة من مخزن المزرعة، والسعر أعلى من السوق بـ50% 💰</p>` + os.map((o) => { const n = OSW.NPC_BY[o.npc], done = s.orders[day + ":" + o.idx], have = s.inv[o.crop] || 0, c = CROPS[o.crop];
@@ -333,16 +405,17 @@
     },
     boutique() {
       const s = G.state(), lk = OSW.app.lookOf(db.uid), gender = lk.gender, tab = G.ui.wtab;
-      const list = Object.entries(CLOTH).filter(([, c]) => (tab === "outfit" ? c.kind === "outfit" : c.kind === "acc") && (!c.gender || c.gender === gender));
+      const cat = G.ui.wcat || "all", list = Object.entries(CLOTH).filter(([, c]) => (tab === "outfit" ? c.kind === "outfit" && (cat === "all" || c.cat === cat) : c.kind === "acc") && (!c.gender || c.gender === gender));
+      const chips = tab === "outfit" ? `<div class="seg" style="margin:0 0 8px">${OSW.CLOTH_CATS.map(([k, t]) => `<button class="${cat === k ? "on" : ""}" data-act="g-wcat" data-k="${k}">${t}</button>`).join("")}</div>` : "";
       ui.openModal(`<h3>👗 محل الأناقة</h3>${coinBar()}<p class="hint">اللبس بيغيّر شكلك، وبعضه بيأثر على سرعتك! الأغراض بتجيك بأكياس، وبتلبسها من الخزانة 🛍️</p>
         <div class="seg" style="margin:8px 0">${[["outfit", "👕 أطقم"], ["acc", "🧢 إكسسوارات"]].map(([k, t]) => `<button class="${tab === k ? "on" : ""}" data-act="g-wtab" data-k="${k}">${t}</button>`).join("")}</div>
-        <div class="items">${list.map(([k, c]) => { const own = (s.inv["cl_" + k] || 0) >= 1; return irow(c.e, c.n, esc(c.note || ""), own ? `<span class="badge-ok">عندك ✅</span>` : `<button class="btn sm berry" data-act="g-buy" data-id="cl_${k}" data-q="1" ${s.coins < c.price ? "disabled" : ""}>${c.price}🪙</button>`); }).join("")}</div>
+        ${chips}<div class="items">${list.map(([k, c]) => { const own = (s.inv["cl_" + k] || 0) >= 1; return irow(c.e, c.n, esc(c.note || ""), own ? `<span class="badge-ok">عندك ✅</span>` : `<button class="btn sm berry" data-act="g-buy" data-id="cl_${k}" data-q="1" ${s.coins < c.price ? "disabled" : ""}>${c.price}🪙</button>`); }).join("")}</div>
         <div class="row" style="margin-top:12px"><button class="btn alt" data-act="g-wardrobe">👗 افتح الخزانة</button></div>`);
     },
     wardrobe() {
       const s = G.state(), lk = OSW.app.lookOf(db.uid), cur = lk.outfit || "casual", acc = lk.acc || [];
       const owned = (k) => k === "casual" || (s.inv["cl_" + k] || 0) >= 1;
-      const outfits = Object.entries(OSW.CLOTHES).filter(([, c]) => c.kind === "outfit" && owned(...[Object.keys(OSW.CLOTHES).find((x) => OSW.CLOTHES[x] === c)]) && (!c.gender || c.gender === lk.gender));
+      const outfits = Object.entries(OSW.CLOTHES).filter(([k, c]) => c.kind === "outfit" && owned(k) && (!c.gender || c.gender === lk.gender));
       const accs = Object.entries(OSW.CLOTHES).filter(([k, c]) => c.kind === "acc" && owned(k));
       ui.openModal(`<h3>🚪 خزانة الملابس</h3><p class="hint">ألبس اللي بدك. السرعة الحالية: <b>${Math.round(G.speedMul() * 100)}%</b></p>
         <b>الأطقم</b><div class="items" style="margin:8px 0">${outfits.map(([k, c]) => irow(c.e, c.n, esc(c.note || ""), cur === k ? `<span class="badge-ok">لابسه ✅</span>` : `<button class="btn sm gold" data-act="g-wear" data-k="${k}">البس</button>`)).join("")}</div>
@@ -363,6 +436,7 @@
       case "g-fpick": return busy(async () => { await G.do("furn_pick", { inst: st.finst }); ui.closeModal(); OSW.world.selectFurn(null); toast("📦 رجعت للمخزن"); });
       case "g-fsell": return busy(async () => { await G.do("furn_sell", { inst: st.finst }); ui.closeModal(); OSW.world.selectFurn(null); OSW.audio.sfx("coin"); toast("🪙 انباعت"); });
       case "g-sleep": ui.closeModal(); return OSW.app.sleep();
+      case "g-wcat": G.ui.wcat = el.dataset.k; return P.refresh();
       case "g-tab": st.tab = el.dataset.k; return P.refresh();
       case "g-wtab": st.wtab = el.dataset.k; return P.refresh();
       case "g-buy": { const it = ITEM[el.dataset.id], q = +el.dataset.q, c = cost(it.price, q, G.state().buys); if (needCoins(c)) return; return busy(async () => { await G.do("buy", { id: el.dataset.id, qty: q }); OSW.audio.sfx("coin"); toast(`${it.e} اشتريت ${it.cloth ? "(الكيس بإيدك 🛍️)" : "×" + q}`); }); }
@@ -377,6 +451,19 @@
       case "g-gotoshop": case "g-gotoshop-flower": st.tab = a === "g-gotoshop" ? "food" : "farm"; ui.closeModal(); return OSW.app.goPlace("shop");
       case "g-cartload": return busy(async () => { await G.do("cart_load", {}); OSW.audio.sfx("pop"); });
       case "g-cartpull": return busy(async () => { await G.do("cart_pull", {}); OSW.audio.sfx("pop"); const w = G.view().pullWait; if (!w.other) toast("سحبت! خلّي شريكك يسحب خلال 20 ثانية 🤝", "love"); else { OSW.audio.sfx("fanfare"); ui.hearts("🛒", 12); } });
+      case "g-cast": { const f = G.ui.fish; f.st = "wait"; f.msg = ""; OSW.audio.sfx("pop"); P.refresh(); const my = (f.token = Math.random()); setTimeout(() => { if (G.ui.fish.token !== my || !document.querySelector("[data-act=g-cast],.hint")) return; f.st = "bite"; OSW.audio.sfx("ding"); P.refresh(); setTimeout(() => { if (G.ui.fish.token === my && f.st === "bite") { f.st = "idle"; f.msg = "😅 فلتت السمكة!"; P.refresh(); } }, 1200); }, 1500 + Math.random() * 3000); return; }
+      case "g-reel": { const f = G.ui.fish; f.token = 0; f.st = "idle"; const r = Math.random(), id = r < 0.5 ? "fish_s" : r < 0.8 ? "fish_m" : r < 0.9 ? "fish_g" : "boot"; f.msg = `${PRODUCE[id].e} طلعت ${PRODUCE[id].n}!`; OSW.audio.sfx(id === "fish_g" ? "fanfare" : "coin"); return busy(async () => { await db.addEntry({ house: "game", title: "fish", data: { id } }); G.sync3d(); P.refresh(); }); }
+      case "g-abuy": { const A = AN[el.dataset.k]; if (needCoins(A.price)) return; return busy(async () => { await G.do("abuy", { kind: el.dataset.k }); OSW.audio.sfx("coin"); ui.hearts(A.e, 8); toast(`${A.e} اشتريتوا ${A.n} صغير!`); }); }
+      case "g-afeed": return busy(async () => { await G.do("afeed", {}); OSW.audio.sfx("pop"); ui.hearts("🌾", 8); toast("🌾 الحيوانات شبعت"); });
+      case "g-acollect": return busy(async () => { await G.do("acollect", {}); OSW.audio.sfx("coin"); toast("🧺 جمعتوا البيض والحليب"); });
+      case "g-acarry": return busy(async () => { await G.do("acarry", { id: el.dataset.id }); OSW.audio.sfx("pop"); toast("🧍 شلت الحيوان! روح للملحمة 🥩"); });
+      case "g-adrop": return busy(async () => { await G.do("adrop", {}); OSW.audio.sfx("pop"); });
+      case "g-asell": return busy(async () => { const t = G.animalCarry(db.uid).reduce((n, c) => n + AN[c.kind].sell, 0); await G.do("asell", {}); OSW.audio.sfx("fanfare"); ui.hearts("🪙", 14); toast(`🥩 أبو سليمان دفعلك ${t}🪙`, "gold"); const ab = OSW.world.npcPos && OSW.world; OSW.world.say("abusulaiman", "تسلم إيدك! صفقة رابحة 🤝", 4000); });
+      case "g-psell": return busy(async () => { await G.do("psell", { id: el.dataset.id, qty: +el.dataset.q }); OSW.audio.sfx("coin"); toast("🪙 انباعت!"); });
+      case "g-pstand": return busy(async () => { const s = G.state(); for (const k of Object.keys(PRODUCE)) if (s.inv[k] > 0) await db.addEntry({ house: "game", title: "psell", data: { id: k, qty: s.inv[k], stand: 1 } }); G.sync3d(); P.refresh(); OSW.audio.sfx("coin"); });
+      case "g-gotobutcher": ui.closeModal(); return OSW.app.goPlace("butcher");
+      case "g-gotopens": ui.closeModal(); return OSW.app.goPlace("pens");
+      case "g-gotoshop-hay": st.tab = "farm"; ui.closeModal(); return OSW.app.goPlace("shop");
       case "g-water": { if ((G.state().inv.wcan || 0) < 1) { toast("ما عندك ماء سقاية 💦 اشتري من سعدون"); return; } return busy(async () => { await G.do("water", {}); OSW.audio.sfx("magic"); ui.hearts("💦", 10); toast("سقيت الورد 🌹", "love"); if (G.view().completeNow) { ui.hearts("💞", 16); OSW.audio.sfx("fanfare"); } }); }
       case "g-feed": { const w = el.dataset.w, m = v().m[w]; if (m.up && el.dataset.i !== m.req) return toast("الحجّ زعلان وما بيقبل غير " + FOOD[m.req].e); return busy(async () => { const wasUp = m.up; await G.do("feed", { who: w, item: el.dataset.i }); OSW.audio.sfx("heart"); OSW.world.say(w, wasUp ? "الله يسامحكم… تسلم إيدك! 🤲" : rnd(["الله يسعدك! 🤲", "تسلم إيدك يا ولدي!", "بالهنا والشفا! 😊", "الله يخليكم لبعض 💞"]), 4000); if (G.state().blessed[G.today()]) ui.hearts("🤲", 12); }); }
       case "g-chat": { const s = rnd(G._stories || ["الله يحفظكم"]); const o = document.getElementById("hStory"); if (o) { o.style.display = ""; o.textContent = s; } return busy(async () => { await db.addEntry({ house: "game", title: "story", data: {} }); G.sync3d(); }); }

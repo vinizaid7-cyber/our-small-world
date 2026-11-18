@@ -12,10 +12,21 @@
   const keys = { l: 0, r: 0, u: 0, d: 0, sprint: 0 }, joy = { x: 0, y: 0, on: false };
   let ctx = {}, labelsEl, tapMark = null, together = 0, holding = false;
   const meshes = {};
-  const carry = { me: [], partner: [] }, bagState = { n: 0 }, cartS = { colors: [], prev: [], lastT: 0, anim: null, home: { x: -62, z: 22 } }, crateCache = {};
+  const carry = { me: [], partner: [] }, bagState = { n: 0 }, cartS = { colors: [], prev: [], lastT: 0, anim: null, home: { x: -18.5, z: -12.6 } }, crateCache = {};
   let mode = "out", curInt = null, floorHandler = null, selFurn = null, crowd = null;
   const inNpcs = [], furn = { list: [], boxes: [], acts: [] };
   const curSpace = () => (mode === "in" && curInt ? curInt.id : null);
+  const animals = {}, acarry = { me: [], partner: [] }, ANS = { cow: { sp: 0.7, sc: 1.1, r: 1.0 }, sheep: { sp: 0.8, sc: 1.05, r: 0.8 }, chicken: { sp: 1.3, sc: 1.4, r: 0.4 } };
+  function stepAnimals(dt) {
+    const PN = OSW.EX.PENS;
+    Object.values(animals).forEach((a) => {
+      const R2 = PN[a.kind], A = ANS[a.kind];
+      if (a.tx == null) { a.wait -= dt; a.mv *= 0.9; if (a.wait <= 0) { a.tx = R2.x0 + 1.2 + Math.random() * (R2.x1 - R2.x0 - 2.4); a.tz = R2.z0 + 1.5 + Math.random() * (R2.z1 - R2.z0 - 3.0); } return; }
+      const dx = a.tx - a.x, dz = a.tz - a.z, d = hy(dx, dz);
+      if (d < 0.3) { a.tx = null; a.wait = 1 + Math.random() * 6; return; }
+      a.x += (dx / d) * A.sp * dt; a.z += (dz / d) * A.sp * dt; a.ry += angDiff(a.ry, Math.atan2(dx, dz)) * Math.min(1, dt * 5); a.phase += dt * (6 + A.sp * 4); a.mv = 1;
+    });
+  }
   const pet = { x: 4, z: 6, ry: 0, phase: 0, mv: 0, tx: 4, tz: 6, wait: 1 };
   function stepPet(dt) {
     if (pet.tx == null) { pet.wait -= dt; pet.mv *= 0.9; if (pet.wait <= 0) { const a = Math.random() * 6.28, r = 3 + Math.random() * 7; pet.tx = Math.cos(a) * r; pet.tz = 3 + Math.sin(a) * r * 0.7; } return; }
@@ -49,7 +60,7 @@
   }
   const period = (h) => (h < 5 ? "night" : h < 11 ? "morning" : h < 16 ? "noon" : h < 20 ? "evening" : "night");
   function envNow() {
-    if (mode === "in") return { sunDir: [0.45, -0.8, 0.4], sunCol: [0.5, 0.44, 0.36], ambTop: [0.76, 0.73, 0.74], ambBot: [0.52, 0.48, 0.52], night: 0.35 + 0.3 * st.night, fogN: 250, fogF: 520, time: st.t };
+    if (mode === "in") return { sunDir: [0.25, -0.9, 0.35], sunCol: [0.38, 0.34, 0.28], ambTop: [0.93, 0.9, 0.86], ambBot: [0.74, 0.7, 0.66], night: 0.35 + 0.3 * st.night, fogN: 250, fogF: 520, time: st.t };
     const h = st.hour, n = st.night, a = (PI * (h - 6)) / 12;
     let sd = h >= 6 && h <= 18 ? [-Math.cos(a) * 0.8, -Math.max(0.28, Math.sin(a)), -0.42] : [0.35, -0.8, 0.35];
     const l = hy(sd[0], sd[1], sd[2]); sd = sd.map((v) => v / l);
@@ -133,6 +144,25 @@
     meshes.link = mk((b) => b.box(0, 0, 0, 0.08, 0.08, 1, "#ff7aa8", 0.9));
     meshes.bag = mk((b) => { b.box(0, 0, 0, 0.34, 0.42, 0.18, "#f7d6ec"); b.box(0, 0.42, 0, 0.22, 0.05, 0.03, "#8e4a94"); b.box(-0.1, 0.4, 0, 0.03, 0.18, 0.03, "#8e4a94"); b.box(0.1, 0.4, 0, 0.03, 0.18, 0.03, "#8e4a94"); b.box(0, 0.12, 0.1, 0.18, 0.18, 0.02, "#ff7aa8"); });
     meshes.cat = mk((b) => { b.box(0, 0.28, 0, 0.34, 0.3, 0.7, "#e0a050"); b.sphere(0, 0.62, 0.42, 0.2, 0.19, 0.18, "#e0a050", 7); b.box(-0.12, 0.76, 0.42, 0.07, 0.14, 0.05, "#e0a050"); b.box(0.12, 0.76, 0.42, 0.07, 0.14, 0.05, "#e0a050"); b.sphere(-0.07, 0.65, 0.58, 0.03, 0.03, 0.02, "#222", 4); b.sphere(0.07, 0.65, 0.58, 0.03, 0.03, 0.02, "#222", 4); [[-0.12, 0.3], [0.12, 0.3], [-0.12, -0.3], [0.12, -0.3]].forEach(([x, z]) => b.box(x, 0, z, 0.1, 0.18, 0.1, "#c98a3d")); b.push(0, 0.4, -0.38, 0, -0.9); b.box(0, 0, 0, 0.08, 0.5, 0.08, "#e0a050"); b.pop(); });
+    meshes.cow = mk((b) => {
+      const W = "#f4f1ea", K = "#2b2b2b";
+      b.box(0, 0.7, 0, 0.95, 0.8, 1.7, W); b.box(0.48, 1.0, 0.25, 0.04, 0.38, 0.45, K); b.box(-0.48, 1.1, -0.35, 0.04, 0.4, 0.5, K); b.box(0.2, 1.5, -0.3, 0.45, 0.04, 0.5, K); b.box(-0.25, 1.5, 0.35, 0.35, 0.04, 0.35, K);
+      [[-0.3, -0.6], [0.3, -0.6], [-0.3, 0.6], [0.3, 0.6]].forEach(([x, z]) => { b.box(x, 0.1, z, 0.2, 0.62, 0.2, "#e8e2d6"); b.box(x, 0, z, 0.22, 0.12, 0.22, "#333"); });
+      b.box(0, 1.1, 1.05, 0.55, 0.55, 0.55, W); b.box(0, 1.08, 1.34, 0.42, 0.26, 0.12, "#f2b8b0"); b.sphere(-0.12, 1.3, 1.31, 0.04, 0.04, 0.03, "#222", 4); b.sphere(0.12, 1.3, 1.31, 0.04, 0.04, 0.03, "#222", 4);
+      [-1, 1].forEach((s2) => { b.box(s2 * 0.33, 1.45, 1.0, 0.2, 0.1, 0.16, K); b.box(s2 * 0.2, 1.62, 1.0, 0.07, 0.2, 0.07, "#e8d9a8"); });
+      b.box(0, 0.5, -0.88, 0.08, 0.8, 0.08, K); b.sphere(0, 0.5, -0.88, 0.1, 0.12, 0.1, K, 4); b.sphere(0, 0.64, -0.35, 0.2, 0.14, 0.2, "#f2b8b0", 5);
+    });
+    meshes.sheep = mk((b) => {
+      const W = "#f7f2e6", K = "#3a3a3a";
+      b.sphere(0, 0.78, 0, 0.55, 0.45, 0.72, W, 8); [[-0.3, 1.05, 0.2], [0.3, 1.05, -0.2], [0, 1.1, 0.4], [-0.3, 0.95, -0.4], [0.35, 0.95, 0.35]].forEach(([x, y, z]) => b.sphere(x, y, z, 0.3, 0.26, 0.3, W, 6));
+      [[-0.25, -0.4], [0.25, -0.4], [-0.25, 0.4], [0.25, 0.4]].forEach(([x, z]) => b.box(x, 0, z, 0.12, 0.5, 0.12, K));
+      b.sphere(0, 0.98, 0.78, 0.2, 0.22, 0.22, K, 6); b.sphere(0, 1.2, 0.74, 0.22, 0.12, 0.2, W, 5); [-1, 1].forEach((s2) => { b.box(s2 * 0.24, 1.0, 0.72, 0.18, 0.08, 0.12, K); b.sphere(s2 * 0.08, 1.02, 0.97, 0.03, 0.03, 0.02, "#fff", 4); });
+      b.sphere(0, 0.85, -0.74, 0.12, 0.12, 0.12, W, 5);
+    });
+    meshes.chicken = mk((b) => {
+      b.sphere(0, 0.36, 0, 0.22, 0.2, 0.28, "#fff6e5", 6); b.push(0, 0.5, -0.26, 0, 0.6); b.box(0, 0, 0, 0.1, 0.3, 0.1, "#e9d8b8"); b.pop(); b.sphere(0, 0.64, 0.2, 0.1, 0.1, 0.1, "#fff6e5", 5);
+      b.box(0, 0.72, 0.2, 0.04, 0.09, 0.12, "#d62828"); b.box(0, 0.6, 0.31, 0.05, 0.04, 0.09, "#f4a300"); b.box(0, 0.54, 0.29, 0.03, 0.06, 0.03, "#d62828"); [-1, 1].forEach((s2) => { b.box(s2 * 0.07, 0, 0, 0.03, 0.2, 0.03, "#f4a300"); b.sphere(s2 * 0.2, 0.38, 0, 0.04, 0.15, 0.2, "#efe3c8", 4); b.sphere(s2 * 0.06, 0.67, 0.28, 0.02, 0.02, 0.02, "#222", 3); });
+    });
     meshes.fly = mk((b) => { b.sphere(0, 0, 0, 0.06, 0.06, 0.06, "#fff7a0", 4, 1); });
     meshes.bf = mk((b) => { b.box(-0.18, 0, 0, 0.34, 0.03, 0.3, "#ff9ad5"); b.box(0.18, 0, 0, 0.34, 0.03, 0.3, "#ffd36e"); });
     meshes.blades = mk((b) => { for (let i = 0; i < 4; i++) { b.push(0, 0, 0, 0, 0, (i * PI) / 2); b.box(0, 0.3, 0, 0.5, 3.6, 0.12, "#f4ead2"); b.box(0.45, 1.2, 0, 0.5, 2.0, 0.1, "#c24a3a"); b.pop(); } b.sphere(0, 0, 0, 0.5, 0.5, 0.5, "#6b4a30", 6); });
@@ -229,7 +259,7 @@
     o.moodEl = em; o.nameEl = nm; return o;
   }
   function initNpcs() { OSW.NPCS.forEach(createNpc); }
-  const SPOTS = () => [[0, 7.5], [6, 6], [-6, 6.5], [8, -3], [-8, -4], [0, -6], [-24, 15.8], [24, 15.8], [15, 3.4], [-15, 5.2], [0, 22], [-28, 8], [28, 8]];
+  const SPOTS = () => [[0, 58], [-12, 46], [12, 46], [-44, 12], [30, 36], [-30, 36], [0, 7.5], [6, 6], [-6, 6.5], [8, -3], [-8, -4], [0, -6], [-24, 15.8], [24, 15.8], [15, 3.4], [-15, 5.2], [0, 22], [-28, 8], [28, 8]];
   function pickDest(o) {
     const home = S.poi[o.def.home], r = Math.random();
     if (crowd && r < 0.85) return [crowd.x + (Math.random() - 0.5) * 6, crowd.z + (Math.random() - 0.5) * 4];
@@ -278,7 +308,7 @@
     for (let i = 0; i < colors.length; i++) { M.trs(o.x, 0, o.z, o.ry, 0, 0, 1, 1, 1, m1); M.trs(0, 0.82 + i * 0.4, 0.66, 0, 0, 0, 1, 1, 1, m2); M.mul(m1, m2, m2); R.draw(crateMesh(colors[i]), m2); }
     for (let i = 0; i < (bags || 0); i++) { M.trs(o.x, 0, o.z, o.ry, 0, 0, 1, 1, 1, m1); M.trs(-0.52 - i * 0.12, 0.28, 0.12 + i * 0.1, 0.2, 0, 0, 1, 1, 1, m2); M.mul(m1, m2, m2); R.draw(meshes.bag, m2); }
   }
-  const CART_PATH = [[-62, 22], [-48, 20.5], [-34, 18.5], [-26, 17.4]];
+  const CART_PATH = [[-18.5, -12.6], [-28, -7], [-34, 2], [-33, 12], [-28, 17], [-26, 17.4]];
   function drawCart(t) {
     const D = S.dyn, a = cartS.anim;
     if (!a) { if (D.cart) { M.trs(cartS.home.x, 0, cartS.home.z, -0.5, 0, 0, 1, 1, 1, m1); R.draw(D.cart, m1); } return; }
@@ -301,12 +331,15 @@
     });
     if (S.dyn.furn) R.free(S.dyn.furn); S.dyn.furn = B.build(R.gl);
   }
+  function drawAnimalsCarried(o, kinds) {
+    kinds.forEach((k, i) => { const sc = ANS[k].sc * 0.5; M.trs(o.x, 0, o.z, o.ry, 0, 0, 1, 1, 1, m1); M.trs(i ? 0.3 : -0.3, 1.0, 0.72, 0, 0, 0, sc, sc, sc, m2); M.mul(m1, m2, m2); R.draw(meshes[k], m2); });
+  }
   function drawPeople(t) {
     const same = (pa.space || null) === curSpace();
     const dxp = pa.x - me.x, dzp = pa.z - me.z, sideMe = Math.cos(me.ry) * dxp - Math.sin(me.ry) * dzp, sideP = Math.cos(pa.ry) * -dxp - Math.sin(pa.ry) * -dzp;
     const showLink = same && pa.vis && !pa.inside && !pa.sleep && (holding || (pa.hold && hy(dxp, dzp) < 4));
-    if (pa.ch && pa.vis && !pa.inside && same) { OSW.drawChar(pa.ch, pa.x, pa.z, pa.ry, pa.phase, pa.mv, t, pa.sleep ? 0.55 : 1, null, 1, 0, carry.partner.length ? { carry: true } : showLink ? { hold: sideP >= 0 ? 1 : -1 } : null); drawCarried(pa, carry.partner, null); }
-    if (me.ch) { OSW.drawChar(me.ch, me.x, me.z, me.ry, me.phase, me.mv, t, 1, null, 1, 0, carry.me.length ? { carry: true } : showLink ? { hold: sideMe >= 0 ? 1 : -1 } : null); drawCarried(me, carry.me, bagState.n); }
+    if (pa.ch && pa.vis && !pa.inside && same) { OSW.drawChar(pa.ch, pa.x, pa.z, pa.ry, pa.phase, pa.mv, t, pa.sleep ? 0.55 : 1, null, 1, 0, carry.partner.length ? { carry: true } : showLink ? { hold: sideP >= 0 ? 1 : -1 } : null); drawCarried(pa, carry.partner, null); drawAnimalsCarried(pa, acarry.partner); }
+    if (me.ch) { OSW.drawChar(me.ch, me.x, me.z, me.ry, me.phase, me.mv, t, 1, null, 1, 0, carry.me.length ? { carry: true } : showLink ? { hold: sideMe >= 0 ? 1 : -1 } : null); drawCarried(me, carry.me, bagState.n); drawAnimalsCarried(me, acarry.me); }
     if (showLink) { const mx = (me.x + pa.x) / 2, mz = (me.z + pa.z) / 2, len = Math.max(0.4, hy(dxp, dzp) - 0.9); M.trs(mx, 1.0, mz, Math.atan2(dxp, dzp), 0, 0, 1, 1, len, m1); R.draw(meshes.link, m1); }
   }
   function drawInside(t) {
@@ -330,7 +363,7 @@
     // دخان المداخن
     [[2.4, 8.2, -15.2], [-21.9, 0, 0]].slice(0, 1).concat([[S.pos.hajji.x - 2.4, 6, S.pos.hajji.z - 1.2]]).forEach((c, k) => { for (let i = 0; i < 3; i++) { const ph = (t * 0.25 + i / 3 + k * 0.3) % 1; M.trs(c[0] + ph * 1.4, c[1] + ph * 3, c[2], 0, 0, 0, 0.3 + ph * 0.7, 0.3 + ph * 0.7, 0.3 + ph * 0.7, m1); R.draw(meshes.puff, m1, [1, 1, 1], (1 - ph) * 0.45); } });
     // طاحونة وقطار وغيوم وطيور
-    M.trs(-56, 8.4, 49.2, 0, 0, t * 0.7, 1, 1, 1, m1); R.draw(meshes.blades, m1);
+    M.trs(OSW.EX.WINDMILL.x, 8.4, OSW.EX.WINDMILL.z + 2.4, 0, 0, t * 0.7, 1, 1, 1, m1); R.draw(meshes.blades, m1);
     const ph = (Math.sin(t * 0.12) + 1) / 2; M.trs(36 + ph * 22, 0.2, 7.9, 0, 0, 0, 1, 1, 1, m1); R.draw(meshes.train, m1);
     for (let i = 0; i < 6; i++) { const x = ((t * (1.2 + i * 0.25) + i * 52) % 280) - 120; M.trs(x, 38 + (i % 3) * 5, -50 + i * 18, 0, 0, 0, 1.4 + (i % 2) * 0.5, 1, 1.4, m1); R.draw(meshes.cloud, m1, [1, 1, 1], 0.92 - st.night * 0.55); }
     if (st.night < 0.6) for (let i = 0; i < 4; i++) { const a = t * 0.18 + i * 1.6, rr = 34 + i * 7; M.trs(Math.cos(a) * rr, 22 + i * 2, Math.sin(a) * rr * 0.7 + 8, -a, 0, Math.sin(t * 6 + i) * 0.35, 1, 1, 1, m1); R.draw(meshes.bird, m1); }
@@ -340,11 +373,24 @@
     drawCart(t);
     // شخصيات
     OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc, o.dance ? Math.abs(Math.sin(t * 5 + o.phase)) * 0.16 : 0); });
+    Object.values(animals).forEach((a) => { const A = ANS[a.kind], sc = A.sc * a.size; M.trs(a.x, a.mv > 0.1 ? Math.abs(Math.sin(a.phase)) * 0.06 * sc : 0, a.z, a.ry, 0, 0, sc, sc, sc, m1); R.draw(meshes[a.kind], m1); });
     M.trs(pet.x, Math.abs(Math.sin(pet.phase)) * 0.08 * pet.mv, pet.z, pet.ry, 0, 0, 1.3, 1.3, 1.3, m1); R.draw(meshes.cat, m1);
     drawPeople(t);
+    // ظلال مسقطة حقيقية للمباني والأشجار والشخصيات
+    if (OSW.shadowsOn !== false) {
+      let L = env.sunDir.slice(); if (L[1] > -0.38) L[1] = -0.38; const ll = Math.hypot(L[0], L[1], L[2]); L = [L[0] / ll, L[1] / ll, L[2] / ll];
+      R.shadow(true, L, 0.34 - 0.14 * st.night);
+      R.draw(D.main); R.draw(D.foliage, null, null, 1, 1.6);
+      ["tree", "home", "flowers"].forEach((k) => D[k] && R.draw(D[k], null, null, 1, 0));
+      OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc, 0); });
+      Object.values(animals).forEach((a) => { const A = ANS[a.kind], sc = A.sc * a.size; M.trs(a.x, 0, a.z, a.ry, 0, 0, sc, sc, sc, m1); R.draw(meshes[a.kind], m1); });
+      drawPeople(t); drawCart(t);
+      R.shadow(false);
+    }
     // شفّاف: ظلال + شعاع المنارة + علامة اللمس
     R.blend(true);
-    R.draw(D.shadow, null, [0, 0, 0], 0.26);
+    R.draw(D.shadow, null, [0, 0, 0], 0.2);
+    Object.values(animals).forEach((a) => OSW.drawShadow(a.x, a.z, ANS[a.kind].r * a.size * 0.9));
     OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o) OSW.drawShadow(o.x, o.z, 0.6 * o.sc); }); OSW.drawShadow(pet.x, pet.z, 0.5);
     if (pa.vis && !pa.inside) OSW.drawShadow(pa.x, pa.z, 0.62); OSW.drawShadow(me.x, me.z, 0.62);
     if (W.lit && st.night > 0.35) { M.trs(75, 12.1, -2, t * 0.9, 0, 0, 1, 1, 1, m1); R.draw(meshes.beam, m1, [1, 1, 1], 0.2 * st.night); }
@@ -357,7 +403,7 @@
     requestAnimationFrame(frame);
     if (st.paused || document.hidden || !S.ready) { st.last = now; return; }
     const dt = Math.min(0.05, (now - (st.last || now)) / 1000); st.last = now; st.t += dt;
-    stepMe(dt); if (mode === "out") { stepPet(dt); OSW.NPCS.forEach((d) => npc[d.id] && stepNpc(npc[d.id], dt)); } else inNpcs.forEach((o) => { const dm = hy(me.x - o.x, me.z - o.z); o.ry += angDiff(o.ry, dm < 8 ? Math.atan2(me.x - o.x, me.z - o.z) : 0) * Math.min(1, dt * 4); });
+    stepMe(dt); if (mode === "out") { stepPet(dt); stepAnimals(dt); OSW.NPCS.forEach((d) => npc[d.id] && stepNpc(npc[d.id], dt)); } else inNpcs.forEach((o) => { const dm = hy(me.x - o.x, me.z - o.z); o.ry += angDiff(o.ry, dm < 8 ? Math.atan2(me.x - o.x, me.z - o.z) : 0) * Math.min(1, dt * 4); });
     // الشريك: تنعيم الحركة
     if (pa.vis) { const k = 1 - Math.exp(-dt * 9), ox = pa.x, oz = pa.z; pa.x += (pa.tx - pa.x) * k; pa.z += (pa.tz - pa.z) * k; const sp = hy(pa.x - ox, pa.z - oz) / Math.max(dt, 0.001); pa.mv += ((sp > 0.6 ? 1 : 0) - pa.mv) * Math.min(1, dt * 8); if (sp > 0.6) { pa.ry += angDiff(pa.ry, Math.atan2(pa.tx - pa.x, pa.tz - pa.z)) * Math.min(1, dt * 10); pa.phase += sp * dt * 2.1; } }
     // مشي سوا: وقت قريب من بعض
@@ -373,6 +419,7 @@
     acts.forEach((a) => { const t = R.hitSphere(ray, a.x, a.y, a.z, a.r); if (t > 0 && t < bt) { bt = t; best = a.act; } });
     if (mode === "out") {
       OSW.NPCS.forEach((d) => { const o = npc[d.id]; const t = o && R.hitSphere(ray, o.x, 1.0 * o.sc, o.z, 1.35 * o.sc); if (t > 0 && t < bt) { bt = t; best = d.act || "npc:" + d.id; } });
+      Object.values(animals).forEach((a) => { const t = R.hitSphere(ray, a.x, 0.7, a.z, 0.9 + a.size * 0.5); if (t > 0 && t < bt) { bt = t; best = "pens"; } });
       { const t = R.hitSphere(ray, pet.x, 0.5, pet.z, 1.0); if (t > 0 && t < bt) { bt = t; best = "pet"; } }
     } else inNpcs.forEach((o) => { const t = R.hitSphere(ray, o.x, 1.0, o.z, 1.4); if (t > 0 && t < bt) { bt = t; best = o.act || "npc:" + o.id; } });
     if (pa.vis && !pa.inside && (pa.space || null) === curSpace()) { const t = R.hitSphere(ray, pa.x, 1.0, pa.z, 1.4); if (t > 0 && t < bt) { bt = t; best = "partner"; } }
@@ -503,6 +550,12 @@
     partnerDist() { return pa.vis && (pa.space || null) === curSpace() ? hy(me.x - pa.x, me.z - pa.z) : 1e9; },
     getMe: () => ({ x: me.x, z: me.z }),
     setPlayerLabelsHidden(v) { labs.forEach((l) => { if (l.dynamic === "me" || l.dynamic === "partner") l.hidden = v; }); },
+    setAnimals(list) {
+      const seen = new Set(); const PN = OSW.EX.PENS;
+      list.forEach((a) => { seen.add(a.id); let o = animals[a.id]; if (!o) { const R2 = PN[a.kind]; o = animals[a.id] = { kind: a.kind, x: R2.x0 + 1.5 + Math.random() * (R2.x1 - R2.x0 - 3), z: R2.z0 + 2 + Math.random() * (R2.z1 - R2.z0 - 4), ry: Math.random() * 6.28, phase: Math.random() * 6, mv: 0, wait: Math.random() * 3, tx: null, tz: null, size: a.size }; } o.size = a.size; });
+      Object.keys(animals).forEach((k) => { if (!seen.has(k)) delete animals[k]; });
+    },
+    setAnimalCarry(w, kinds) { acarry[w] = kinds || []; },
     setCarry(w, colors) { carry[w] = colors || []; },
     setBags(n) { bagState.n = n || 0; },
     setSpeedMul(m) { me.speedMul = m; },

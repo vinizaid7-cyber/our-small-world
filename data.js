@@ -187,10 +187,11 @@
         if (s === "SUBSCRIBED") await db._pres.track({ where: "village", name: db.me.name, t: Date.now() });
       });
       db._mv = sb.channel("osw-move", { config: { broadcast: { self: false } } });
-      db._mv.on("broadcast", { event: "pos" }, (m) => db.emit("pos", m.payload)).subscribe((st) => { db._mvOk = st === "SUBSCRIBED"; });
+      db._mv.on("broadcast", { event: "pos" }, (m) => db.emit("pos", m.payload)).on("broadcast", { event: "draw" }, (m) => db.emit("draw", m.payload)).subscribe((st) => { db._mvOk = st === "SUBSCRIBED"; });
       setInterval(() => db.touchSeen(), 120000);
     }
     db.track = (where) => { if (db._pres) db._pres.track({ where, name: db.me.name, t: Date.now() }); };
+    db.sendDraw = (p) => { if (db._mvOk && db._mv) db._mv.send({ type: "broadcast", event: "draw", payload: Object.assign({ u: db.uid }, p) }); };
     db.sendPos = (p) => { if (db._mvOk && db._mv) db._mv.send({ type: "broadcast", event: "pos", payload: Object.assign({ u: db.uid }, p) }); };
 
     db.addEntry = async (e) => {
@@ -295,6 +296,7 @@
     bc && (bc.onmessage = (m) => {
       if (m.data.t === "reload") { try { S = JSON.parse(localStorage.getItem(KEY)) || S; } catch (e) {} if (S.uid) { const mine = db.uid; S.uid = mine; } refresh(true); }
       if (m.data.t === "mv") { db.emit("pos", m.data); }
+      if (m.data.t === "draw") { db.emit("draw", m.data); }
       if (m.data.t === "pres") { db.presence[m.data.uid] = { where: m.data.where, name: m.data.name, t: Date.now() }; db.emit("presence"); }
     });
     // الحضور بالنسخة التجريبية: بين تابين مفتوحين
@@ -303,6 +305,7 @@
       Object.keys(db.presence).forEach((k) => { if (now - db.presence[k].t > 15000 && k !== db.uid) { delete db.presence[k]; db.emit("presence"); } });
       if (db.me && bc) bc.postMessage({ t: "pres", uid: db.uid, where: db._where || "village", name: db.me.name });
     }, 5000);
+    db.sendDraw = (p) => { if (db.me && bc) bc.postMessage(Object.assign({ t: "draw", u: db.uid }, p)); };
     db.sendPos = (p) => { if (db.me && bc) bc.postMessage(Object.assign({ t: "mv", u: db.uid }, p)); };
     db.track = (where) => { db._where = where; if (db.me && bc) bc.postMessage({ t: "pres", uid: db.uid, where, name: db.me.name }); };
 

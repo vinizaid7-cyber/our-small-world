@@ -121,7 +121,7 @@
 
   /* ---------- أحداث البيانات ---------- */
   let syncTimer, achTimer;
-  const NICE = (e) => (e.house === "game" ? ({ water: "سقى ورود الحب 💦", feed: "أطعم الحجّي والحجّة 🍞", plant: "زرع بالمزرعة 🌱", harvest: "قطف من المزرعة 🧺", sell: "باع محاصيل 🪙", buy: "اشترى من سعدون 🏪", gift: "أرسل هدية 🎁", order: "سلّم طلب لأهل القرية 📋", cart_pull: "عم يسحب العربة! 🛒 اضغط «اسحب» الحين" }[e.title] || "لعب بالمزرعة") : ({ comment: "علّق على شي", fountain: "جاوب سؤال النافورة", wish: "رمى عملة بالنافورة", light: "ضوّى المنارة 🔦", board: "علّق ورقة بالساحة" }[e.house] || ("أضاف شي بـ" + (OSW.HOUSE[e.house] ? OSW.HOUSE[e.house].name : "القرية"))));
+  const NICE = (e) => (e.house === "game" ? ({ water: "سقى ورود الحب 💦", feed: "أطعم الحجّي والحجّة 🍞", plant: "زرع بالمزرعة 🌱", harvest: "قطف من المزرعة 🧺", sell: "باع محاصيل 🪙", buy: "اشترى من سعدون 🏪", gift: "أرسل هدية 🎁", order: "سلّم طلب لأهل القرية 📋", abuy: "اشترى حيوان للمزرعة 🐑", afeed: "أطعم الحيوانات 🌾", asell: "باع للملحمة 🥩", draw: "سلّم رسمة التحدي 🎨", cart_pull: "عم يسحب العربة! 🛒 اضغط «اسحب» الحين" }[e.title] || "لعب بالمزرعة") : ({ comment: "علّق على شي", fountain: "جاوب سؤال النافورة", wish: "رمى عملة بالنافورة", light: "ضوّى المنارة 🔦", board: "علّق ورقة بالساحة" }[e.house] || ("أضاف شي بـ" + (OSW.HOUSE[e.house] ? OSW.HOUSE[e.house].name : "القرية"))));
   function onChange(ev) {
     if (!ready) return;
     clearTimeout(syncTimer); syncTimer = setTimeout(() => { syncAll(); app.refreshAvatars(); updatePresence(); ui.room.refreshSoon(); P.refresh(); }, 90);
@@ -129,7 +129,7 @@
     if (ev.remote && ev.table === "entries" && ev.type === "INSERT" && ev.row && ev.row.house === "chat" && ev.row.author !== db.uid) { OSW.chat.incoming(ev.row); return; }
     if (ev.remote && ev.table === "entries" && ev.type === "INSERT" && ev.row && ev.row.author !== db.uid) {
       const n = ui.prof(ev.row.author).name, game = ev.row.house === "game";
-      if (game && ["story", "together", "harvest", "plant", "sell", "buy", "order", "stash", "cart_load", "sellcrate"].includes(ev.row.title)) return;
+      if (game && ["story", "together", "harvest", "plant", "sell", "buy", "order", "stash", "cart_load", "sellcrate", "acollect", "acarry", "adrop", "psell", "dstroke", "fish"].includes(ev.row.title)) return;
       const inside = ui.state.room === ev.row.house;
       if (!inside) { ui.toast("💌 " + esc(n) + ": " + NICE(ev.row), "love", 4500); OSW.audio.sfx("ding"); }
       notify("عالمنا الصغير", `${n}: ${NICE(ev.row)}`);
@@ -151,7 +151,7 @@
 
   /* ---------- الحضور والشريك ---------- */
   function onPos(p) { if (ready && db.partner && p.u === db.partner.id) { const pr = db.presence[db.partner.id]; if (!pr || !OSW.HOUSE[pr.where]) W.remote(p); } }
-  const PLACE_NAMES = { village: "بالقرية", fountain: "عند النافورة", plaza: "بالساحة", tree: "عند الشجرة", home: "ببيتكم", garden: "بالحديقة", lighthouse: "عند المنارة", gate: "عند البوابة", ach: "بالإنجازات", shop: "عند سعدون", farm: "بالمزرعة", flowers: "عند ورود الحب", hajji: "عند الحجّي", tasks: "بالمهام", orders: "بالطلبات", inv: "بالمخزن" };
+  const PLACE_NAMES = { village: "بالقرية", fountain: "عند النافورة", plaza: "بالساحة", tree: "عند الشجرة", home: "ببيتكم", garden: "بالحديقة", lighthouse: "عند المنارة", gate: "عند البوابة", ach: "بالإنجازات", shop: "عند سعدون", farm: "بالمزرعة", flowers: "عند ورود الحب", hajji: "عند الحجّي", tasks: "بالمهام", orders: "بالطلبات", inv: "بالمخزن", pens: "بحظيرة المزرعة", fishing: "عالمرسى 🎣", butcher: "عند الملحمة", draw: "بغرفة الرسم" };
   function updatePresence() {
     if (!ready) return;
     const el = $("#presence"), p = db.partner;
@@ -204,7 +204,7 @@
 
   async function goPlace(id) {
     if (!$("#modal").hidden && P.current === id) return;
-    if (!["fountain", "plaza", "tree", "garden", "lighthouse", "gate", "home", "ach", "shop", "farm", "flowers", "hajji", "tasks", "orders", "inv", "boutique", "wardrobe", "cart"].includes(id) && !G.openers[id]) return;
+    if (!["fountain", "plaza", "tree", "garden", "lighthouse", "gate", "home", "ach", "shop", "farm", "flowers", "hajji", "tasks", "orders", "inv", "boutique", "wardrobe", "cart", "pens", "butcher", "draw", "fishing"].includes(id) && !G.openers[id]) return;
     if (W.mode === "out" && W.S.poi[id]) await W.walkToPOI(id);
     W.setInputEnabled(false); OSW.audio.sfx("pop"); P.open(id);
     const prev = ui.onModalClose; ui.onModalClose = () => { prev && prev(); W.setInputEnabled(true); };

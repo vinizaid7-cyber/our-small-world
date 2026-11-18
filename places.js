@@ -183,6 +183,11 @@
   /* ---------- الإنجازات ---------- */
   const cnt = (h) => db.entries.filter((e) => e.house === h).length;
   P.ACH = [
+    ["draw1", "🎨", "أول رسمة", "سلّمتوا أول تحدي رسم", () => OSW.game.state().draws && Object.values(OSW.game.state().draws).some((r) => r.by[OSW.ui.db.uid])],
+    ["draw5", "🖌️", "فنانين", "5 تحديات رسم", () => Object.values(OSW.game.state().draws || {}).filter((r) => r.by[OSW.ui.db.uid]).length >= 5],
+    ["farm1", "🐑", "مربّي أغنام", "اشتريتوا أول حيوان", () => OSW.game.state().animals.length + Object.values(OSW.game.state().acarry).reduce((n, l) => n + l.length, 0) + OSW.game.state().asold >= 1],
+    ["butcher1", "🥩", "صفقة الملحمة", "بعتوا خروف للملحمة", () => OSW.game.state().sheepSold >= 1],
+    ["butcher5", "💰", "تاجر مواشي", "بعتوا 5 خرفان", () => OSW.game.state().sheepSold >= 5],
     ["visit", "👋", "أول زيارة", "دخلت القرية", () => true],
     ["mem1", "📷", "أول ذكرى", "سجّلتوا ذكرى", () => cnt("memories") >= 1],
     ["mem10", "🎞️", "عشر ذكريات", "10 ذكريات بالبيت", () => cnt("memories") >= 10],

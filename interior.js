@@ -2,7 +2,7 @@
 (function () {
   const OSW = window.OSW, R = OSW.R, Builder = OSW.Builder, PI = Math.PI, dk = OSW.col.dk, lt = OSW.col.lt;
   /* البيت: شبكة 3×2 — فوق: النوم | الذكريات | المطبخ — تحت: الصالون (عريض) | الشرفة */
-  const HOME = (OSW.HOME = { ox: 400, oz: 0, cols: 3, rows: 2, rw: 11, rd: 9, wh: 1.15, wt: 0.3, door: 3.2 });
+  const HOME = (OSW.HOME = { ox: 405.5, oz: 0, cols: 4, rows: 2, rw: 11, rd: 9, wh: 1.15, wt: 0.3, door: 3.2 });
   const X0 = HOME.ox - (HOME.cols * HOME.rw) / 2, X1 = X0 + HOME.cols * HOME.rw, Z0 = HOME.oz - (HOME.rows * HOME.rd) / 2, Z1 = Z0 + HOME.rows * HOME.rd;
   const gx = (c) => X0 + c * HOME.rw, gz = (r) => Z0 + r * HOME.rd;
   const DEF = [
@@ -11,6 +11,8 @@
     { id: "kitchen", n: "المطبخ", e: "🍳", c0: 2, c1: 3, r0: 0, r1: 1, wall: "#f5e8c8", floor: "#dccaa0", tile: "#e8d9b6" },
     { id: "living", n: "الصالون", e: "🛋️", c0: 0, c1: 2, r0: 1, r1: 2, wall: "#fbe0c0", floor: "#d2a875", tile: "#dcb685" },
     { id: "balcony", n: "الشرفة", e: "🌿", c0: 2, c1: 3, r0: 1, r1: 2, wall: "#d2eec9", floor: "#9fc592", tile: "#afd2a2" },
+    { id: "draw", n: "غرفة تحدي الرسم", e: "🎨", c0: 3, c1: 4, r0: 0, r1: 1, wall: "#ffe1b8", floor: "#f0c78f", tile: "#f7d6a5" },
+    { id: "dressing", n: "غرفة الأزياء", e: "👗", c0: 3, c1: 4, r0: 1, r1: 2, wall: "#f3d6f5", floor: "#c9a6d6", tile: "#d8b8e3" },
   ];
   const rooms = (HOME.rooms = DEF.map((d) => { const x0 = gx(d.c0), x1 = gx(d.c1), z0 = gz(d.r0), z1 = gz(d.r1); return { id: d.id, name: d.n, emoji: d.e, wall: d.wall, floor: d.floor, tile: d.tile, x0, x1, z0, z1, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, keep: [] }; }));
   HOME.byId = Object.fromEntries(rooms.map((r) => [r.id, r]));
@@ -19,7 +21,7 @@
   HOME.exitDoor = { x: gx(1), z: Z1 };
   const doors = (HOME.doors = []);
   const dv = (x, z) => doors.push({ x, z, v: true }), dh = (x, z) => doors.push({ x, z, v: false });
-  dv(gx(1), gz(0) + HOME.rd / 2); dv(gx(2), gz(0) + HOME.rd / 2); dv(gx(2), gz(1) + HOME.rd / 2);
+  dv(gx(1), gz(0) + HOME.rd / 2); dv(gx(2), gz(0) + HOME.rd / 2); dv(gx(2), gz(1) + HOME.rd / 2); dv(gx(3), gz(0) + HOME.rd / 2); dv(gx(3), gz(1) + HOME.rd / 2); dh(gx(3) + HOME.rw / 2, gz(1));
   dh(gx(0) + HOME.rw / 2, gz(1)); dh(gx(1) + HOME.rw / 2, gz(1)); dh(gx(2) + HOME.rw / 2, gz(1));
   doors.push({ x: HOME.exitDoor.x, z: HOME.exitDoor.z, v: false, exit: true });
   HOME.roomAt = (x, z) => rooms.find((r) => x >= r.x0 && x < r.x1 && z >= r.z0 && z < r.z1);
@@ -86,7 +88,8 @@
     wallBox(B, boxes, X0, Z1, eg.x - hg, Z1, OUT); wallBox(B, boxes, eg.x + hg, Z1, X1, Z1, OUT);
     wallLine(B, boxes, gx(1), gz(0), gx(1), gz(1), [gz(0) + HOME.rd / 2]);
     wallLine(B, boxes, gx(2), gz(0), gx(2), gz(2), [gz(0) + HOME.rd / 2, gz(1) + HOME.rd / 2]);
-    wallLine(B, boxes, X0, gz(1), X1, gz(1), [gx(0) + HOME.rw / 2, gx(1) + HOME.rw / 2, gx(2) + HOME.rw / 2]);
+    wallLine(B, boxes, gx(3), gz(0), gx(3), gz(2), [gz(0) + HOME.rd / 2, gz(1) + HOME.rd / 2]);
+    wallLine(B, boxes, X0, gz(1), X1, gz(1), [gx(0) + HOME.rw / 2, gx(1) + HOME.rw / 2, gx(2) + HOME.rw / 2, gx(3) + HOME.rw / 2]);
     B.box(eg.x - hg - 0.1, 0, eg.z, 0.3, 2.6, 0.5, "#8d6e63"); B.box(eg.x + hg + 0.1, 0, eg.z, 0.3, 2.6, 0.5, "#8d6e63"); B.box(eg.x, 2.4, eg.z, HOME.door + 0.7, 0.35, 0.5, "#8d6e63"); B.box(eg.x, 0.02, eg.z - 1.1, 2.4, 0.03, 1.0, "#c0584c");
     B.sphere(eg.x, 2.75, eg.z, 0.2, 0.2, 0.2, "#ffe7a0", 6, 1);
     act("exit", eg.x, 1.2, eg.z - 0.3, 2.4, eg.x, eg.z - 2.0);
@@ -153,6 +156,42 @@
     boxes.push({ x0: dx2 - 0.4, x1: dx2 + 0.4, z0: dz2 - 0.4, z1: dz2 + 0.4 });
     act("console:dreams", dx2, 1.8, dz2, 1.6, dx2 + 0.6, dz2 + 2.2); labels.push({ id: "con_dreams", text: "🌠 نجمة الأحلام", x: dx2, y: 3.0, z: dz2, cls: "sm tap", act: "console:dreams", max: 26, scope: "in" });
     keepAt(bl, dx2 - 1.2, dz2 - 1.0, dx2 + 1.2, dz2 + 1.4);
+
+    /* --- غرفة تحدي الرسم: لوحتين + طاولة ألوان + نرد التحدي --- */
+    const dr = HOME.byId.draw, bz = dr.z0 + 1.5;
+    [[-2.9, "#4dabf7", "🖌️ لوحة ١"], [2.9, "#ff7aa8", "🖌️ لوحة ٢"]].forEach(([dx, fc, txt], i) => {
+      const bx = dr.cx + dx;
+      [-1.6, 1.6].forEach((l) => B.box(bx + l, 0, bz + 0.5, 0.14, 2.2, 0.14, "#8d6e63")); B.box(bx, 0.5, bz + 0.6, 3.4, 0.14, 0.5, "#8d6e63");
+      B.box(bx, 0.7, bz, 3.4, 2.5, 0.2, fc); B.box(bx, 0.85, bz + 0.12, 3.0, 2.2, 0.06, "#fffdf6", 0.35);
+      [["#ff6b6b", -1.0, 1.9, 0.9], ["#ffd23f", 0.2, 1.4, 1.1], ["#4dabf7", 0.9, 2.2, 0.7], ["#7ac74f", -0.4, 1.0, 1.3]].forEach(([c2, ox, oy, w]) => B.box(bx + ox, oy, bz + 0.17, w, 0.18, 0.03, c2));
+      B.sphere(bx + (i ? 1.0 : -1.0), 2.9, bz + 0.2, 0.22, 0.22, 0.1, fc, 6, 1);
+      boxes.push({ x0: bx - 1.8, x1: bx + 1.8, z0: bz - 0.3, z1: bz + 0.9 });
+      labels.push({ id: "drl" + i, text: txt, x: bx, y: 3.6, z: bz + 0.3, cls: "sm tap", act: "draw", max: 24, scope: "in" });
+    });
+    B.cyl(dr.cx, 0, dr.cz + 0.6, 1.2, 1.2, 0.8, "#8d6e63", 12); B.cyl(dr.cx, 0.8, dr.cz + 0.6, 1.35, 1.35, 0.08, "#d7b98a", 12);
+    ["#ff6b6b", "#ffd23f", "#4dabf7", "#7ac74f", "#9b5de5"].forEach((c2, i) => { const a = (i / 5) * PI * 2; B.cyl(dr.cx + Math.cos(a) * 0.75, 0.88, dr.cz + 0.6 + Math.sin(a) * 0.75, 0.16, 0.14, 0.3, c2, 7); B.cyl(dr.cx + Math.cos(a) * 0.75, 1.18, dr.cz + 0.6 + Math.sin(a) * 0.75, 0.16, 0.16, 0.03, lt(c2, 0.4), 7); });
+    B.box(dr.cx, 0.9, dr.cz + 0.6, 0.12, 0.7, 0.12, "#7a5236"); B.sphere(dr.cx, 1.65, dr.cz + 0.6, 0.18, 0.18, 0.18, "#ff4d6d", 6, 1);
+    boxes.push({ x0: dr.cx - 1.4, x1: dr.cx + 1.4, z0: dr.cz - 0.8, z1: dr.cz + 2.0 });
+    const dx3 = dr.x1 - 1.4, dz3 = dr.cz + 0.6; B.box(dx3, 0, dz3, 1.1, 1.1, 1.1, "#fff7e6"); B.box(dx3, 1.1, dz3, 1.1, 0.1, 1.1, "#ff7aa8"); [[-0.3, -0.3], [0.3, 0.3], [0, 0]].forEach(([a, b]) => B.sphere(dx3 + a, 1.25, dz3 + b, 0.1, 0.05, 0.1, "#222", 5)); [[0.56, 0], [0.56, 0.3]].forEach(([a, b]) => B.sphere(dx3 + a, 0.55, dz3 + b, 0.1, 0.1, 0.05, "#222", 5));
+    boxes.push({ x0: dx3 - 0.6, x1: dx3 + 0.6, z0: dz3 - 0.6, z1: dz3 + 0.6 });
+    act("draw", dr.cx, 1.3, dr.cz + 0.6, 2.2, dr.cx, dr.cz + 3.6); labels.push({ id: "drt", text: "🎲 تحدي الرسم", x: dr.cx, y: 2.8, z: dr.cz + 0.6, cls: "sm tap", act: "draw", max: 26, scope: "in" });
+    act("draw", dx3, 1.2, dz3, 1.6, dx3 - 2.0, dz3);
+    for (let i = 0; i < 7; i++) { B.sphere(dr.cx - 4.5 + i * 1.5, 0.02, dr.z1 - 1.2 + (i % 2) * 0.5, 0.5 + (i % 3) * 0.15, 0.02, 0.4, ["#ff6b6b", "#ffd23f", "#4dabf7", "#7ac74f", "#9b5de5"][i % 5], 6); }
+    B.box(dr.cx, 2.2, dr.z1 - 0.5, 8, 0.05, 0.05, "#666"); [[-3, "#ff8fb1"], [-1, "#8fd3ff"], [1, "#ffe066"], [3, "#b6f0a0"]].forEach(([x, c2]) => { B.box(dr.cx + x, 1.2, dr.z1 - 0.52, 1.2, 1.0, 0.04, c2); B.box(dr.cx + x, 2.12, dr.z1 - 0.52, 0.06, 0.1, 0.06, "#444"); });
+    keepAt(dr, dr.x0, dr.z0, dr.x1, dr.z0 + 3.2); keepAt(dr, dr.cx - 1.8, dr.cz - 0.9, dr.cx + 1.8, dr.cz + 2.2); keepAt(dr, dx3 - 0.9, dz3 - 0.9, dr.x1, dz3 + 0.9);
+
+    /* --- غرفة الأزياء: خزانة + مرآة + ستاند ملابس --- */
+    const dsr = HOME.byId.dressing, wz = dsr.z1 - 0.9;
+    B.box(dsr.cx - 3.6, 0, wz, 3.2, 2.5, 0.9, "#8a5a3b"); [-1.0, 0.0, 1.0].forEach((dx) => { B.box(dsr.cx - 3.6 + dx, 0.15, wz - 0.48, 0.95, 2.2, 0.05, "#a97c50"); B.sphere(dsr.cx - 3.6 + dx + 0.35, 1.2, wz - 0.52, 0.05, 0.05, 0.04, "#ffd36e", 4); });
+    boxes.push({ x0: dsr.cx - 5.3, x1: dsr.cx - 1.9, z0: wz - 0.5, z1: wz + 0.5 });
+    B.box(dsr.cx + 3.0, 0, dsr.z0 + 0.55, 2.6, 2.6, 0.18, "#8e4a94"); B.box(dsr.cx + 3.0, 0.15, dsr.z0 + 0.66, 2.3, 2.3, 0.06, "#d6efff", 0.55); B.box(dsr.cx + 3.0, 0.0, dsr.z0 + 0.7, 2.6, 0.12, 0.7, "#8e4a94");
+    boxes.push({ x0: dsr.cx + 1.6, x1: dsr.cx + 4.4, z0: dsr.z0 + 0.3, z1: dsr.z0 + 1.0 });
+    act("mirror", dsr.cx + 3.0, 1.3, dsr.z0 + 0.8, 1.9, dsr.cx + 3.0, dsr.z0 + 3.2); labels.push({ id: "dsm", text: "🪞 جرّب لبسك", x: dsr.cx + 3.0, y: 3.2, z: dsr.z0 + 0.8, cls: "sm tap", act: "mirror", max: 26, scope: "in" });
+    act("mirror", dsr.cx - 3.6, 1.3, wz, 2.2, dsr.cx - 3.6, wz - 2.4); labels.push({ id: "dsw", text: "👗 الخزانة", x: dsr.cx - 3.6, y: 3.0, z: wz, cls: "sm tap", act: "mirror", max: 26, scope: "in" });
+    B.box(dsr.cx + 0.2, 0, dsr.cz + 1.2, 0.08, 1.9, 0.08, "#777"); B.box(dsr.cx + 0.2, 0, dsr.cz + 1.2 - 1.2, 0.08, 1.9, 0.08, "#777"); B.box(dsr.cx + 0.2, 1.9, dsr.cz + 0.0, 0.06, 0.06, 1.3, "#777"); ["#ff7aa8", "#6d3fb3", "#2a9d8f", "#ffd23f", "#4dabf7", "#e63946"].forEach((c2, i) => B.box(dsr.cx + 0.2, 0.9, dsr.cz - 0.5 + i * 0.22, 0.1, 1.0, 0.16, c2));
+    boxes.push({ x0: dsr.cx - 0.2, x1: dsr.cx + 0.6, z0: dsr.cz - 0.8, z1: dsr.cz + 1.4 });
+    B.disc(dsr.cx - 1.2, 0.02, dsr.cz + 1.2, 2.0, "#e9d0f0", 20);
+    keepAt(dsr, dsr.cx + 1.4, dsr.z0, dsr.x1, dsr.z0 + 3.0); keepAt(dsr, dsr.x0, wz - 1.0, dsr.cx - 1.9, dsr.z1); keepAt(dsr, dsr.cx - 0.3, dsr.cz - 1.0, dsr.cx + 0.8, dsr.cz + 1.6);
 
     return { id: "home", mesh: B.build(R.gl), boxes, acts, labels, poi, bounds: HOME.bounds, spawn: { x: eg.x, z: eg.z - 3.0 }, exitAt: "home", env: "warm", camDist: 25, camPitch: 1.22, npcs: [] };
   }

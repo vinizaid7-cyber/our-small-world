@@ -114,7 +114,6 @@
       return this;
     }
     sphere(x, y, z, rx, ry, rz, col, seg = 8, e = 0, hemi = false) {
-      if (seg >= 7) seg = Math.round(seg * 1.25);
       const c = rgb(col), rings = Math.max(3, Math.round(seg * 0.7)), maxp = hemi ? PI / 2 : PI;
       const P = (i, j) => { const ph = (i / rings) * maxp, th = (j / seg) * PI * 2, sp = sin(ph); return [[x + rx * sp * cos(th), y + ry * cos(ph), z + rz * sp * sin(th)], [sp * cos(th) / rx, cos(ph) / ry, sp * sin(th) / rz]]; };
       for (let i = 0; i < rings; i++) for (let j = 0; j < seg; j++) {
@@ -158,32 +157,48 @@
   /* ---------- الرسّام ---------- */
   const VS = `attribute vec3 aPos;attribute vec3 aNor;attribute vec3 aCol;attribute float aEm;
 uniform mat4 uVP;uniform mat4 uModel;uniform vec3 uSunDir;uniform vec3 uSunCol;uniform vec3 uAmbTop;uniform vec3 uAmbBot;uniform vec3 uCam;
-uniform float uNight;uniform float uFogN;uniform float uFogF;uniform vec4 uTint;uniform float uSway;uniform float uTime;
+uniform float uNight;uniform float uFogN;uniform float uFogF;uniform vec4 uTint;uniform float uSway;uniform float uTime;uniform mediump float uShadow;uniform vec3 uShDir;
 varying vec3 vCol;varying float vFog;
 void main(){
   vec4 wp=uModel*vec4(aPos,1.0);
   wp.x+=sin(uTime*1.3+wp.z*0.4)*uSway*max(aPos.y,0.0)*0.02;
   vec3 n=normalize(mat3(uModel[0].xyz,uModel[1].xyz,uModel[2].xyz)*aNor);
+  if(uShadow>0.5){
+    float far=length(wp.xz-uCam.xz);
+    if((n.y>0.85&&wp.y<0.7)||far>130.0||wp.y<-0.5){gl_Position=vec4(2.0,2.0,2.0,1.0);vFog=1.0;vCol=vec3(0.0);return;}
+    float s=(0.16-wp.y)/uShDir.y; wp.xz+=uShDir.xz*s; wp.y=0.16;
+    vFog=clamp((far-uFogN)/(uFogF-uFogN),0.0,1.0);vCol=vec3(0.0);gl_Position=uVP*wp;return;
+  }
+  vec3 V=normalize(uCam-wp.xyz);
   float nd=dot(n,-uSunDir);
-  float d=clamp((nd+0.22)/1.22,0.0,1.0);
-  vec3 amb=mix(uAmbBot,uAmbTop,n.y*0.5+0.5);
+  float d=clamp((nd+0.22)/1.22,0.0,1.0);d=d*d*(3.0-2.0*d);
+  float ao=mix(1.0,mix(0.6,1.0,smoothstep(0.0,2.2,wp.y)),1.0-abs(n.y));
+  float sky=n.y*0.5+0.5;
+  vec3 amb=mix(uAmbBot,uAmbTop,sky)*ao;
   vec3 base=aCol*uTint.rgb;
-  float ao=mix(0.66,1.0,smoothstep(0.0,1.5,wp.y)); ao=mix(ao,1.0,smoothstep(0.35,0.75,n.y));
-  vec3 vd=normalize(uCam-wp.xyz);
-  float rim=pow(1.0-max(dot(n,vd),0.0),3.0)*0.09*(1.0-uNight);
-  vec3 lit=base*(amb+uSunCol*d)*ao+vec3(1.0,0.93,0.82)*rim*(1.0-aEm);
+  vec3 lit=base*(amb+uSunCol*d*0.92*mix(1.0,ao,0.5));
+  float rim=pow(1.0-max(dot(n,V),0.0),3.0);
+  lit+=base*uAmbTop*rim*0.16*(1.0-uNight*0.6);
+  lit+=uSunCol*pow(max(dot(n,normalize(V-uSunDir)),0.0),28.0)*0.05*step(0.01,aEm)*(1.0-uNight);
   vCol=mix(lit,base*1.6,aEm*uNight);
   float dist=length(wp.xyz-uCam);
   vFog=clamp((dist-uFogN)/(uFogF-uFogN),0.0,1.0);
   gl_Position=uVP*wp;
 }`;
-  const FS = `precision mediump float;varying vec3 vCol;varying float vFog;uniform float uAlpha;
-void main(){float a=(1.0-vFog)*uAlpha;vec3 c=clamp(vCol,0.0,1.0);float l=dot(c,vec3(0.299,0.587,0.114));c=mix(vec3(l),c,1.16);c=clamp(c,0.0,1.0);c=c*0.62+(c*c*(3.0-2.0*c))*0.38;gl_FragColor=vec4(c*a,a);}`;
+  const FS = `precision mediump float;varying vec3 vCol;varying float vFog;uniform float uAlpha;uniform float uShadow;uniform float uShA;
+void main(){
+  if(uShadow>0.5){gl_FragColor=vec4(0.0,0.0,0.0,uShA*(1.0-vFog));return;}
+  vec3 c=vCol;float l=dot(c,vec3(0.299,0.587,0.114));c=mix(vec3(l),c,1.14);
+  c=c/(1.0+c*0.28)*1.28;
+  float a=(1.0-vFog)*uAlpha;
+  float dth=(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-0.5)/200.0;
+  gl_FragColor=vec4((c+dth)*a,a);
+}`;
 
   const R = (OSW.R = { gl: null, canvas: null, vp: new Float32Array(16), ivp: new Float32Array(16), eye: [0, 0, 0], u: {}, drawn: 0 });
   const mdl = new Float32Array(16);
   R.init = (canvas) => {
-    let gl = canvas.getContext("webgl", { alpha: true, premultipliedAlpha: true, antialias: true, powerPreference: "high-performance" }) || canvas.getContext("experimental-webgl");
+    let gl = canvas.getContext("webgl", { alpha: true, premultipliedAlpha: true, antialias: true, stencil: true, powerPreference: "high-performance" }) || canvas.getContext("experimental-webgl");
     if (!gl) return false;
     R.gl = gl; R.canvas = canvas;
     const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
@@ -191,7 +206,7 @@ void main(){float a=(1.0-vFog)*uAlpha;vec3 c=clamp(vCol,0.0,1.0);float l=dot(c,v
     gl.bindAttribLocation(p, 0, "aPos"); gl.bindAttribLocation(p, 1, "aNor"); gl.bindAttribLocation(p, 2, "aCol"); gl.bindAttribLocation(p, 3, "aEm");
     gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
     gl.useProgram(p); R.prog = p;
-    ["uVP", "uModel", "uSunDir", "uSunCol", "uAmbTop", "uAmbBot", "uCam", "uNight", "uFogN", "uFogF", "uTint", "uSway", "uTime", "uAlpha"].forEach((n) => (R.u[n] = gl.getUniformLocation(p, n)));
+    ["uVP", "uModel", "uSunDir", "uSunCol", "uAmbTop", "uAmbBot", "uCam", "uNight", "uFogN", "uFogF", "uTint", "uSway", "uTime", "uAlpha", "uShadow", "uShDir", "uShA"].forEach((n) => (R.u[n] = gl.getUniformLocation(p, n)));
     gl.enable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.clearColor(0, 0, 0, 0);
     gl.enableVertexAttribArray(0); gl.enableVertexAttribArray(1); gl.enableVertexAttribArray(2); gl.enableVertexAttribArray(3);
     return true;
@@ -207,11 +222,17 @@ void main(){float a=(1.0-vFog)*uAlpha;vec3 c=clamp(vCol,0.0,1.0);float l=dot(c,v
     const gl = R.gl, u = R.u;
     const proj = M.perspective(fov, R.aspect, 0.8, 520), view = M.lookAt(eye, target);
     M.mul(proj, view, R.vp); M.invert(R.vp, R.ivp); R.eye = eye;
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT); gl.uniform1f(u.uShadow, 0);
     gl.uniformMatrix4fv(u.uVP, false, R.vp); gl.uniform3fv(u.uSunDir, env.sunDir); gl.uniform3fv(u.uSunCol, env.sunCol);
     gl.uniform3fv(u.uAmbTop, env.ambTop); gl.uniform3fv(u.uAmbBot, env.ambBot); gl.uniform3fv(u.uCam, eye);
     gl.uniform1f(u.uNight, env.night); gl.uniform1f(u.uFogN, env.fogN); gl.uniform1f(u.uFogF, env.fogF); gl.uniform1f(u.uTime, env.time);
     gl.disable(gl.BLEND); R.drawn = 0;
+  };
+  // مرحلة الظلال المسقطة (مسطّحة على الأرض مع ستنسل لمنع التغميق المضاعف)
+  R.shadow = (on, dir, alpha) => {
+    const gl = R.gl, u = R.u;
+    if (on) { gl.uniform1f(u.uShadow, 1); gl.uniform3fv(u.uShDir, dir); gl.uniform1f(u.uShA, alpha); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.enable(gl.STENCIL_TEST); gl.clearStencil(0); gl.clear(gl.STENCIL_BUFFER_BIT); gl.stencilFunc(gl.NOTEQUAL, 1, 255); gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE); }
+    else { gl.uniform1f(u.uShadow, 0); gl.disable(gl.STENCIL_TEST); gl.disable(gl.BLEND); gl.depthMask(true); }
   };
   R.blend = (on) => { const gl = R.gl; if (on) { gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); } else { gl.disable(gl.BLEND); gl.depthMask(true); } };
   // model: مصفوفة جاهزة أو null (هوية)

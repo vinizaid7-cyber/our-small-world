@@ -1,7 +1,7 @@
 /* شخصيات القرية: ولد وبنت وسكان وسعدون والحجّي والحجّة */
 (function () {
   const OSW = window.OSW, R = OSW.R, Builder = OSW.Builder, M = OSW.M, PI = Math.PI;
-  const dk = OSW.col.dk;
+  const dk = OSW.col.dk, lt = OSW.col.lt;
   const cache = {};
   const sc1 = new Float32Array(16), sc2 = new Float32Array(16), sc3 = new Float32Array(16);
 
@@ -15,11 +15,23 @@
     const outKey = look.outfit && look.outfit !== "casual" && OSW.CLOTHES[look.outfit] ? look.outfit : null, outf = outKey ? OSW.CLOTHES[outKey] : null, stl = outf ? outf.style : "casual";
     const topC = outf && outf.c1 ? outf.c1 : shirt;
     let pantsC = outf && outf.c2 ? outf.c2 : pants;
-    if (stl === "dress" || stl === "gown") pantsC = skin;
-    const sleeveC = stl === "dress" || stl === "gown" ? skin : girl && stl === "casual" && !look.elder ? skin : topC;
+    const ROBE = ["dress", "gown", "abaya", "embroid", "king", "bisht"]; if (ROBE.includes(stl)) pantsC = skin;
+    const SHOE = { hero: "#d62839", astro: "#9aa3ad", knight: "#6b7480", farmer: "#6b4a30", cowboy: "#6b4a30", ninja: "#14141a", pilot: "#14141a", bisht: "#2b2b2b", king: "#d4af37", pirate: "#2b2b2b" };
+    const sleeveC = stl === "dress" || stl === "gown" ? skin : girl && stl === "casual" && !look.elder ? skin : stl === "varsity" ? "#f4f4f6" : stl === "doctor" ? "#ffffff" : stl === "bisht" ? "#2b2b2b" : stl === "king" ? "#b3202e" : stl === "hawaii" ? skin : topC;
     if (stl === "thobe") { body.box(0, 0.62, 0, 0.64, 0.74, 0.4, topC); body.cyl(0, 0.08, 0, 0.5, 0.33, 0.62, topC, 14); }
     else if (stl === "dress") { body.box(0, 0.62, 0, 0.58, 0.62, 0.34, topC); body.cyl(0, 0.32, 0, 0.55, 0.32, 0.5, topC, 12); body.box(0, 0.58, 0, 0.6, 0.07, 0.36, dk(topC, 0.3)); }
     else if (stl === "gown") { body.box(0, 0.62, 0, 0.58, 0.62, 0.34, topC); body.cyl(0, 0.04, 0, 0.7, 0.32, 0.84, topC, 14); body.sphere(0, 0.9, 0.2, 0.09, 0.09, 0.04, "#ffe08a", 5, 0.8); body.box(0, 0.58, 0, 0.6, 0.07, 0.36, "#ffe08a", 0.4); }
+    else if (stl === "abaya") { body.box(0, 0.62, 0, 0.6, 0.66, 0.36, topC); body.cyl(0, 0.0, 0, 0.74, 0.34, 0.9, topC, 14); body.cyl(0, 0.0, 0, 0.75, 0.75, 0.07, "#e6b94a", 14); body.box(0, 0.7, 0.19, 0.1, 0.5, 0.02, "#e6b94a"); body.box(0, 0.98, 0.19, 0.36, 0.05, 0.02, "#e6b94a"); }
+    else if (stl === "embroid") { body.box(0, 0.62, 0, 0.6, 0.66, 0.36, topC); body.cyl(0, 0.0, 0, 0.74, 0.34, 0.9, topC, 14); [0.12, 0.34, 0.56].forEach((y, i) => body.cyl(0, y, 0, 0.74 - i * 0.11, 0.74 - i * 0.11 + 0.01, 0.07, i % 2 ? "#e6b94a" : "#c8102e", 14)); body.box(0, 0.78, 0.19, 0.4, 0.34, 0.02, "#c8102e"); for (let i = 0; i < 4; i++) body.box(-0.12 + i * 0.08, 0.8, 0.2, 0.04, 0.2, 0.02, i % 2 ? "#e6b94a" : "#1b7a4a"); body.box(0, 1.0, 0.19, 0.44, 0.04, 0.02, "#e6b94a"); }
+    else if (stl === "king") { body.box(0, 0.62, 0, 0.66, 0.76, 0.42, topC); body.cyl(0, 0.04, 0, 0.62, 0.36, 0.64, topC, 14); body.cyl(0, 0.04, 0, 0.64, 0.64, 0.1, "#f4f1e8", 14); body.cyl(0, 1.12, 0, 0.42, 0.34, 0.18, "#f4f1e8", 12); body.box(0, 0.6, 0.0, 0.7, 0.08, 0.46, "#d4af37"); for (let i = 0; i < 4; i++) body.sphere(-0.15 + i * 0.1, 0.9, 0.22, 0.03, 0.05, 0.03, "#2b2b2b", 4); }
+    else if (stl === "bisht") { body.box(0, 0.62, 0, 0.64, 0.74, 0.4, "#f4f1e8"); body.cyl(0, 0.08, 0, 0.5, 0.33, 0.62, "#f4f1e8", 14); body.box(0, 0.1, -0.24, 0.84, 1.28, 0.06, "#2b2b2b"); [-1, 1].forEach((sd) => { body.box(sd * 0.38, 0.1, 0.0, 0.07, 1.26, 0.46, "#2b2b2b"); body.box(sd * 0.4, 0.1, 0.0, 0.03, 1.26, 0.48, "#d4af37"); }); body.box(0, 1.14, 0, 0.5, 0.08, 0.44, "#d4af37"); }
+    else if (stl === "vest") { body.box(0, 0.62, 0, 0.64, 0.74, 0.4, topC); body.cyl(0, 0.08, 0, 0.5, 0.33, 0.62, topC, 14); body.box(-0.2, 0.68, 0.2, 0.2, 0.66, 0.04, "#6b4a30"); body.box(0.2, 0.68, 0.2, 0.2, 0.66, 0.04, "#6b4a30"); for (let i = 0; i < 4; i++) body.sphere(0, 0.5 + i * 0.16, 0.22, 0.03, 0.03, 0.02, "#d4af37", 4, 0.3); }
+    else if (stl === "onesie") {
+      const an = outf.animal; body.box(0, 0.6, 0, 0.64, 0.76, 0.4, topC); body.cyl(0, 0.3, 0, 0.36, 0.3, 0.4, topC, 8);
+      body.sphere(0, 0.58, 0.2, 0.22, 0.28, 0.04, an === "panda" ? "#2b2b2b" : an === "bunny" ? "#fff" : lt(topC, 0.35), 8);
+      if (an === "dino") { for (let i = 0; i < 4; i++) body.box(0, 1.0 - i * 0.22, -0.24, 0.1, 0.16, 0.14, "#e8a33d"); body.box(0, 0.3, -0.34, 0.14, 0.14, 0.36, topC); }
+      if (an === "panda") body.box(0, 0.62, 0, 0.66, 0.16, 0.42, "#2b2b2b");
+    }
     else if (girl && stl === "casual") { body.box(0, 0.62, 0, 0.58, 0.62, 0.34, shirt); body.cyl(0, 0.34, 0, 0.5, 0.32, 0.5, shirt, 10); body.cyl(0, 0.34, 0, 0.51, 0.51, 0.05, dk(shirt, 0.25), 10); }
     else {
       body.box(0, 0.6, 0, 0.62, 0.74, 0.36, topC); body.box(0, 0.56, 0, 0.64, 0.12, 0.38, dk(topC, 0.2));
@@ -28,6 +40,21 @@
       if (stl === "jacket") { body.box(0, 0.66, 0.19, 0.24, 0.68, 0.02, "#eee"); body.box(-0.2, 1.24, 0.17, 0.2, 0.1, 0.08, dk(topC, 0.2)); body.box(0.2, 1.24, 0.17, 0.2, 0.1, 0.08, dk(topC, 0.2)); }
       if (stl === "suit") { body.box(0, 0.7, 0.19, 0.22, 0.62, 0.02, "#fff"); body.box(0, 0.8, 0.2, 0.07, 0.46, 0.02, "#c0392b"); body.box(-0.14, 1.0, 0.2, 0.1, 0.2, 0.02, dk(topC, 0.3)); body.box(0.14, 1.0, 0.2, 0.1, 0.2, 0.02, dk(topC, 0.3)); }
       if (stl === "pajama") { for (let i = 0; i < 6; i++) body.sphere(-0.2 + (i % 3) * 0.2, 0.75 + Math.floor(i / 3) * 0.28, 0.19, 0.045, 0.045, 0.02, "#ffe56b", 4, 0.3); }
+      if (stl === "overalls") { body.box(0, 0.36, 0.19, 0.44, 0.55, 0.03, pantsC); [-1, 1].forEach((sd) => body.box(sd * 0.15, 0.62, 0.19, 0.06, 0.62, 0.03, pantsC)); [-1, 1].forEach((sd) => body.sphere(sd * 0.15, 0.78, 0.22, 0.03, 0.03, 0.02, "#ffd23f", 4, 0.3)); body.box(0, 0.38, 0.22, 0.2, 0.14, 0.02, dk(pantsC, 0.2)); }
+      if (stl === "hawaii") { for (let i = 0; i < 9; i++) body.sphere(-0.2 + (i % 3) * 0.2, 0.4 + Math.floor(i / 3) * 0.24, 0.19, 0.055, 0.055, 0.02, ["#fff", "#ffe56b", "#ff8fb1"][i % 3], 5, 0.2); body.box(0, 0.88, 0.19, 0.12, 0.3, 0.02, "#fff"); }
+      if (stl === "varsity") { body.box(0, 0.62, 0.19, 0.04, 0.7, 0.02, "#fff"); body.box(-0.15, 0.95, 0.19, 0.14, 0.14, 0.02, "#fff"); body.box(0, 0.38, 0, 0.66, 0.08, 0.4, "#f4f4f6"); }
+      if (stl === "puffer") { for (let i = 0; i < 4; i++) body.box(0, 0.3 + i * 0.2, 0, 0.7, 0.04, 0.44, dk(topC, 0.25)); body.cyl(0, 1.12, 0, 0.27, 0.27, 0.18, dk(topC, 0.1), 10); body.box(0, 0.65, 0.22, 0.04, 0.7, 0.02, "#eee"); }
+      if (stl === "poncho") { body.cyl(0, 0.2, 0, 0.62, 0.34, 0.6, topC, 12); [0.3, 0.45].forEach((y, i) => body.cyl(0, y, 0, 0.55 - i * 0.12, 0.56 - i * 0.12, 0.05, i ? "#ffd23f" : "#2a9d8f", 12)); body.cyl(0, 0.78, 0, 0.36, 0.3, 0.3, topC, 10); }
+      if (stl === "school") { body.box(0, 0.5, 0.19, 0.5, 0.48, 0.03, pantsC); body.box(0, 0.85, 0.2, 0.06, 0.36, 0.02, "#c0392b"); body.box(0, 1.08, 0.18, 0.2, 0.06, 0.04, "#fff"); }
+      if (stl === "chef") { body.box(-0.1, 0.6, 0.19, 0.04, 0.6, 0.02, "#cfd4da"); body.box(0.1, 0.6, 0.19, 0.04, 0.6, 0.02, "#cfd4da"); for (let i = 0; i < 4; i++) { body.sphere(-0.1, 0.4 + i * 0.16, 0.2, 0.025, 0.025, 0.02, "#aab", 4); body.sphere(0.1, 0.4 + i * 0.16, 0.2, 0.025, 0.025, 0.02, "#aab", 4); } body.cyl(0, 1.16, 0, 0.2, 0.2, 0.1, "#d62839", 8); }
+      if (stl === "doctor") { body.box(0, 0.28, 0, 0.66, 0.78, 0.4, "#ffffff"); body.box(0, 0.9, 0.2, 0.2, 0.4, 0.02, pantsC); [-1, 1].forEach((sd) => body.box(sd * 0.1, 0.96, 0.21, 0.1, 0.3, 0.02, "#e9eef2")); body.cyl(0, 1.12, 0.02, 0.2, 0.2, 0.05, "#2b2b2b", 10); body.sphere(0.0, 0.84, 0.22, 0.06, 0.06, 0.03, "#8d99a6", 5); body.box(0.2, 0.55, 0.21, 0.12, 0.1, 0.02, "#ddd"); }
+      if (stl === "pilot") { body.box(0, 0.6, 0.19, 0.04, 0.7, 0.02, "#d4af37"); [-1, 1].forEach((sd) => { body.box(sd * 0.28, 1.22, 0, 0.18, 0.05, 0.22, "#d4af37"); body.box(sd * 0.28, 1.16, 0, 0.18, 0.04, 0.22, "#d4af37"); }); body.box(0, 0.88, 0.2, 0.07, 0.4, 0.02, "#111"); body.box(-0.2, 0.9, 0.2, 0.12, 0.08, 0.02, "#d4af37"); }
+      if (stl === "cowboy") { body.box(-0.19, 0.66, 0.2, 0.22, 0.66, 0.04, "#6b4a30"); body.box(0.19, 0.66, 0.2, 0.22, 0.66, 0.04, "#6b4a30"); body.sphere(-0.2, 0.9, 0.23, 0.07, 0.07, 0.03, "#ffd23f", 5, 0.4); body.box(0, 0.38, 0, 0.66, 0.07, 0.4, "#3b2a1a"); body.sphere(0, 0.38, 0.21, 0.06, 0.05, 0.03, "#ffd23f", 5, 0.4); }
+      if (stl === "astro") { body.box(0, 0.75, -0.32, 0.5, 0.7, 0.22, "#d9dee3"); body.box(0, 0.6, 0.2, 0.34, 0.26, 0.03, "#2b3445"); [["#e63946", -0.1], ["#4dabf7", 0], ["#ffd23f", 0.1]].forEach(([c2, x]) => body.box(x, 0.62, 0.22, 0.06, 0.06, 0.02, c2, 0.5)); body.box(-0.22, 0.98, 0.2, 0.14, 0.09, 0.02, "#e63946"); body.cyl(0, 1.16, 0, 0.26, 0.26, 0.14, "#c9d0d7", 10); }
+      if (stl === "pirate") { for (let i = 0; i < 4; i++) body.box(0, 0.45 + i * 0.2, 0.19, 0.64, 0.08, 0.02, "#2b2b35"); body.box(0, 0.36, 0, 0.66, 0.12, 0.4, "#c0392b"); body.box(0, 0.52, 0.21, 0.66, 0.07, 0.03, "#3b2a1a"); body.box(0, 0.52, 0.23, 0.1, 0.09, 0.02, "#ffd23f"); }
+      if (stl === "knight") { body.box(0, 0.7, 0.2, 0.54, 0.56, 0.1, "#c9d1d9"); body.box(0, 0.7, 0.26, 0.08, 0.56, 0.02, "#8a949f"); [-1, 1].forEach((sd) => body.sphere(sd * 0.36, 1.2, 0, 0.17, 0.12, 0.2, "#c9d1d9", 7)); body.box(0, 0.36, 0, 0.7, 0.1, 0.42, "#6b4a30"); body.sphere(0, 0.38, 0.22, 0.07, 0.07, 0.03, "#ffd23f", 5, 0.3); }
+      if (stl === "ninja") { body.box(0, 0.42, 0, 0.66, 0.1, 0.4, "#d62839"); body.box(0, 0.7, 0.19, 0.5, 0.05, 0.02, "#34343f"); body.box(0.36, 0.36, 0.0, 0.1, 0.4, 0.1, "#d62839"); }
+      if (stl === "hero") { body.box(0, 0.42, 0, 0.66, 0.1, 0.4, "#ffd23f"); body.box(0, 0.82, 0.19, 0.26, 0.26, 0.03, "#ffd23f", 0.3); body.box(0, 0.86, 0.21, 0.1, 0.18, 0.02, "#d62839"); body.box(0, 0.3, 0, 0.62, 0.16, 0.38, "#d62839"); }
       if (stl === "rain") { body.sphere(0, 1.28, -0.2, 0.28, 0.22, 0.22, topC, 7); body.cyl(0, 0.3, 0, 0.42, 0.34, 0.45, topC, 10); }
     }
     if (look.apron) body.box(0, 0.6, 0.19, 0.5, 0.6, 0.04, look.apron);
@@ -47,6 +74,16 @@
       body.sphere(-0.115, 1.66, 0.3, 0.045, 0.055, 0.03, "#2a2030", 5); body.sphere(0.115, 1.66, 0.3, 0.045, 0.055, 0.03, "#2a2030", 5); body.box(0, 1.5, 0.335, 0.1, 0.022, 0.02, "#7a3b3b"); }
     else if (hs === "keffiyeh") { body.sphere(0, 1.7, -0.02, 0.37, 0.3, 0.36, "#f6f3ea", 10, 0, true); body.cyl(0, 1.86, 0, 0.35, 0.35, 0.07, "#1b1b1b", 12); body.box(0, 1.45, -0.28, 0.6, 0.5, 0.1, "#f6f3ea"); }
     else if (hs === "cap") { body.sphere(0, 1.68, -0.03, 0.35, 0.3, 0.34, look.cap || "#2f8f5b", 9, 0, true); body.box(0, 1.8, 0.3, 0.42, 0.05, 0.2, look.cap || "#2f8f5b"); }
+    if (stl === "ninja") { body.sphere(0, 1.68, -0.03, 0.36, 0.34, 0.35, "#1c1c24", 10, 0, true); body.box(0, 1.52, 0.04, 0.66, 0.34, 0.6, "#1c1c24"); body.box(0, 1.8, 0.0, 0.7, 0.07, 0.66, "#d62839"); body.box(0, 1.74, 0.31, 0.52, 0.04, 0.04, "#1c1c24"); }
+    if (stl === "onesie") { const an = outf.animal, hc = an === "panda" ? "#f4f4f4" : topC; body.sphere(0, 1.7, -0.03, 0.37, 0.33, 0.36, hc, 10, 0, true); body.box(0, 1.84, 0.12, 0.5, 0.08, 0.2, hc);
+      if (an === "panda") [-1, 1].forEach((sd) => body.sphere(sd * 0.27, 1.98, -0.02, 0.1, 0.1, 0.08, "#2b2b2b", 6));
+      else if (an === "bunny") [-1, 1].forEach((sd) => { body.box(sd * 0.13, 1.95, -0.04, 0.1, 0.55, 0.07, "#fff"); body.box(sd * 0.13, 2.0, -0.01, 0.05, 0.4, 0.03, "#ff9ab8"); });
+      else { [-1, 1].forEach((sd) => body.sphere(sd * 0.14, 1.97, 0.1, 0.07, 0.07, 0.07, "#fff", 5)); body.sphere(0, 1.9, -0.28, 0.1, 0.12, 0.1, "#e8a33d", 4); } }
+    if (stl === "pirate") { body.box(0, 1.84, 0, 0.7, 0.08, 0.7, "#c0392b"); body.sphere(-0.13, 1.67, 0.31, 0.07, 0.07, 0.03, "#111", 5); body.box(0, 1.75, 0.3, 0.3, 0.015, 0.02, "#111"); }
+    if (stl === "knight") { body.sphere(0, 1.68, -0.02, 0.37, 0.36, 0.36, "#aab4bf", 10, 0, true); body.box(0, 1.7, 0.2, 0.48, 0.06, 0.2, "#6b7480"); body.box(0, 1.95, -0.05, 0.05, 0.22, 0.3, "#d62839"); }
+    if (stl === "pilot") { body.sphere(0, 1.72, -0.03, 0.36, 0.3, 0.35, "#24344f", 9, 0, true); body.box(0, 1.82, 0.3, 0.42, 0.05, 0.2, "#111"); body.box(0, 1.88, 0.2, 0.1, 0.06, 0.02, "#d4af37"); }
+    if (stl === "hero") { body.box(0, 1.68, 0.3, 0.5, 0.14, 0.04, "#d62839"); [-0.12, 0.12].forEach((x) => body.sphere(x, 1.68, 0.33, 0.05, 0.04, 0.02, "#fff", 4)); }
+    if (stl === "astro") { body.cyl(0, 1.16, 0, 0.3, 0.3, 0.1, "#c9d0d7", 10); }
     // إكسسوارات
     (look.acc || []).forEach((k) => {
       if (k === "cap") { body.sphere(0, 1.74, -0.02, 0.36, 0.3, 0.35, "#d64545", 9, 0, true); body.box(0, 1.8, 0.31, 0.44, 0.04, 0.22, "#b33636"); }
@@ -54,11 +91,31 @@
       else if (k === "scarf") { body.cyl(0, 1.16, 0, 0.27, 0.25, 0.2, "#e2574c", 10); body.box(0.15, 0.85, 0.2, 0.12, 0.4, 0.04, "#e2574c"); }
       else if (k === "crown") { for (let i = 0; i < 8; i++) { const an = (i / 8) * Math.PI * 2; body.sphere(0.34 * Math.sin(an), 1.9, 0.34 * Math.cos(an), 0.07, 0.07, 0.07, i % 2 ? "#ff8fb1" : "#fff3a0", 5, 0.3); } }
       else if (k === "bow") { body.sphere(-0.1, 1.95, 0.18, 0.1, 0.07, 0.05, "#ff4d6d", 5); body.sphere(0.1, 1.95, 0.18, 0.1, 0.07, 0.05, "#ff4d6d", 5); body.sphere(0, 1.95, 0.2, 0.04, 0.04, 0.04, "#c9184a", 4); }
+      else if (k === "straw") { body.cyl(0, 1.84, 0, 0.58, 0.58, 0.04, "#e8cf8a", 14); body.cyl(0, 1.86, 0, 0.3, 0.28, 0.22, "#e8cf8a", 12); body.cyl(0, 1.88, 0, 0.31, 0.31, 0.06, "#d64545", 12); }
+      else if (k === "beanie") { body.sphere(0, 1.74, -0.02, 0.36, 0.3, 0.35, "#3a6fb0", 9, 0, true); body.cyl(0, 1.78, 0, 0.36, 0.36, 0.1, "#2a5390", 10); body.sphere(0, 2.04, 0, 0.1, 0.1, 0.1, "#fff", 6); }
+      else if (k === "chefhat") { body.cyl(0, 1.84, 0, 0.3, 0.3, 0.16, "#fff", 12); body.sphere(0, 2.1, 0, 0.36, 0.26, 0.36, "#fff", 8); body.sphere(-0.2, 2.02, 0.05, 0.16, 0.14, 0.16, "#fff", 6); body.sphere(0.2, 2.02, 0.05, 0.16, 0.14, 0.16, "#fff", 6); }
+      else if (k === "party") { body.cyl(0.04, 1.9, 0, 0.2, 0, 0.56, "#ff6bd6", 8); for (let i = 0; i < 3; i++) body.sphere(0.04 + (i - 1) * 0.05, 1.98 + i * 0.12, 0.12, 0.04, 0.04, 0.04, "#ffe66b", 4); body.sphere(0.04, 2.48, 0, 0.07, 0.07, 0.07, "#4dabf7", 5); }
+      else if (k === "cowhat") { body.cyl(0, 1.84, 0, 0.62, 0.62, 0.04, "#a8714a", 14); body.cyl(0, 1.86, 0, 0.3, 0.26, 0.3, "#a8714a", 12); body.cyl(0, 1.9, 0, 0.31, 0.31, 0.06, "#3b2a1a", 12); }
+      else if (k === "pirhat") { body.box(0, 1.9, 0, 0.78, 0.2, 0.42, "#1b1b1b"); body.box(0, 2.06, 0, 0.5, 0.14, 0.34, "#1b1b1b"); body.box(0, 1.94, 0.22, 0.12, 0.1, 0.02, "#f4f4f4"); body.box(0, 1.9, 0.22, 0.04, 0.04, 0.02, "#1b1b1b"); }
+      else if (k === "goldcrown") { body.cyl(0, 1.86, 0, 0.3, 0.3, 0.14, "#f2c94c", 12, 0.3); for (let i = 0; i < 6; i++) { const an = (i / 6) * Math.PI * 2; body.box(0.3 * Math.sin(an), 2.0, 0.3 * Math.cos(an), 0.08, 0.2, 0.08, "#f2c94c", 0.3); body.sphere(0.3 * Math.sin(an), 2.22, 0.3 * Math.cos(an), 0.05, 0.05, 0.05, i % 2 ? "#e63946" : "#4dabf7", 4, 0.6); } }
+      else if (k === "halo") { body.cyl(0, 2.2, 0, 0.3, 0.3, 0.05, "#ffe066", 14, 1); body.cyl(0, 2.22, 0, 0.22, 0.22, 0.05, "#fffbe0", 14, 1); }
+      else if (k === "bunnyears") { [-1, 1].forEach((sd) => { body.box(sd * 0.14, 1.95, -0.02, 0.1, 0.5, 0.06, "#fff"); body.box(sd * 0.14, 2.0, 0.01, 0.05, 0.36, 0.03, "#ff9ab8"); }); }
+      else if (k === "kuffiya") { body.sphere(0, 1.72, -0.02, 0.37, 0.3, 0.36, "#f6f3ea", 10, 0, true); for (let i = 0; i < 6; i++) body.box(-0.25 + i * 0.1, 1.84, 0.1, 0.05, 0.05, 0.2, "#c0392b"); body.cyl(0, 1.88, 0, 0.35, 0.35, 0.07, "#1b1b1b", 12); body.box(0, 1.46, -0.28, 0.62, 0.5, 0.1, "#f6f3ea"); body.box(-0.32, 1.5, 0.0, 0.08, 0.4, 0.4, "#f6f3ea"); body.box(0.32, 1.5, 0.0, 0.08, 0.4, 0.4, "#f6f3ea"); }
+      else if (k === "phones") { body.box(0, 2.0, 0, 0.68, 0.06, 0.1, "#222"); [-1, 1].forEach((sd) => { body.box(sd * 0.33, 1.84, 0, 0.06, 0.34, 0.1, "#222"); body.sphere(sd * 0.36, 1.66, 0, 0.09, 0.14, 0.14, "#e63946", 6); }); }
+      else if (k === "glasses") { [-1, 1].forEach((sd) => { body.box(sd * 0.13, 1.66, 0.3, 0.2, 0.14, 0.03, "#bfe9ff", 0.3); body.box(sd * 0.13, 1.74, 0.31, 0.22, 0.02, 0.03, "#2b2b2b"); body.box(sd * 0.13, 1.58, 0.31, 0.22, 0.02, 0.03, "#2b2b2b"); body.box(sd * 0.24, 1.66, 0.31, 0.02, 0.16, 0.03, "#2b2b2b"); body.box(sd * 0.02, 1.66, 0.31, 0.02, 0.16, 0.03, "#2b2b2b"); }); body.box(0, 1.67, 0.31, 0.08, 0.02, 0.03, "#2b2b2b"); }
+      else if (k === "mask") { body.box(0, 1.66, 0.3, 0.52, 0.14, 0.04, "#8e4a94"); body.box(0, 1.66, 0.32, 0.5, 0.03, 0.03, "#ffd23f"); [-1, 1].forEach((sd) => { body.sphere(sd * 0.13, 1.66, 0.33, 0.05, 0.04, 0.02, "#111", 4); body.box(sd * 0.3, 1.78, 0.28, 0.04, 0.3, 0.03, sd > 0 ? "#ff6bd6" : "#4dabf7"); }); }
+      else if (k === "bowtie") { body.box(-0.1, 1.2, 0.2, 0.14, 0.12, 0.04, "#c0392b"); body.box(0.1, 1.2, 0.2, 0.14, 0.12, 0.04, "#c0392b"); body.sphere(0, 1.2, 0.21, 0.04, 0.05, 0.04, "#8e1f1f", 4); }
+      else if (k === "pearls") { for (let i = 0; i < 10; i++) { const an = (i / 10) * Math.PI * 2; body.sphere(0.2 * Math.sin(an), 1.17, 0.2 * Math.cos(an) * 0.9, 0.04, 0.04, 0.04, "#fdf5ec", 4, 0.3); } body.sphere(0, 1.05, 0.2, 0.06, 0.06, 0.05, "#fdf5ec", 5, 0.3); }
+      else if (k === "medal") { body.box(0, 1.0, 0.2, 0.06, 0.4, 0.02, "#e63946"); body.sphere(0, 0.78, 0.21, 0.1, 0.1, 0.03, "#ffd23f", 6, 0.4); }
+      else if (k === "backpack") { body.box(0, 0.78, -0.3, 0.46, 0.6, 0.18, "#e07a3a"); body.box(0, 0.66, -0.41, 0.3, 0.24, 0.05, "#c4602a"); [-1, 1].forEach((sd) => body.box(sd * 0.19, 0.95, 0.0, 0.05, 0.5, 0.4, "#b5502a")); }
+      else if (k === "cape") { body.box(0, 0.05, -0.23, 0.78, 1.25, 0.05, "#d62839"); body.box(0, 1.2, -0.2, 0.62, 0.1, 0.12, "#a81d2c"); body.sphere(-0.28, 1.15, 0.1, 0.06, 0.06, 0.06, "#ffd23f", 5); body.sphere(0.28, 1.15, 0.1, 0.06, 0.06, 0.06, "#ffd23f", 5); }
+      else if (k === "wings") { [-1, 1].forEach((sd) => { body.sphere(sd * 0.42, 1.0, -0.3, 0.07, 0.42, 0.24, "#ffffff", 6, 0.25); body.sphere(sd * 0.6, 0.86, -0.34, 0.06, 0.32, 0.2, "#f2f5ff", 6, 0.2); body.sphere(sd * 0.74, 0.7, -0.36, 0.05, 0.22, 0.14, "#e8eeff", 5, 0.2); }); }
+      else if (k === "fairy") { [-1, 1].forEach((sd) => { body.sphere(sd * 0.5, 1.15, -0.3, 0.06, 0.4, 0.3, "#ff8fd8", 6, 0.35); body.sphere(sd * 0.46, 0.7, -0.3, 0.05, 0.26, 0.2, "#b78cff", 6, 0.35); body.sphere(sd * 0.5, 1.15, -0.33, 0.04, 0.16, 0.12, "#fff3a0", 5, 0.4); }); }
       else if (k === "tie") { body.box(0, 0.8, 0.2, 0.08, 0.5, 0.02, "#2a9d8f"); }
     });
 
     // الأطراف (نقطة الدوران بالأعلى)
-    const leg = (b, x) => { b.box(0, -0.62, 0, 0.2, 0.55, 0.2, pantsC); b.box(0, -0.66, 0.05, 0.23, 0.12, 0.32, look.shoe || "#3b2f2f"); };
+    const leg = (b, x) => { b.box(0, -0.62, 0, 0.2, 0.55, 0.2, pantsC); b.box(0, -0.66, 0.05, 0.23, 0.12, 0.32, look.shoe || SHOE[stl] || "#3b2f2f"); };
     leg(legL, 0); leg(legR, 0);
     const arm = (b, cane) => { b.box(0, -0.5, 0, 0.16, 0.5, 0.16, sleeveC); b.sphere(0, -0.56, 0, 0.09, 0.09, 0.09, skin, 6); if (cane) { b.cyl(0.04, -1.5, 0.1, 0.03, 0.03, 1.55, "#7a5236", 5); b.sphere(0.04, 0.05, 0.1, 0.06, 0.05, 0.06, "#7a5236", 5); } };
     arm(armL, false); arm(armR, !!look.cane);
@@ -90,6 +147,8 @@
   OSW.NPCS = [
     { id: "saadoun", name: "سعدون", emoji: "🧑‍🍳", look: { gender: "boy", color: "#f4f1e8", hair: "#1b1b1b", hairStyle: "cap", cap: "#2f8f5b", apron: "#2f8f5b", mustache: true }, pos: [-24, 13.2], face: 0, stay: true, act: "shop",
       lines: ["أهلين وسهلين! شو بدك اليوم؟ عندي أطيب خضرة بالقرية 🥬", "والله الطماطم اليوم نار! جرّب وبتشكرني 😎", "أنا ما بسرق… بس بحسب غلط أحياناً 😂", "راتبي ما بكفي حق القهوة! اشتروا كتير يا جماعة ☕", "للحجّي والحجّة عندي خبز طازة وشاي وتمر 🌴"] },
+    { id: "abusulaiman", name: "أبو سليمان الجزّار", emoji: "🧔", look: { gender: "boy", color: "#f4f1e8", hair: "#1b1b1b", hairStyle: "cap", cap: "#f4f1e8", apron: "#b3263e", mustache: true }, pos: [-41.6, 6.9], face: 0, stay: true, act: "butcher",
+      lines: ["الخروف البلدي أحلى شي! جيبوا خرفانكم 🐑", "اللحمة الطازة كل يوم عندي 🥩", "ما بشتري الصغار… استنوا يكبروا 😄", "منسف اليوم؟ عندي اللحمة 🍲"] },
     { id: "hajji", name: "الحجّي أبو محمود", emoji: "👳", look: { gender: "boy", elder: true, color: "#efe9d8", pants: "#cfc7b4", hair: "#eee", hairStyle: "keffiyeh", mustache: true, cane: true }, pos: [-64.4, 14.2], face: 0.3, stay: true, act: "hajji",
       lines: ["الله يحفظكم ويجمعكم يا ولدي، ويرزقكم السعادة 🤲", "أيام زمان كان الشاي على الفحم أطيب! ☕", "ما أحلى لمّة الحبايب… دوموا لبعض.", "الحبيب الصادق يا ابني بيسأل عنك وانت مش جنبو."] },
     { id: "hajjeh", name: "الحجّة أم محمود", emoji: "👵", look: { gender: "girl", elder: true, color: "#5a3d6b", hair: "#f7f7f7", hairStyle: "hijab", skin: "#e8bf98" }, pos: [-59.6, 14.2], face: -0.3, stay: true, act: "hajji",

@@ -271,6 +271,7 @@
 /* ---------- الملابس (تأثيرها على السرعة) ---------- */
 (function () {
   const OSW = window.OSW;
+  OSW.CLOTH_CATS = [["all", "✨ الكل"], ["daily", "👕 يومي"], ["trad", "🇯🇴 تراثي"], ["work", "👨‍🌾 شغل"], ["fancy", "👑 فخم"], ["fun", "🎉 مرح"]];
   OSW.CLOTHES = {
     // outfit = طقم كامل | acc = إكسسوار
     casual: { n: "لبس عادي", e: "👕", price: 0, kind: "outfit", style: "casual", speed: 1, note: "لبسك الأساسي" },
@@ -283,11 +284,67 @@
     gown: { n: "فستان سهرة", e: "👗", price: 300, kind: "outfit", style: "gown", speed: 0.78, c1: "#6d3fb3", c2: "#6d3fb3", gender: "girl", note: "فخم وثقيل (-22% سرعة)" },
     pajama: { n: "بيجامة نوم", e: "🛌", price: 70, kind: "outfit", style: "pajama", speed: 1, c1: "#8fb8ff", c2: "#8fb8ff", note: "للنوم المريح" },
     rain: { n: "معطف مطر", e: "☔", price: 110, kind: "outfit", style: "rain", speed: 0.97, c1: "#ffd23f", c2: "#33415a", note: "للمطر والشتاء" },
+    // --- جديد: أطقم يومية ---
+    denim: { n: "جينز وقميص", e: "👖", price: 80, kind: "outfit", cat: "daily", style: "tee", speed: 1, c1: "#e8eef7", c2: "#3d6bb3", note: "كلاسيكي ومرتب" },
+    tee_red: { n: "تيشيرت أحمر", e: "👕", price: 45, kind: "outfit", cat: "daily", style: "tee", speed: 1, c1: "#e5484d", c2: "#2f3a4a", note: "لون الحيوية" },
+    tee_green: { n: "تيشيرت أخضر", e: "👕", price: 45, kind: "outfit", cat: "daily", style: "tee", speed: 1, c1: "#2fa86a", c2: "#c9b79c", note: "طبيعي ومنعش" },
+    hoodie_pink: { n: "هودي وردي", e: "🧥", price: 70, kind: "outfit", cat: "daily", style: "hoodie", speed: 1.03, c1: "#ff8fb1", c2: "#7a5a86", note: "ناعم ومريح" },
+    hawaii: { n: "قميص هاواي", e: "🌺", price: 85, kind: "outfit", cat: "daily", style: "hawaii", speed: 1.02, c1: "#ff7f50", c2: "#e9d9a6", note: "إجازة صيفية 🏝️" },
+    varsity: { n: "جاكيت الجامعة", e: "🏈", price: 120, kind: "outfit", cat: "daily", style: "varsity", speed: 1, c1: "#2f5de0", c2: "#2a3140", note: "ستايل الطلاب" },
+    puffer: { n: "جاكيت شتوي منفوخ", e: "🧥", price: 150, kind: "outfit", cat: "daily", style: "puffer", speed: 0.95, c1: "#e8a33d", c2: "#2f3a4a", note: "دافي للشتاء (-5% سرعة)" },
+    poncho: { n: "بونشو صوف", e: "🧶", price: 110, kind: "outfit", cat: "daily", style: "poncho", speed: 0.97, c1: "#c0642a", c2: "#3b3b4f", note: "دافي ومزركش" },
+    track: { n: "بدلة رياضية حمرا", e: "🏅", price: 130, kind: "outfit", cat: "daily", style: "sport", speed: 1.2, c1: "#e63946", c2: "#2a2a35", note: "ركض أسرع (+20%)" },
+    school: { n: "لبس المدرسة", e: "🎒", price: 95, kind: "outfit", cat: "daily", style: "school", speed: 1, c1: "#f4f4f6", c2: "#243a6b", note: "قميص أبيض وكحلي" },
+    // --- تراثي ---
+    bisht: { n: "بشت وثوب", e: "🧕", price: 280, kind: "outfit", cat: "trad", style: "bisht", speed: 0.88, c1: "#f4f1e8", c2: "#f4f1e8", gender: "boy", note: "للمناسبات الكبيرة (-12% سرعة)" },
+    abaya: { n: "عباية مطرزة", e: "🖤", price: 260, kind: "outfit", cat: "trad", style: "abaya", speed: 0.85, c1: "#1f1f28", c2: "#1f1f28", gender: "girl", note: "أنيقة بتطريز ذهبي (-15% سرعة)" },
+    embroid: { n: "ثوب فلاحي مطرز", e: "🇯🇴", price: 320, kind: "outfit", cat: "trad", style: "embroid", speed: 0.85, c1: "#2a2230", c2: "#2a2230", gender: "girl", note: "تطريز أردني بالأحمر (-15% سرعة)" },
+    jordan: { n: "زي أردني (دشداشة وسترة)", e: "🧔", price: 200, kind: "outfit", cat: "trad", style: "vest", speed: 0.92, c1: "#cdb98a", c2: "#cdb98a", gender: "boy", note: "سترة تراثية" },
+    // --- شغل ومهن ---
+    farmer: { n: "أفرول مزارع", e: "👨‍🌾", price: 100, kind: "outfit", cat: "work", style: "overalls", speed: 1.02, c1: "#c0392b", c2: "#3d6bb3", note: "للمزرعة والحظيرة 🐄" },
+    chef: { n: "لبس الطباخ", e: "👨‍🍳", price: 120, kind: "outfit", cat: "work", style: "chef", speed: 1, c1: "#fbfbfb", c2: "#3a3a46", note: "للمطبخ" },
+    doctor: { n: "بلوزة الدكتور", e: "🩺", price: 140, kind: "outfit", cat: "work", style: "doctor", speed: 1, c1: "#ffffff", c2: "#4aa3c9", note: "معطف أبيض وسماعة" },
+    pilot: { n: "لبس الطيار", e: "✈️", price: 190, kind: "outfit", cat: "work", style: "pilot", speed: 1, c1: "#24344f", c2: "#24344f", note: "كحلي بشارات ذهبية" },
+    cowboy: { n: "لبس رعاة البقر", e: "🤠", price: 150, kind: "outfit", cat: "work", style: "cowboy", speed: 1.02, c1: "#a8714a", c2: "#3d6bb3", note: "سترة وجينز" },
+    // --- فخم ---
+    tux: { n: "سموكن أبيض", e: "🤵", price: 320, kind: "outfit", cat: "fancy", style: "suit", speed: 0.8, c1: "#f1efe9", c2: "#2a2a33", gender: "boy", note: "لحفلة الأحلام" },
+    prom: { n: "فستان أحمر", e: "💃", price: 330, kind: "outfit", cat: "fancy", style: "gown", speed: 0.78, c1: "#d62839", c2: "#d62839", gender: "girl", note: "إطلالة نارية" },
+    princess: { n: "فستان الأميرة", e: "👸", price: 380, kind: "outfit", cat: "fancy", style: "gown", speed: 0.75, c1: "#7ad0f5", c2: "#7ad0f5", gender: "girl", note: "أزرق ملكي (-25% سرعة)" },
+    king: { n: "رداء الملك", e: "🤴", price: 420, kind: "outfit", cat: "fancy", style: "king", speed: 0.75, c1: "#b3202e", c2: "#b3202e", note: "فرو أبيض وحزام ذهبي (-25% سرعة)" },
+    // --- مرح ---
+    astro: { n: "بدلة رائد فضاء", e: "👨‍🚀", price: 260, kind: "outfit", cat: "fun", style: "astro", speed: 0.85, c1: "#f4f6f8", c2: "#f4f6f8", note: "بطيئة بس سينمائية 🚀" },
+    pirate: { n: "لبس القرصان", e: "🏴‍☠️", price: 170, kind: "outfit", cat: "fun", style: "pirate", speed: 1, c1: "#f1efe9", c2: "#2b2b35", note: "خطوط وحزام" },
+    knight: { n: "درع الفارس", e: "🛡️", price: 340, kind: "outfit", cat: "fun", style: "knight", speed: 0.75, c1: "#aab4bf", c2: "#8a949f", note: "حديد ثقيل (-25% سرعة)" },
+    ninja: { n: "لبس النينجا", e: "🥷", price: 280, kind: "outfit", cat: "fun", style: "ninja", speed: 1.25, c1: "#1c1c24", c2: "#1c1c24", note: "سريع وخفي (+25% سرعة)" },
+    hero: { n: "بطل خارق", e: "🦸", price: 300, kind: "outfit", cat: "fun", style: "hero", speed: 1.15, c1: "#2f5de0", c2: "#d62839", note: "مع شعار وحزام (+15% سرعة)" },
+    dino: { n: "بيجامة ديناصور", e: "🦖", price: 130, kind: "outfit", cat: "fun", style: "onesie", animal: "dino", speed: 1, c1: "#5fb35f", c2: "#5fb35f", note: "كشخة ودافية" },
+    panda: { n: "بيجامة باندا", e: "🐼", price: 130, kind: "outfit", cat: "fun", style: "onesie", animal: "panda", speed: 1, c1: "#f4f4f4", c2: "#2b2b2b", note: "لطيفة جداً" },
+    bunny: { n: "بيجامة أرنوب", e: "🐰", price: 130, kind: "outfit", cat: "fun", style: "onesie", animal: "bunny", speed: 1, c1: "#ffd3e2", c2: "#ffd3e2", note: "ودنين طويلين" },
     cap: { n: "كاب", e: "🧢", price: 35, kind: "acc", slot: "head", speed: 1 },
     shades: { n: "نظارة شمس", e: "🕶️", price: 45, kind: "acc", slot: "face", speed: 1 },
     scarf: { n: "شال", e: "🧣", price: 40, kind: "acc", slot: "neck", speed: 1 },
     crown: { n: "تاج ورد", e: "🌸", price: 55, kind: "acc", slot: "head", gender: "girl", speed: 1 },
     bow: { n: "فيونكة", e: "🎀", price: 30, kind: "acc", slot: "head", gender: "girl", speed: 1 },
     tie: { n: "ربطة عنق", e: "👔", price: 25, kind: "acc", slot: "neck", gender: "boy", speed: 1 },
+    straw: { n: "قبعة قش", e: "👒", price: 40, kind: "acc", slot: "head", speed: 1 },
+    beanie: { n: "طاقية صوف", e: "🧶", price: 35, kind: "acc", slot: "head", speed: 1 },
+    chefhat: { n: "قبعة الطباخ", e: "👨‍🍳", price: 45, kind: "acc", slot: "head", speed: 1 },
+    party: { n: "قبعة حفلة", e: "🎉", price: 30, kind: "acc", slot: "head", speed: 1 },
+    cowhat: { n: "قبعة رعاة", e: "🤠", price: 60, kind: "acc", slot: "head", speed: 1 },
+    pirhat: { n: "قبعة قرصان", e: "🏴‍☠️", price: 70, kind: "acc", slot: "head", speed: 1 },
+    goldcrown: { n: "تاج ذهبي", e: "👑", price: 150, kind: "acc", slot: "head", speed: 1 },
+    halo: { n: "هالة ملاك", e: "😇", price: 80, kind: "acc", slot: "head", speed: 1 },
+    bunnyears: { n: "ودان أرنب", e: "🐰", price: 50, kind: "acc", slot: "head", speed: 1 },
+    kuffiya: { n: "كوفية وعقال", e: "🧣", price: 90, kind: "acc", slot: "head", gender: "boy", speed: 1 },
+    phones: { n: "سماعات", e: "🎧", price: 65, kind: "acc", slot: "head", speed: 1 },
+    glasses: { n: "نظارة طبية", e: "👓", price: 40, kind: "acc", slot: "face", speed: 1 },
+    mask: { n: "قناع حفلة", e: "🎭", price: 55, kind: "acc", slot: "face", speed: 1 },
+    bowtie: { n: "فيونكة رسمية", e: "🎩", price: 30, kind: "acc", slot: "neck", gender: "boy", speed: 1 },
+    pearls: { n: "عقد لؤلؤ", e: "📿", price: 90, kind: "acc", slot: "neck", gender: "girl", speed: 1 },
+    medal: { n: "ميدالية", e: "🥇", price: 60, kind: "acc", slot: "neck", speed: 1 },
+    backpack: { n: "شنطة ظهر", e: "🎒", price: 75, kind: "acc", slot: "back", speed: 1 },
+    cape: { n: "عباءة سوبر", e: "🦸", price: 110, kind: "acc", slot: "back", speed: 1.05 },
+    wings: { n: "أجنحة ملاك", e: "🪽", price: 160, kind: "acc", slot: "back", speed: 1 },
+    fairy: { n: "أجنحة فراشة", e: "🦋", price: 160, kind: "acc", slot: "back", gender: "girl", speed: 1 },
   };
 })();
