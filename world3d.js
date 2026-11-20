@@ -16,16 +16,121 @@
   let mode = "out", curInt = null, floorHandler = null, selFurn = null, crowd = null;
   const inNpcs = [], furn = { list: [], boxes: [], acts: [] };
   const curSpace = () => (mode === "in" && curInt ? curInt.id : null);
-  const animals = {}, acarry = { me: [], partner: [] }, ANS = { cow: { sp: 0.7, sc: 1.1, r: 1.0 }, sheep: { sp: 0.8, sc: 1.05, r: 0.8 }, chicken: { sp: 1.3, sc: 1.4, r: 0.4 } };
+  const animals = {}, acarry = { me: [], partner: [] }, ANS = { cow: { sp: 0.75, sc: 1.1, r: 1.0, graze: 1.1, sleep: 0.75 }, sheep: { sp: 0.85, sc: 1.05, r: 0.8, graze: 1.0, sleep: 0.65 }, chicken: { sp: 1.5, sc: 1.4, r: 0.4, graze: 0.8, sleep: 0.55 } };
+  const AP = {}, pets3 = {}, petMesh = {}, am1 = new Float32Array(16), am2 = new Float32Array(16), am3 = new Float32Array(16);
+  let animT = 0;
+  /* حيوانات المزرعة: حالات (وقفة، مشي، رعي/نقر، تلفّت، نوم بالليل) + سرعة سلسة + ما بيتداخلوا */
   function stepAnimals(dt) {
-    const PN = OSW.EX.PENS;
-    Object.values(animals).forEach((a) => {
-      const R2 = PN[a.kind], A = ANS[a.kind];
-      if (a.tx == null) { a.wait -= dt; a.mv *= 0.9; if (a.wait <= 0) { a.tx = R2.x0 + 1.2 + Math.random() * (R2.x1 - R2.x0 - 2.4); a.tz = R2.z0 + 1.5 + Math.random() * (R2.z1 - R2.z0 - 3.0); } return; }
-      const dx = a.tx - a.x, dz = a.tz - a.z, d = hy(dx, dz);
-      if (d < 0.3) { a.tx = null; a.wait = 1 + Math.random() * 6; return; }
-      a.x += (dx / d) * A.sp * dt; a.z += (dz / d) * A.sp * dt; a.ry += angDiff(a.ry, Math.atan2(dx, dz)) * Math.min(1, dt * 5); a.phase += dt * (6 + A.sp * 4); a.mv = 1;
+    animT += dt;
+    const PN = OSW.EX.PENS, night = st.night > 0.6, list = Object.values(animals);
+    list.forEach((a) => {
+      const R2 = PN[a.kind], A = ANS[a.kind], hungry = a.fed === false;
+      if (a.st === undefined) { a.st = "idle"; a.timer = Math.random() * 3; a.v = 0; a.pitch = 0; a.hyaw = 0; a.pt = 0; a.yt = 0; a.ph0 = Math.random() * 6; }
+      a.timer -= dt;
+      if (night && a.st !== "sleep") { a.st = "sleep"; a.tx = null; }
+      if (!night && a.st === "sleep") { a.st = "idle"; a.timer = 1 + Math.random() * 3; }
+      let want = 0;
+      if (a.st === "walk") {
+        if (a.tx == null) { a.tx = clamp(a.x + (Math.random() - 0.5) * 9, R2.x0 + 1.2, R2.x1 - 1.2); a.tz = clamp(a.z + (Math.random() - 0.5) * 7, R2.z0 + 1.5, R2.z1 - 1.5); }
+        const dx = a.tx - a.x, dz = a.tz - a.z, d = hy(dx, dz);
+        if (d < 0.4) { a.st = "idle"; a.tx = null; a.timer = 1 + Math.random() * 4; }
+        else {
+          const da = angDiff(a.ry, Math.atan2(dx, dz)); a.ry += da * Math.min(1, dt * (a.kind === "chicken" ? 7 : 3.2));
+          want = A.sp * (hungry ? 0.55 : 1) * Math.max(0, 1 - Math.abs(da) / 1.1) * (a.kind === "chicken" ? 0.65 + 0.35 * Math.abs(Math.sin(animT * 3 + a.ph0)) : 1);
+          a.pt = hungry ? 0.35 : 0.05; a.yt = 0;
+        }
+      } else if (a.st === "graze") {
+        a.yt = 0; a.pt = a.kind === "chicken" ? 0.45 + 0.7 * Math.max(0, Math.sin(animT * 8 + a.ph0)) : A.graze + Math.sin(animT * 4 + a.ph0) * 0.06;
+        if (a.timer <= 0) { a.st = "idle"; a.timer = 1 + Math.random() * 3; }
+      } else if (a.st === "look") {
+        a.pt = 0.02; a.yt = Math.sin(animT * 0.9 + a.ph0) * 0.7; if (a.timer <= 0) { a.st = "idle"; a.timer = 1 + Math.random() * 3; }
+      } else if (a.st === "sleep") { a.pt = A.sleep; a.yt = 0.25; }
+      else {
+        a.pt = hungry ? 0.4 : 0.03 + Math.sin(animT * 0.6 + a.ph0) * 0.03; a.yt = Math.sin(animT * 0.4 + a.ph0) * 0.15;
+        if (a.timer <= 0) { const r = Math.random(); if (r < 0.45) { a.st = "walk"; a.tx = null; } else if (r < 0.85) { a.st = "graze"; a.timer = 3 + Math.random() * 5; } else { a.st = "look"; a.timer = 2 + Math.random() * 2; } }
+      }
+      a.v += (want - a.v) * Math.min(1, dt * 4);
+      if (a.v > 0.02) { a.x += Math.sin(a.ry) * a.v * dt; a.z += Math.cos(a.ry) * a.v * dt; a.phase += dt * (2.2 + a.v * 5); }
+      a.mv = a.v > 0.1 ? 1 : 0;
+      a.pitch += (a.pt - a.pitch) * Math.min(1, dt * 5); a.hyaw += (a.yt - a.hyaw) * Math.min(1, dt * 3);
     });
+    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+      const p = list[i], q = list[j]; if (p.kind !== q.kind) continue;
+      const dx = q.x - p.x, dz = q.z - p.z, d = hy(dx, dz) || 0.001, md = (ANS[p.kind].r * p.size + ANS[q.kind].r * q.size) * 0.85;
+      if (d < md) { const k = (md - d) / 2 / d; p.x -= dx * k; p.z -= dz * k; q.x += dx * k; q.z += dz * k; }
+    }
+    list.forEach((a) => { const R2 = PN[a.kind]; a.x = clamp(a.x, R2.x0 + 0.9, R2.x1 - 0.9); a.z = clamp(a.z, R2.z0 + 1.0, R2.z1 - 1.0); });
+  }
+  function part(mesh, p, rx, ry, rz, s) { M.trs(p[0], p[1], p[2], ry || 0, rx || 0, rz || 0, s || 1, s || 1, s || 1, am2); M.mul(am1, am2, am3); R.draw(mesh, am3); }
+  function drawAnimal(a, t) {
+    const A = ANS[a.kind], P = AP[a.kind]; if (!P || a.st === undefined) return;
+    const sc = A.sc * a.size, baby = 1 + (1 - a.size) * 0.7, breathe = Math.sin(t * (a.st === "sleep" ? 1.3 : 1.9) + a.ph0) * 0.01, bob = a.v > 0.05 ? Math.abs(Math.sin(a.phase * 0.5)) * 0.04 * sc : 0;
+    M.trs(a.x, bob, a.z, a.ry, 0, 0, sc, sc * (1 + breathe), sc, am1); R.draw(P.body, am1);
+    part(P.head, P.neck, a.pitch, a.hyaw, 0, baby);
+    const sw = Math.min(1, a.v / A.sp) * (a.kind === "chicken" ? 0.9 : 0.65);
+    P.legs.forEach((p, i) => part(P.leg, p, Math.sin(a.phase + P.gait[i]) * sw));
+    if (P.tail) part(P.tail, P.tailP, Math.sin(t * 2 + a.ph0) * 0.1 + (a.v > 0.1 ? Math.sin(a.phase * 2) * 0.12 : 0), 0, Math.sin(t * 1.3 + a.ph0) * 0.1);
+  }
+
+  /* الحيوانات الأليفة اللي بتشتروها: بتمشي وراكم بالقرية */
+  const PETK = { dog: { sp: 4.2, r: 0.5 }, cat: { sp: 3.2, r: 0.4 }, rabbit: { sp: 3.4, r: 0.35 }, duck: { sp: 2.4, r: 0.35 } };
+  const PCOL = { dog: ["#c58a4a", "#f0e0bd", "#5a4331", "#d6d6d6"], cat: ["#e0a050", "#8d949c", "#2f2f35", "#f4f1ea"], rabbit: ["#f4f1ea", "#c9b79c", "#9aa0a8"], duck: ["#ffe066", "#ffffff", "#c9a05a"] };
+  function petParts(kind, vi) {
+    const key = kind + vi; if (petMesh[key]) return petMesh[key];
+    const c = PCOL[kind][vi % PCOL[kind].length], mk = (fn) => { const b = new Builder(); fn(b); return b.build(R.gl); }, E = "#1b1b1f", P = {};
+    if (kind === "dog") {
+      P.body = mk((b) => { b.box(0, 0.3, 0, 0.36, 0.34, 0.8, c); b.box(0, 0.28, 0.1, 0.38, 0.12, 0.4, "#fff3df"); });
+      P.neck = [0, 0.7, 0.42]; P.head = mk((b) => { b.box(0, -0.12, 0.1, 0.28, 0.3, 0.3, c); b.box(0, -0.12, 0.34, 0.17, 0.14, 0.2, "#f0e0bd"); b.sphere(0, -0.02, 0.45, 0.04, 0.035, 0.03, E, 4); [-1, 1].forEach((s) => { b.box(s * 0.17, -0.02, 0.08, 0.06, 0.24, 0.13, "#3b2a1a"); b.sphere(s * 0.08, 0.1, 0.27, 0.03, 0.03, 0.02, E, 4); }); });
+      P.leg = mk((b) => { b.box(0, -0.3, 0, 0.1, 0.3, 0.1, c); b.box(0, -0.3, 0.02, 0.11, 0.05, 0.14, "#fff3df"); }); P.legs = [[-0.12, 0.3, 0.28], [0.12, 0.3, 0.28], [-0.12, 0.3, -0.28], [0.12, 0.3, -0.28]]; P.gait = [0, PI, PI, 0];
+      P.tail = mk((b) => b.box(0, 0.0, -0.12, 0.07, 0.07, 0.3, c)); P.tailP = [0, 0.55, -0.4];
+    } else if (kind === "cat") {
+      P.body = mk((b) => b.box(0, 0.27, 0, 0.3, 0.28, 0.62, c));
+      P.neck = [0, 0.5, 0.3]; P.head = mk((b) => { b.sphere(0, 0.05, 0.1, 0.18, 0.17, 0.16, c, 7); [-1, 1].forEach((s) => { b.box(s * 0.1, 0.17, 0.06, 0.07, 0.13, 0.05, c); b.sphere(s * 0.07, 0.08, 0.24, 0.03, 0.035, 0.02, "#7be07b", 4); }); b.sphere(0, 0.02, 0.26, 0.03, 0.02, 0.02, "#f2a0b0", 4); });
+      P.leg = mk((b) => b.box(0, -0.27, 0, 0.09, 0.27, 0.09, c)); P.legs = [[-0.1, 0.27, 0.22], [0.1, 0.27, 0.22], [-0.1, 0.27, -0.22], [0.1, 0.27, -0.22]]; P.gait = [0, PI, PI, 0];
+      P.tail = mk((b) => b.box(0, 0.22, -0.02, 0.07, 0.5, 0.07, c)); P.tailP = [0, 0.4, -0.32];
+    } else if (kind === "rabbit") {
+      P.body = mk((b) => { b.sphere(0, 0.28, 0.02, 0.2, 0.2, 0.26, c, 7); b.sphere(0, 0.26, -0.14, 0.22, 0.22, 0.2, c, 7); b.sphere(0, 0.3, -0.34, 0.08, 0.08, 0.08, "#fff", 5); [-1, 1].forEach((s) => b.box(s * 0.1, 0, 0.22, 0.07, 0.07, 0.14, c)); });
+      P.neck = [0, 0.46, 0.2]; P.head = mk((b) => { b.sphere(0, 0.04, 0.1, 0.14, 0.14, 0.15, c, 7); [-1, 1].forEach((s) => { b.box(s * 0.06, 0.12, 0.03, 0.05, 0.32, 0.04, c); b.box(s * 0.06, 0.15, 0.06, 0.025, 0.24, 0.01, "#f2b8c6"); b.sphere(s * 0.09, 0.08, 0.2, 0.025, 0.03, 0.02, E, 4); }); b.sphere(0, 0.03, 0.25, 0.03, 0.025, 0.02, "#f2a0b0", 4); });
+      P.legs = []; P.gait = [];
+    } else {
+      P.body = mk((b) => { b.sphere(0, 0.28, 0, 0.22, 0.2, 0.3, c, 7); b.box(0, 0.36, -0.3, 0.12, 0.1, 0.12, c); [-1, 1].forEach((s) => b.sphere(s * 0.2, 0.3, 0, 0.03, 0.12, 0.2, "#e8c040", 4)); });
+      P.neck = [0, 0.44, 0.2]; P.head = mk((b) => { b.sphere(0, 0.12, 0.06, 0.12, 0.12, 0.12, c, 6); b.box(0, 0.06, 0.16, 0.1, 0.04, 0.13, "#ff9f1c"); [-1, 1].forEach((s) => b.sphere(s * 0.07, 0.16, 0.12, 0.02, 0.02, 0.02, E, 4)); });
+      P.leg = mk((b) => { b.box(0, -0.1, 0, 0.03, 0.1, 0.03, "#ff9f1c"); b.box(0, -0.1, 0.04, 0.1, 0.02, 0.1, "#ff9f1c"); }); P.legs = [[-0.08, 0.1, 0], [0.08, 0.1, 0]]; P.gait = [0, PI];
+    }
+    return (petMesh[key] = P);
+  }
+  function stepPets(dt) {
+    Object.values(pets3).forEach((o) => {
+      const K = PETK[o.kind]; let ox = 0, oz = 0, active = false, want = 0;
+      if (o.owner === "me") { if (mode === "out") { ox = me.x; oz = me.z; active = true; } }
+      else if (pa.vis && !pa.inside && !pa.sleep && (pa.space || null) === null) { ox = pa.x; oz = pa.z; active = true; }
+      o.wait -= dt;
+      if (active) {
+        const d = hy(ox - o.x, oz - o.z);
+        if (d > 36) { o.x = ox - 2.5; o.z = oz - 2.5; o.tx = null; o.chase = false; }
+        else if (d > 3.6) { o.chase = true; o.tx = ox; o.tz = oz; o.run = d > 8; }
+        else if (o.chase && d > 1.9) { o.tx = ox; o.tz = oz; }
+        else { if (o.chase) { o.chase = false; o.tx = null; o.wait = 1; } if (o.tx == null && o.wait <= 0) { const a = Math.random() * 6.28, r = 1.4 + Math.random() * 2.2; o.tx = ox + Math.cos(a) * r; o.tz = oz + Math.sin(a) * r; o.run = false; o.wait = 2 + Math.random() * 4; } }
+      }
+      if (o.tx != null) {
+        const dx = o.tx - o.x, dz = o.tz - o.z, d = hy(dx, dz);
+        if (d < 0.35) o.tx = null;
+        else { const da = angDiff(o.ry, Math.atan2(dx, dz)); o.ry += da * Math.min(1, dt * 9); want = K.sp * (o.run ? 1.6 : 0.7) * Math.max(0.2, 1 - Math.abs(da) / 1.3); }
+      }
+      o.v += (want - o.v) * Math.min(1, dt * 6);
+      if (o.v > 0.03) { o.x += Math.sin(o.ry) * o.v * dt; o.z += Math.cos(o.ry) * o.v * dt; o.phase += dt * (3 + o.v * 3.2); collide(o, K.r * 0.6); }
+      o.mv = o.v > 0.15 ? 1 : 0;
+      const sniff = o.mv ? 0.05 : 0.05 + Math.max(0, Math.sin(animT * 0.7 + o.ph0)) * 0.5 * (o.kind === "dog" || o.kind === "cat" ? 1 : 0.6);
+      o.pitch += (sniff - o.pitch) * Math.min(1, dt * 4);
+    });
+  }
+  function drawPet(o, t) {
+    const P = petParts(o.kind, o.vi), sc = o.sc;
+    const hop = o.kind === "rabbit" ? (o.mv ? Math.abs(Math.sin(o.phase * 0.5)) * 0.3 : 0) : o.mv ? Math.abs(Math.sin(o.phase)) * 0.04 : 0, rock = o.kind === "duck" && o.mv ? Math.sin(o.phase) * 0.2 : 0;
+    M.trs(o.x, hop, o.z, o.ry, 0, rock, sc, sc, sc, am1); R.draw(P.body, am1);
+    part(P.head, P.neck, o.pitch, 0, 0, 1);
+    const sw = Math.min(1, o.v / PETK[o.kind].sp) * 0.7; P.legs.forEach((p, i) => part(P.leg, p, Math.sin(o.phase + P.gait[i]) * sw));
+    if (P.tail) { if (o.kind === "dog") part(P.tail, P.tailP, -0.7, Math.sin(t * (o.mv || o.chase ? 16 : 5) + o.ph0) * 0.6, 0, 1); else part(P.tail, P.tailP, -0.5 + Math.sin(t * 1.5 + o.ph0) * 0.15, 0, 0, 1); }
   }
   const pet = { x: 4, z: 6, ry: 0, phase: 0, mv: 0, tx: 4, tz: 6, wait: 1 };
   function stepPet(dt) {
@@ -144,6 +249,10 @@
     meshes.link = mk((b) => b.box(0, 0, 0, 0.08, 0.08, 1, "#ff7aa8", 0.9));
     meshes.bag = mk((b) => { b.box(0, 0, 0, 0.34, 0.42, 0.18, "#f7d6ec"); b.box(0, 0.42, 0, 0.22, 0.05, 0.03, "#8e4a94"); b.box(-0.1, 0.4, 0, 0.03, 0.18, 0.03, "#8e4a94"); b.box(0.1, 0.4, 0, 0.03, 0.18, 0.03, "#8e4a94"); b.box(0, 0.12, 0.1, 0.18, 0.18, 0.02, "#ff7aa8"); });
     meshes.cat = mk((b) => { b.box(0, 0.28, 0, 0.34, 0.3, 0.7, "#e0a050"); b.sphere(0, 0.62, 0.42, 0.2, 0.19, 0.18, "#e0a050", 7); b.box(-0.12, 0.76, 0.42, 0.07, 0.14, 0.05, "#e0a050"); b.box(0.12, 0.76, 0.42, 0.07, 0.14, 0.05, "#e0a050"); b.sphere(-0.07, 0.65, 0.58, 0.03, 0.03, 0.02, "#222", 4); b.sphere(0.07, 0.65, 0.58, 0.03, 0.03, 0.02, "#222", 4); [[-0.12, 0.3], [0.12, 0.3], [-0.12, -0.3], [0.12, -0.3]].forEach(([x, z]) => b.box(x, 0, z, 0.1, 0.18, 0.1, "#c98a3d")); b.push(0, 0.4, -0.38, 0, -0.9); b.box(0, 0, 0, 0.08, 0.5, 0.08, "#e0a050"); b.pop(); });
+    meshes.gull = mk((b) => { b.sphere(0, 0, 0, 0.14, 0.12, 0.32, "#fafafa", 6); b.sphere(0, 0.02, 0.3, 0.09, 0.09, 0.1, "#fafafa", 5); b.box(0, 0, 0.4, 0.04, 0.03, 0.1, "#f4a300"); [-1, 1].forEach((sd) => { b.push(sd * 0.1, 0.03, 0, 0, 0, sd * 0.25); b.box(sd * 0.45, 0, 0, 0.9, 0.025, 0.28, "#f4f4f4"); b.box(sd * 0.85, 0.01, -0.05, 0.3, 0.02, 0.2, "#4a4a55"); b.pop(); }); });
+    meshes.boat = mk((b) => { b.box(0, -0.2, 0, 1.6, 0.6, 4.2, "#f4f1e8"); b.box(0, 0.35, 0, 1.4, 0.12, 3.6, "#c0392b"); b.box(0, 0.4, 0.6, 1.0, 0.5, 1.2, "#ffd98a"); b.cyl(0, 0.4, -0.4, 0.06, 0.06, 4.2, "#7a5236", 5); b.prism(0, 1.0, -0.4, 0.06, 2.8, 2.2, "#ffffff"); b.prism(0, 1.0, -1.7, 0.06, 2.0, 1.2, "#e63946"); });
+    meshes.crab = mk((b) => { b.sphere(0, 0.12, 0, 0.2, 0.1, 0.14, "#e5533d", 6); [-1, 1].forEach((sd) => { b.sphere(sd * 0.3, 0.14, 0.12, 0.09, 0.07, 0.07, "#e5533d", 4); for (let i = 0; i < 3; i++) b.box(sd * 0.28, 0.05, -0.06 + i * 0.07, 0.2, 0.025, 0.025, "#c0392b"); }); b.sphere(-0.07, 0.24, 0.1, 0.03, 0.03, 0.03, "#111", 3); b.sphere(0.07, 0.24, 0.1, 0.03, 0.03, 0.03, "#111", 3); });
+    meshes.ball = mk((b) => { b.sphere(0, 0, 0, 0.3, 0.3, 0.3, "#ffffff", 8); b.box(0, 0, 0, 0.62, 0.08, 0.62, "#ffd23f"); b.box(0, 0, 0, 0.08, 0.62, 0.62, "#4dabf7"); });
     meshes.cow = mk((b) => {
       const W = "#f4f1ea", K = "#2b2b2b";
       b.box(0, 0.7, 0, 0.95, 0.8, 1.7, W); b.box(0.48, 1.0, 0.25, 0.04, 0.38, 0.45, K); b.box(-0.48, 1.1, -0.35, 0.04, 0.4, 0.5, K); b.box(0.2, 1.5, -0.3, 0.45, 0.04, 0.5, K); b.box(-0.25, 1.5, 0.35, 0.35, 0.04, 0.35, K);
@@ -163,6 +272,31 @@
       b.sphere(0, 0.36, 0, 0.22, 0.2, 0.28, "#fff6e5", 6); b.push(0, 0.5, -0.26, 0, 0.6); b.box(0, 0, 0, 0.1, 0.3, 0.1, "#e9d8b8"); b.pop(); b.sphere(0, 0.64, 0.2, 0.1, 0.1, 0.1, "#fff6e5", 5);
       b.box(0, 0.72, 0.2, 0.04, 0.09, 0.12, "#d62828"); b.box(0, 0.6, 0.31, 0.05, 0.04, 0.09, "#f4a300"); b.box(0, 0.54, 0.29, 0.03, 0.06, 0.03, "#d62828"); [-1, 1].forEach((s2) => { b.box(s2 * 0.07, 0, 0, 0.03, 0.2, 0.03, "#f4a300"); b.sphere(s2 * 0.2, 0.38, 0, 0.04, 0.15, 0.2, "#efe3c8", 4); b.sphere(s2 * 0.06, 0.67, 0.28, 0.02, 0.02, 0.02, "#222", 3); });
     });
+    /* أجزاء الحيوانات (رأس، أرجل، ذيل) عشان تتحرك بشكل حقيقي */
+    {
+      const W = "#f4f1ea", K = "#2b2b2b", PK = "#f2b8b0", E = "#1b1b1f";
+      AP.cow = { neck: [0, 1.3, 0.75], legs: [[-0.3, 0.72, 0.55], [0.3, 0.72, 0.55], [-0.3, 0.72, -0.55], [0.3, 0.72, -0.55]], gait: [0, PI, PI, 0], tailP: [0, 1.45, -0.82] };
+      AP.cow.body = mk((b) => {
+        b.box(0, 0.7, 0, 0.95, 0.8, 1.6, W); b.sphere(0, 1.15, 0.4, 0.5, 0.42, 0.55, W, 7); b.sphere(0, 1.15, -0.5, 0.5, 0.4, 0.5, W, 7);
+        b.box(0.49, 0.95, 0.2, 0.05, 0.4, 0.5, K); b.box(-0.49, 1.05, -0.4, 0.05, 0.42, 0.5, K); b.box(0.2, 1.5, -0.3, 0.45, 0.05, 0.5, K); b.box(-0.25, 1.52, 0.4, 0.35, 0.05, 0.35, K); b.box(0.49, 1.1, -0.6, 0.05, 0.3, 0.3, K);
+        b.sphere(0, 0.62, -0.35, 0.2, 0.14, 0.2, PK, 5); [-1, 1].forEach((sx) => b.box(sx * 0.07, 0.5, -0.35, 0.04, 0.1, 0.04, PK));
+      });
+      AP.cow.head = mk((b) => {
+        b.box(0, -0.28, 0, 0.42, 0.6, 0.5, W); b.box(0, -0.05, 0.4, 0.5, 0.5, 0.5, W); b.box(0, 0.44, 0.42, 0.3, 0.03, 0.3, K); b.box(0, -0.12, 0.72, 0.44, 0.3, 0.16, PK);
+        [-1, 1].forEach((s) => { b.sphere(s * 0.1, 0.0, 0.81, 0.03, 0.03, 0.02, E, 4); b.sphere(s * 0.22, 0.12, 0.5, 0.045, 0.045, 0.03, E, 4); b.box(s * 0.36, 0.14, 0.32, 0.2, 0.09, 0.15, K); b.box(s * 0.2, 0.42, 0.38, 0.07, 0.18, 0.07, "#e8d9a8"); });
+      });
+      AP.cow.leg = mk((b) => { b.box(0, -0.34, 0, 0.22, 0.34, 0.24, W); b.box(0, -0.62, 0, 0.16, 0.3, 0.16, "#e8e2d6"); b.box(0, -0.72, 0, 0.2, 0.12, 0.2, "#333"); });
+      AP.cow.tail = mk((b) => { b.box(0, -0.75, 0, 0.07, 0.78, 0.07, K); b.sphere(0, -0.8, 0, 0.1, 0.14, 0.1, K, 4); });
+      const SW = "#f7f2e6";
+      AP.sheep = { neck: [0, 1.05, 0.65], legs: [[-0.25, 0.55, 0.4], [0.25, 0.55, 0.4], [-0.25, 0.55, -0.4], [0.25, 0.55, -0.4]], gait: [0, PI, PI, 0] };
+      AP.sheep.body = mk((b) => { b.sphere(0, 0.85, 0, 0.55, 0.5, 0.72, SW, 8); [[-0.3, 1.1, 0.2], [0.3, 1.1, -0.2], [0, 1.15, 0.4], [-0.3, 1.0, -0.4], [0.35, 1.0, 0.35]].forEach(([x, y, z]) => b.sphere(x, y, z, 0.3, 0.26, 0.3, SW, 6)); b.sphere(0, 0.9, -0.74, 0.14, 0.14, 0.14, SW, 5); });
+      AP.sheep.head = mk((b) => { b.sphere(0, -0.05, 0.05, 0.22, 0.2, 0.22, SW, 5); b.sphere(0, 0.0, 0.3, 0.2, 0.22, 0.26, "#3a3a3a", 6); b.sphere(0, 0.2, 0.2, 0.22, 0.12, 0.2, SW, 5); b.sphere(0, -0.05, 0.55, 0.05, 0.04, 0.04, "#555", 4); [-1, 1].forEach((s) => { b.box(s * 0.26, 0.05, 0.2, 0.2, 0.07, 0.1, "#3a3a3a"); b.sphere(s * 0.09, 0.07, 0.5, 0.03, 0.03, 0.02, "#fff", 4); }); });
+      AP.sheep.leg = mk((b) => { b.box(0, -0.55, 0, 0.12, 0.55, 0.12, "#3a3a3a"); b.box(0, -0.55, 0, 0.14, 0.06, 0.14, "#222"); });
+      AP.chicken = { neck: [0, 0.5, 0.22], legs: [[-0.07, 0.22, 0], [0.07, 0.22, 0]], gait: [0, PI] };
+      AP.chicken.body = mk((b) => { b.sphere(0, 0.36, 0, 0.22, 0.2, 0.28, "#fff6e5", 6); b.push(0, 0.5, -0.26, 0, 0.6); b.box(0, 0, 0, 0.1, 0.3, 0.1, "#e9d8b8"); b.pop(); [-1, 1].forEach((s) => b.sphere(s * 0.2, 0.38, 0, 0.04, 0.15, 0.2, "#efe3c8", 4)); });
+      AP.chicken.head = mk((b) => { b.box(0, -0.1, 0, 0.08, 0.2, 0.08, "#fff6e5"); b.sphere(0, 0.1, 0.05, 0.1, 0.1, 0.1, "#fff6e5", 5); b.box(0, 0.19, 0.05, 0.04, 0.09, 0.12, "#d62828"); b.box(0, 0.06, 0.16, 0.05, 0.04, 0.09, "#f4a300"); b.box(0, 0.0, 0.13, 0.03, 0.06, 0.03, "#d62828"); [-1, 1].forEach((s) => b.sphere(s * 0.06, 0.12, 0.12, 0.02, 0.02, 0.02, E, 3)); });
+      AP.chicken.leg = mk((b) => { b.box(0, -0.22, 0, 0.03, 0.22, 0.03, "#f4a300"); b.box(0, -0.22, 0.04, 0.09, 0.02, 0.1, "#f4a300"); });
+    }
     meshes.fly = mk((b) => { b.sphere(0, 0, 0, 0.06, 0.06, 0.06, "#fff7a0", 4, 1); });
     meshes.bf = mk((b) => { b.box(-0.18, 0, 0, 0.34, 0.03, 0.3, "#ff9ad5"); b.box(0.18, 0, 0, 0.34, 0.03, 0.3, "#ffd36e"); });
     meshes.blades = mk((b) => { for (let i = 0; i < 4; i++) { b.push(0, 0, 0, 0, 0, (i * PI) / 2); b.box(0, 0.3, 0, 0.5, 3.6, 0.12, "#f4ead2"); b.box(0.45, 1.2, 0, 0.5, 2.0, 0.1, "#c24a3a"); b.pop(); } b.sphere(0, 0, 0, 0.5, 0.5, 0.5, "#6b4a30", 6); });
@@ -196,6 +330,9 @@
       }
       const b = curInt.bounds; o.x = clamp(o.x, b.x0 + r, b.x1 - r); o.z = clamp(o.z, b.z0 + r, b.z1 - r); return;
     }
+    const pushRect = (b) => { const l = b.x0 - r, rr = b.x1 + r, tp = b.z0 - r, bo = b.z1 + r; if (o.x > l && o.x < rr && o.z > tp && o.z < bo) { const dl = o.x - l, dr = rr - o.x, dt2 = o.z - tp, db = bo - o.z, m = Math.min(dl, dr, dt2, db); if (m === dl) o.x = l; else if (m === dr) o.x = rr; else if (m === dt2) o.z = tp; else o.z = bo; } };
+    for (let i = 0; i < S.rects.length; i++) pushRect(S.rects[i]);
+    if (S.dynRects.home) pushRect(S.dynRects.home);
     for (const c of S.colliders) { const dx = o.x - c.x, dz = o.z - c.z, rr = c.r + r; if (dx * dx + dz * dz < rr * rr) { const d = hy(dx, dz) || 0.001; o.x = c.x + (dx / d) * rr; o.z = c.z + (dz / d) * rr; } }
     OSW.veh.constrain(o);
   }
@@ -218,15 +355,20 @@
       const ox = pa.x - me.x, oz = pa.z - me.z, d = hy(ox, oz);
       if (d > 2.0) { dx = ox / d; dz = oz / d; speed = d > 6 ? 6.4 : 4.6; }
     } else if (me.target) {
-      const ox = me.target.x - me.x, oz = me.target.z - me.z, d = hy(ox, oz);
-      if (d < 0.55) arrive();
+      if (me._rt !== me.target) { me._rt = me.target; me.route = mode === "out" ? buildRoute(me, me.target) : []; me.ri = 0; }
+      while (me.ri < me.route.length && hy(me.route[me.ri][0] - me.x, me.route[me.ri][1] - me.z) < 1.3) me.ri++;
+      const fin = me.ri >= me.route.length, wp = fin ? me.target : { x: me.route[me.ri][0], z: me.route[me.ri][1] };
+      const ox = wp.x - me.x, oz = wp.z - me.z, d = hy(ox, oz);
+      if (fin && d < 0.55) arrive();
+      else if (!fin && d < 0.55) me.ri++;
       else {
         dx = ox / d; dz = oz / d;
         if (me.side) { const sx = -dz, sz = dx; dx = dx * 0.35 + sx * me.side * 0.9; dz = dz * 0.35 + sz * me.side * 0.9; const l = hy(dx, dz); dx /= l; dz /= l; me.side *= 0.995; }
         me.prog += dt; me.stuck += dt;
         if (hy(me.x - me.px, me.z - me.pz) > 0.35) { me.px = me.x; me.pz = me.z; me.stuck = 0; me.side = 0; }
         else if (me.stuck > 0.9 && !me.side) me.side = Math.random() < 0.5 ? 1 : -1;
-        if (me.prog > 14 || me.stuck > 3.5) { me.x = me.target.x; me.z = me.target.z; arrive(); }
+        if (me.stuck > 3.5 && !fin) { me.ri++; me.stuck = 0; me.side = 0; }
+        else if (me.prog > 14 + me.route.length * 6 || me.stuck > 3.5) { me.x = me.target.x; me.z = me.target.z; arrive(); }
       }
     }
     const moving = dx || dz, mul = (me.speedMul || 1) * (me.sprint || keys.sprint ? 1.55 : 1), kk = Math.min(1, dt * (moving ? 9 : 13));
@@ -240,6 +382,18 @@
     } else me.mv += (0 - me.mv) * Math.min(1, dt * 10);
     holding = !!(me.follow && pa.vis && !pa.inside && !pa.sleep && (pa.space || null) === curSpace() && hy(me.x - pa.x, me.z - pa.z) < 3.2);
     sendMe(moving, sp);
+  }
+  /* مسار مشي تلقائي: لا يخترق سور المزرعة، بيمرّ من البوابة وباب الحظيرة */
+  const inFarm = (x, z) => { const F = OSW.EX.FARM; return x > F.x0 && x < F.x1 && z > F.z0 && z < F.z1; };
+  const inPens = (x, z) => x > -56 && x < -34 && z > -29 && z < -17;
+  function buildRoute(f, t) {
+    const F = OSW.EX.FARM, gx = F.gateX, gz = F.z1, route = [], fi = inFarm(f.x, f.z), ti = inFarm(t.x, t.z), pf = inPens(f.x, f.z), pt = inPens(t.x, t.z);
+    const gO = [gx, gz + 3.2], gI = [gx, gz - 3.2], pO = [-31.5, -21], pI = [-36.5, -21];
+    if (pf && !pt) route.push(pI, pO);
+    if (fi && !ti) route.push(gI, gO);
+    if (!fi && ti) route.push(gO, gI);
+    if (!pf && pt) route.push(pO, pI);
+    return route;
   }
   function arrive() {
     const act = me.act, res = me.res; me.target = null; me.act = null; me.res = null; me.side = 0; me.stuck = 0; me.prog = 0;
@@ -263,7 +417,11 @@
   }
   function initNpcs() { OSW.NPCS.forEach(createNpc); }
   const SPOTS = () => [[0, 58], [-12, 46], [12, 46], [-44, 12], [30, 36], [-30, 36], [0, 7.5], [6, 6], [-6, 6.5], [8, -3], [-8, -4], [0, -6], [-24, 15.8], [24, 15.8], [15, 3.4], [-15, 5.2], [0, 22], [-28, 8], [28, 8]];
+  const ISLE_SPOTS = [[0, 1170], [-14, 1160], [14, 1160], [-22, 1135], [22, 1135], [0, 1140], [-40, 1180], [40, 1180], [0, 1200], [-25, 1215], [25, 1215], [-18, 1118], [16, 1122], [-30, 1160], [30, 1170], [0, 1225]];
+  const kidState = {};
   function pickDest(o) {
+    if (o.def.roam) { const r = o.def.roam, a = Math.random() * 6.283, rr = Math.sqrt(Math.random()) * r[2]; return [r[0] + Math.cos(a) * rr, r[1] + Math.sin(a) * rr]; }
+    if (o.def.isle) { const p = ISLE_SPOTS[(Math.random() * ISLE_SPOTS.length) | 0]; return [p[0] + (Math.random() - 0.5) * 3, p[1] + (Math.random() - 0.5) * 3]; }
     const home = S.poi[o.def.home], r = Math.random();
     if (crowd && r < 0.85) return [crowd.x + (Math.random() - 0.5) * 6, crowd.z + (Math.random() - 0.5) * 4];
     if (r < 0.28) return [home.x, home.z]; const s = SPOTS(); const p = s[(Math.random() * s.length) | 0]; return [p[0] + (Math.random() - 0.5) * 2, p[1] + (Math.random() - 0.5) * 2];
@@ -335,6 +493,14 @@
     });
     if (S.dyn.furn) R.free(S.dyn.furn); S.dyn.furn = B.build(R.gl);
   }
+  function drawIsle(t) {
+    const IX = 0, IZ = 1180;
+    if (hy(cam.tx - IX, cam.tz - IZ) > 420 && !me.veh) return;
+    for (let k = 0; k < 7; k++) { const a = t * (0.22 + (k % 3) * 0.03) + k * 0.9, r = 26 + (k % 4) * 9, y = 16 + (k % 3) * 3 + Math.sin(t * 0.7 + k) * 1.2, x = IX + Math.cos(a) * r, z = IZ + Math.sin(a) * r, fl = 0.7 + Math.sin(t * 9 + k * 2) * 0.35; M.trs(x, y, z, Math.atan2(-Math.sin(a), Math.cos(a)), 0, Math.sin(a * 2) * 0.25, 1.4, fl, 1.4, m1); R.draw(meshes.gull, m1); }
+    for (let k = 0; k < 3; k++) { const a = t * 0.025 + k * 2.1, r = 122 + k * 11, x = IX + Math.cos(a) * r, z = IZ + Math.sin(a) * r; M.trs(x, -0.1 + Math.sin(t * 1.3 + k) * 0.08, z, Math.atan2(-Math.sin(a), Math.cos(a)), 0, Math.sin(t * 1.1 + k) * 0.06, 1.3, 1.3, 1.3, m1); R.draw(meshes.boat, m1); }
+    for (let k = 0; k < 6; k++) { const a0 = 0.6 + k * 0.95, a = a0 + Math.sin(t * 0.3 + k * 1.7) * 0.18, r = 84 - (k % 3) * 2.2; M.trs(IX + Math.sin(a) * r, 0.05, IZ + Math.cos(a) * r, a + Math.PI / 2 + Math.cos(t * 0.3 + k * 1.7) * 0.4, 0, 0, 1.2, 1.2, 1.2, m1); R.draw(meshes.crab, m1); }
+    const ph = (t * 0.45) % 2, u = ph < 1 ? ph : 2 - ph; M.trs(-45, 0.9 + Math.sin(u * Math.PI) * 2.6, 1195 + 10 * u, t * 3, 0, 0, 1, 1, 1, m1); R.draw(meshes.ball, m1);
+  }
   function drawAnimalsCarried(o, kinds) {
     kinds.forEach((k, i) => { const sc = ANS[k].sc * 0.5; M.trs(o.x, 0, o.z, o.ry, 0, 0, 1, 1, 1, m1); M.trs(i ? 0.3 : -0.3, 1.0, 0.72, 0, 0, 0, sc, sc, sc, m2); M.mul(m1, m2, m2); R.draw(meshes[k], m2); });
   }
@@ -366,7 +532,7 @@
     // نافورة: قطرات
     for (let i = 0; i < 14; i++) { const ph = (t * 0.8 + i / 14) % 1, a = i * 2.4, rr = ph * 2.6, y = 4.0 + Math.sin(ph * PI) * 1.7 - ph * 2.6; M.trs(Math.cos(a) * rr, y, Math.sin(a) * rr, 0, 0, 0, 1, 1, 1, m1); R.draw(meshes.drop, m1); }
     // دخان المداخن
-    [[2.4, 8.2, -15.2], [-21.9, 0, 0]].slice(0, 1).concat([[S.pos.hajji.x - 2.4, 6, S.pos.hajji.z - 1.2]]).forEach((c, k) => { for (let i = 0; i < 3; i++) { const ph = (t * 0.25 + i / 3 + k * 0.3) % 1; M.trs(c[0] + ph * 1.4, c[1] + ph * 3, c[2], 0, 0, 0, 0.3 + ph * 0.7, 0.3 + ph * 0.7, 0.3 + ph * 0.7, m1); R.draw(meshes.puff, m1, [1, 1, 1], (1 - ph) * 0.45); } });
+    [[2.4, 8.2, -15.2]].forEach((c, k) => { for (let i = 0; i < 3; i++) { const ph = (t * 0.25 + i / 3 + k * 0.3) % 1; M.trs(c[0] + ph * 1.4, c[1] + ph * 3, c[2], 0, 0, 0, 0.3 + ph * 0.7, 0.3 + ph * 0.7, 0.3 + ph * 0.7, m1); R.draw(meshes.puff, m1, [1, 1, 1], (1 - ph) * 0.45); } });
     // طاحونة وقطار وغيوم وطيور
     M.trs(OSW.EX.WINDMILL.x, 8.4, OSW.EX.WINDMILL.z + 2.4, 0, 0, t * 0.7, 1, 1, 1, m1); R.draw(meshes.blades, m1);
     const ph = (Math.sin(t * 0.12) + 1) / 2; M.trs(36 + ph * 22, 0.2, 7.9, 0, 0, 0, 1, 1, 1, m1); R.draw(meshes.train, m1);
@@ -376,27 +542,27 @@
     if (st.night > 0.5) for (let i = 0; i < 22; i++) { const a = t * 0.3 + i * 1.7; M.trs(-40 + ((i * 37) % 80) + Math.cos(a) * 2, 0.9 + Math.sin(a * 1.4) * 0.5, -20 + ((i * 53) % 70) + Math.sin(a) * 2, 0, 0, 0, 1, 1, 1, m1); R.draw(meshes.fly, m1); }
     // عربة المزرعة (وبتتحرك لما الاثنين يسحبوها)
     drawCart(t);
-    OSW.veh.drawAll(t);
+    OSW.veh.drawAll(t); drawIsle(t);
     // شخصيات
     OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc, o.dance ? Math.abs(Math.sin(t * 5 + o.phase)) * 0.16 : 0); });
-    Object.values(animals).forEach((a) => { const A = ANS[a.kind], sc = A.sc * a.size; M.trs(a.x, a.mv > 0.1 ? Math.abs(Math.sin(a.phase)) * 0.06 * sc : 0, a.z, a.ry, 0, 0, sc, sc, sc, m1); R.draw(meshes[a.kind], m1); });
+    Object.values(animals).forEach((a) => drawAnimal(a, t)); Object.values(pets3).forEach((o) => drawPet(o, t));
     M.trs(pet.x, Math.abs(Math.sin(pet.phase)) * 0.08 * pet.mv, pet.z, pet.ry, 0, 0, 1.3, 1.3, 1.3, m1); R.draw(meshes.cat, m1);
     drawPeople(t);
     // ظلال مسقطة حقيقية للمباني والأشجار والشخصيات
-    if (OSW.shadowsOn !== false) {
+    if (OSW.shadowsOn === true) {
       let L = env.sunDir.slice(); if (L[1] > -0.38) L[1] = -0.38; const ll = Math.hypot(L[0], L[1], L[2]); L = [L[0] / ll, L[1] / ll, L[2] / ll];
       R.shadow(true, L, 0.34 - 0.14 * st.night);
       R.draw(D.main); R.draw(D.foliage, null, null, 1, 1.6);
       ["tree", "home", "flowers"].forEach((k) => D[k] && R.draw(D[k], null, null, 1, 0));
       OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc, 0); });
-      Object.values(animals).forEach((a) => { const A = ANS[a.kind], sc = A.sc * a.size; M.trs(a.x, 0, a.z, a.ry, 0, 0, sc, sc, sc, m1); R.draw(meshes[a.kind], m1); });
+      Object.values(animals).forEach((a) => drawAnimal(a, t)); Object.values(pets3).forEach((o) => drawPet(o, t));
       drawPeople(t); drawCart(t); OSW.veh.drawAll(t, true);
       R.shadow(false);
     }
     // شفّاف: ظلال + شعاع المنارة + علامة اللمس
     R.blend(true);
     R.draw(D.shadow, null, [0, 0, 0], 0.2);
-    Object.values(animals).forEach((a) => OSW.drawShadow(a.x, a.z, ANS[a.kind].r * a.size * 0.9));
+    Object.values(animals).forEach((a) => OSW.drawShadow(a.x, a.z, ANS[a.kind].r * a.size * 0.9)); Object.values(pets3).forEach((o) => OSW.drawShadow(o.x, o.z, 0.45 * o.sc));
     OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o) OSW.drawShadow(o.x, o.z, 0.6 * o.sc); }); OSW.drawShadow(pet.x, pet.z, 0.5);
     if (pa.vis && !pa.inside) OSW.drawShadow(pa.x, pa.z, 0.62); OSW.drawShadow(me.x, me.z, 0.62);
     if (W.lit && st.night > 0.35) { M.trs(75, 12.1, -2, t * 0.9, 0, 0, 1, 1, 1, m1); R.draw(meshes.beam, m1, [1, 1, 1], 0.2 * st.night); }
@@ -409,7 +575,7 @@
     requestAnimationFrame(frame);
     if (st.paused || document.hidden || !S.ready) { st.last = now; return; }
     const dt = Math.min(0.05, (now - (st.last || now)) / 1000); st.last = now; st.t += dt;
-    stepMe(dt); if (mode === "out") { stepPet(dt); stepAnimals(dt); OSW.NPCS.forEach((d) => npc[d.id] && stepNpc(npc[d.id], dt)); } else inNpcs.forEach((o) => { const dm = hy(me.x - o.x, me.z - o.z); o.ry += angDiff(o.ry, dm < 8 ? Math.atan2(me.x - o.x, me.z - o.z) : 0) * Math.min(1, dt * 4); });
+    stepMe(dt); if (mode === "out") { stepPet(dt); stepAnimals(dt); stepPets(dt); OSW.NPCS.forEach((d) => npc[d.id] && stepNpc(npc[d.id], dt)); } else inNpcs.forEach((o) => { const dm = hy(me.x - o.x, me.z - o.z); o.ry += angDiff(o.ry, dm < 8 ? Math.atan2(me.x - o.x, me.z - o.z) : 0) * Math.min(1, dt * 4); });
     // الشريك: تنعيم الحركة
     if (pa.vis) { const k = 1 - Math.exp(-dt * 9), ox = pa.x, oz = pa.z; pa.x += (pa.tx - pa.x) * k; pa.z += (pa.tz - pa.z) * k; const sp = hy(pa.x - ox, pa.z - oz) / Math.max(dt, 0.001); pa.mv += ((sp > 0.6 ? 1 : 0) - pa.mv) * Math.min(1, dt * 8); if (sp > 0.6) { pa.ry += angDiff(pa.ry, Math.atan2(pa.tx - pa.x, pa.tz - pa.z)) * Math.min(1, dt * 10); pa.phase += sp * dt * 2.1; } }
     // مشي سوا: وقت قريب من بعض
@@ -428,6 +594,7 @@
       if (!me.veh) OSW.veh.owned().forEach((c) => { const s = OSW.veh.slot(c), t = R.hitSphere(ray, s.x, 0.9, s.z, 2.3); if (t > 0 && t < bt) { bt = t; best = "car:" + c.id; } });
       Object.values(animals).forEach((a) => { const t = R.hitSphere(ray, a.x, 0.7, a.z, 0.9 + a.size * 0.5); if (t > 0 && t < bt) { bt = t; best = "pens"; } });
       { const t = R.hitSphere(ray, pet.x, 0.5, pet.z, 1.0); if (t > 0 && t < bt) { bt = t; best = "pet"; } }
+      Object.values(pets3).forEach((o) => { const t = R.hitSphere(ray, o.x, 0.4, o.z, 0.8); if (t > 0 && t < bt) { bt = t; best = "mypet:" + o.id; } });
     } else inNpcs.forEach((o) => { const t = R.hitSphere(ray, o.x, 1.0, o.z, 1.4); if (t > 0 && t < bt) { bt = t; best = o.act || "npc:" + o.id; } });
     if (pa.vis && !pa.inside && (pa.space || null) === curSpace()) { const t = R.hitSphere(ray, pa.x, 1.0, pa.z, 1.4); if (t > 0 && t < bt) { bt = t; best = "partner"; } }
     if (best) return { act: best };
@@ -438,6 +605,7 @@
     if (!st.input || !W.onAct) return;
     if (act === "partner") { W.onAct("partner"); return; }
     if (act === "pet") { W.onAct("pet"); return; }
+    if (act.startsWith("mypet:")) { W.onAct(act); return; }
     if (act.startsWith("furn:")) { W.onAct(act); return; }
     let poi = mode === "in" ? curInt.poi[act] : S.poi[act];
     if (!poi && act.startsWith("npc:")) { const o = npc[act.slice(4)]; if (o) poi = { x: o.x, z: o.z + 2.2 }; }
@@ -546,7 +714,7 @@
     setFarm(plots) { S.rebuildFarm(plots); }, setFlowers(a, b, c) { S.rebuildFlowers(a, b, c); },
     setNpcMood(id, mood, mark) { const o = npc[id]; if (!o) return; o.mood = mood || ""; o.mark = mark || ""; o.moodEl.el.querySelector(".lt").textContent = (o.mark || "") + (o.mood || ""); },
     say(id, text, ms = 5000) {
-      const o = id === "me" ? me : id === "partner" ? pa : id === "pet" ? pet : npc[id]; if (!o) return;
+      const o = id === "me" ? me : id === "partner" ? pa : id === "pet" ? pet : id.startsWith("pet:") ? pets3[id.slice(4)] : npc[id]; if (!o) return;
       const old = labs.findIndex((l) => l.dynamic === "say_" + id); if (old > -1) { labs[old].el.remove(); labs.splice(old, 1); }
       const sc = (o.sc || 1), l = mkLabel({ id: "say_" + id, text, x: 0, y: 0, z: 0, cls: "say", max: 60, scope: "both", dynamic: "say_" + id, follow: () => [o.x, 3.6 * sc + 0.4, o.z] });
       setTimeout(() => { const i = labs.indexOf(l); if (i > -1) { l.el.remove(); labs.splice(i, 1); } }, ms);
@@ -561,10 +729,23 @@
     setPlayerLabelsHidden(v) { labs.forEach((l) => { if (l.dynamic === "me" || l.dynamic === "partner") l.hidden = v; }); },
     setAnimals(list) {
       const seen = new Set(); const PN = OSW.EX.PENS;
-      list.forEach((a) => { seen.add(a.id); let o = animals[a.id]; if (!o) { const R2 = PN[a.kind]; o = animals[a.id] = { kind: a.kind, x: R2.x0 + 1.5 + Math.random() * (R2.x1 - R2.x0 - 3), z: R2.z0 + 2 + Math.random() * (R2.z1 - R2.z0 - 4), ry: Math.random() * 6.28, phase: Math.random() * 6, mv: 0, wait: Math.random() * 3, tx: null, tz: null, size: a.size }; } o.size = a.size; });
+      list.forEach((a) => { seen.add(a.id); let o = animals[a.id]; if (!o) { const R2 = PN[a.kind]; o = animals[a.id] = { kind: a.kind, x: R2.x0 + 1.5 + Math.random() * (R2.x1 - R2.x0 - 3), z: R2.z0 + 2 + Math.random() * (R2.z1 - R2.z0 - 4), ry: Math.random() * 6.28, phase: Math.random() * 6, mv: 0, wait: Math.random() * 3, tx: null, tz: null, size: a.size }; } o.size = a.size; o.fed = a.fed !== false; });
       Object.keys(animals).forEach((k) => { if (!seen.has(k)) delete animals[k]; });
     },
     setAnimalCarry(w, kinds) { acarry[w] = kinds || []; },
+    setPets(list) {
+      const seen = new Set();
+      list.forEach((p) => {
+        seen.add(p.id); let o = pets3[p.id];
+        if (!o) {
+          const base = p.owner === "me" ? me : pa, out = p.owner === "me" ? mode === "out" : (pa.vis && !pa.inside), hp_ = S.poi.home || { x: 0, z: -7 };
+          let vi = 0; for (const ch of String(p.id)) vi += ch.charCodeAt(0);
+          o = pets3[p.id] = { id: p.id, kind: p.kind, owner: p.owner, vi: vi % 4, x: (out ? base.x : hp_.x) - 1.5, z: (out ? base.z : hp_.z) - 1.5, ry: Math.random() * 6.28, phase: Math.random() * 6, v: 0, mv: 0, pitch: 0, wait: 1, tx: null, tz: null, ph0: Math.random() * 6, sc: p.kind === "dog" ? 1.15 : 1.0 };
+        }
+        o.owner = p.owner;
+      });
+      Object.keys(pets3).forEach((k) => { if (!seen.has(k)) delete pets3[k]; });
+    },
     setCarry(w, colors) { carry[w] = colors || []; },
     setBags(n) { bagState.n = n || 0; },
     setSpeedMul(m) { me.speedMul = m; },
@@ -600,6 +781,20 @@
     resetTime() { st.timeOffset = 0; sessionStorage.removeItem("osw_toff"); return updateSky(); },
     setPartnerSpace(sp) { pa.space = sp || null; },
     addNpc(def) { if (!npc[def.id]) { OSW.NPCS.push(def); OSW.NPC_BY[def.id] = def; createNpc(def); } return npc[def.id]; },
+    setKids(list) {
+      const want = {}; list.forEach((k) => (want[k.id] = k));
+      Object.keys(kidState).forEach((id) => { const k = want[id], c = kidState[id]; if (!k || c.at !== k.at || c.stage !== k.stage || c.name !== k.name || c.g !== k.g) { W.removeNpc("kid_" + id); delete kidState[id]; } });
+      const cols = ["#ff7aa8", "#4dabf7", "#7ac74f", "#ffb347", "#b565b0", "#e5484d"], hairs = ["#2a1d12", "#6b4423", "#1b1b1b", "#a0522d"];
+      list.forEach((k) => {
+        if (kidState[k.id]) return;
+        let h = 0; for (const ch of String(k.id)) h += ch.charCodeAt(0);
+        const girl = k.g === "girl", baby = k.stage === "baby", sch = k.at === "school", roam = sch ? [0, 1216, 6.5] : [6, -4.5, baby ? 1.6 : 3.8];
+        const look = { gender: k.g, color: cols[h % cols.length], hair: hairs[h % hairs.length], hairStyle: girl ? "ponytail" : "short", scale: baby ? 0.42 : 0.66 };
+        if (!girl) look.pants = "#2f6fb5"; if (sch && !baby) look.outfit = "school";
+        W.addNpc({ id: "kid_" + k.id, name: (baby ? "👶 " : sch ? "🎒 " : "") + k.name, emoji: "🧒", look, pos: [roam[0] + (h % 5) * 0.4, roam[1]], face: 0, roam, speed: baby ? 1.0 : 1.7, act: "family", lines: ["🎈"] });
+        kidState[k.id] = { at: k.at, stage: k.stage, name: k.name, g: k.g };
+      });
+    },
     removeNpc(id) { const i = OSW.NPCS.findIndex((n) => n.id === id); if (i > -1) OSW.NPCS.splice(i, 1); delete npc[id]; for (let k = labs.length - 1; k >= 0; k--) if (labs[k].dynamic === id || labs[k].dynamic === "m" + id) { labs[k].el.remove(); labs.splice(k, 1); } },
     npcGoto(id, x, z, cb) { const o = npc[id]; if (!o) return false; o.tx = null; o.route = []; o.over = { x, z, cb, t0: performance.now() }; return true; },
     npcProps(id, props) { const o = npc[id]; if (o) Object.assign(o, props); },

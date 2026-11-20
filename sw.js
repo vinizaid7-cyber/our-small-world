@@ -1,5 +1,5 @@
 /* Service Worker: يخلّي التطبيق يفتح بسرعة وحتى بدون إنترنت (الواجهة بس) */
-const CACHE = "osw-v9";
+const CACHE = "osw-v12";
 const CORE = ["./", "index.html", "check.html", "style.css", "config.js", "util.js", "data.js", "content.js", "engine3d.js", "audio.js", "scene_houses.js", "scene_extra.js", "scene_world.js", "draw.js", "vehicles.js", "chars3d.js", "furniture.js", "interior.js", "world3d.js", "game.js", "chat.js", "events.js", "ui.js", "places.js", "app.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => {

@@ -24,12 +24,12 @@
 
   /* ---------- كتالوج السيارات ---------- */
   V.CARS = {
-    mini: { n: "ميني هاتشباك", e: "🚗", price: 150, vmax: 22, acc: 9, hand: 1.75, brake: 18, cargo: 2, shape: { len: 3.6, hood: 0.9, trunk: 0.7, roof: 1.5, y1: 0.92 }, note: "خفيفة وسهلة، مناسبة للبداية" },
-    sedan: { n: "سيدان عائلية", e: "🚙", price: 320, vmax: 30, acc: 10, hand: 1.5, brake: 20, cargo: 2, shape: { len: 4.4, hood: 1.2, trunk: 1.0, roof: 1.52, y1: 0.92 }, note: "مريحة وسرعتها حلوة" },
-    pickup: { n: "بكم (بيك أب)", e: "🛻", price: 480, vmax: 26, acc: 8, hand: 1.3, brake: 17, cargo: 6, shape: { len: 5.0, hood: 1.2, trunk: 1.9, roof: 1.55, y1: 0.95, bed: 1 }, note: "بتشيل 6 حيوانات للملحمة مرة وحدة!" },
-    jeep: { n: "جيب الصحراء", e: "🚐", price: 620, vmax: 27, acc: 9, hand: 1.45, brake: 19, cargo: 3, shape: { len: 4.0, hood: 1.0, trunk: 0.8, roof: 1.75, y1: 1.05, lift: 0.18, boxy: 1, open: 1 }, note: "عالي وقوي وبيتحمل" },
-    classic: { n: "كلاسيك قديمة", e: "🚘", price: 700, vmax: 24, acc: 8, hand: 1.7, brake: 17, cargo: 2, shape: { len: 4.3, hood: 1.3, trunk: 1.1, roof: 1.55, y1: 0.95, round: 1, open: 1 }, note: "شكلها ساحر وتمشي بهدوء" },
-    sport: { n: "سبورت", e: "🏎️", price: 950, vmax: 42, acc: 15, hand: 1.25, brake: 24, cargo: 2, shape: { len: 4.3, hood: 1.5, trunk: 0.9, roof: 1.22, y1: 0.78, low: 1, open: 1 }, note: "الأسرع على الطريق الطويل 🔥" },
+    mini: { n: "ميني هاتشباك", e: "🚗", price: 150, vmax: 22, acc: 9, hand: 1.75, brake: 18, cargo: 4, shape: { len: 3.6, hood: 0.9, trunk: 0.7, roof: 1.5, y1: 0.92 }, note: "خفيفة وسهلة · طبون بيشيل 4 حيوانات" },
+    sedan: { n: "سيدان عائلية", e: "🚙", price: 320, vmax: 30, acc: 10, hand: 1.5, brake: 20, cargo: 6, shape: { len: 4.4, hood: 1.2, trunk: 1.0, roof: 1.52, y1: 0.92 }, note: "مريحة وسرعتها حلوة · طبون بيشيل 6 حيوانات" },
+    pickup: { n: "بكم (بيك أب)", e: "🛻", price: 480, vmax: 26, acc: 8, hand: 1.3, brake: 17, cargo: 12, shape: { len: 5.0, hood: 1.2, trunk: 1.9, roof: 1.55, y1: 0.95, bed: 1 }, note: "الأكبر: صندوقه بيشيل 12 حيوان للملحمة!" },
+    jeep: { n: "جيب الصحراء", e: "🚐", price: 620, vmax: 27, acc: 9, hand: 1.45, brake: 19, cargo: 8, shape: { len: 4.0, hood: 1.0, trunk: 0.8, roof: 1.75, y1: 1.05, lift: 0.18, boxy: 1, open: 1 }, note: "عالي وقوي · بيشيل 8 حيوانات" },
+    classic: { n: "كلاسيك قديمة", e: "🚘", price: 700, vmax: 24, acc: 8, hand: 1.7, brake: 17, cargo: 6, shape: { len: 4.3, hood: 1.3, trunk: 1.1, roof: 1.55, y1: 0.95, round: 1, open: 1 }, note: "شكلها ساحر · طبون بيشيل 6 حيوانات" },
+    sport: { n: "سبورت", e: "🏎️", price: 950, vmax: 42, acc: 15, hand: 1.25, brake: 24, cargo: 2, shape: { len: 4.3, hood: 1.5, trunk: 0.9, roof: 1.22, y1: 0.78, low: 1, open: 1 }, note: "الأسرع على الطريق · طبون صغير (2 حيوان)" },
   };
   V.COLORS = ["#e63946", "#ffd23f", "#4dabf7", "#2a9d8f", "#f4f1e8", "#2b2b35", "#ff8c42", "#9b5de5", "#7ac74f", "#ff7aa8"];
 
@@ -88,7 +88,13 @@
   /* ---------- الدخول والنزول ---------- */
   V.tap = (id) => {
     const car = V.owned().find((c) => c.id === id), c = ctx(), me = c.me; if (!car || V.me) return;
-    const pa = c.pa;
+    const pa = c.pa, hand = OSW.game.animalCarry(OSW.ui.db.uid);
+    if (hand.length && !(pa.veh && pa.veh.id === id)) {
+      const s0 = V.slot(car); if (hy(me.x - s0.x, me.z - s0.z) > 6) return W().goTo(s0.x + Math.cos(s0.h) * 2.8, s0.z - Math.sin(s0.h) * 2.8, "car:" + id);
+      const room = V.CARS[car.car].cargo - (car.cargo || []).length;
+      if (room > 0) { OSW.game.do("aload", { id }); OSW.audio && OSW.audio.sfx("pop"); return OSW.ui.toast("🧳 حمّلتوا الحيوانات بـ" + (V.CARS[car.car].shape.bed ? "صندوق البكم" : "الطبون") + "! (" + Math.min(hand.length, room) + ")"); }
+      OSW.ui.toast("📦 السيارة ممتلية!");
+    }
     if (pa.veh && pa.veh.role === "d" && pa.veh.id === id) { if (hy(me.x - pa.x, me.z - pa.z) > 12) return OSW.ui.toast("🚗 قرّب من السيارة أول"); return V.board(car, "p"); }
     const s = V.slot(car); if (hy(me.x - s.x, me.z - s.z) > 5.5) return W().goTo(s.x + Math.cos(s.h) * 2.8, s.z - Math.sin(s.h) * 2.8, "car:" + id);
     V.board(car, "d");
@@ -154,7 +160,8 @@
   /* ---------- الرسم ---------- */
   V.drawAll = (t, withPeople) => {
     const c = ctx(), pa = c.pa, me = c.me, busy = busyIds();
-    V.owned().forEach((car) => { if (busy.has(car.id)) return; const s = V.slot(car); M.trs(s.x, 0, s.z, s.h, 0, 0, 1, 1, 1, V._m1); R.draw(carMesh(car.car, car.color), V._m1); });
+    const bed = (carObj, x, z, h) => { const ks = (carObj.cargo || []).slice(0, 12); if (!ks.length || carObj.car !== "pickup") return; const s = Math.sin(h), co = Math.cos(h); ks.forEach((an, i) => { const ox2 = i % 2 ? 0.42 : -0.42, oz2 = -0.95 - Math.floor(i / 2) * 0.62, sc = an.kind === "chicken" ? 0.62 : 0.5; M.trs(x + ox2 * co + oz2 * s, 0.45, z - ox2 * s + oz2 * co, h, 0, 0, sc, sc, sc, V._m2); R.draw(c.meshes[an.kind], V._m2); }); };
+    V.owned().forEach((car) => { if (busy.has(car.id)) return; const s = V.slot(car); M.trs(s.x, 0, s.z, s.h, 0, 0, 1, 1, 1, V._m1); R.draw(carMesh(car.car, car.color), V._m1); bed(car, s.x, s.z, s.h); });
     const act = [];
     if (V.me && V.me.role === "d") act.push({ car: V.me.car, color: V.me.color, x: me.x, z: me.z, h: V.me.h, v: V.me.v, st: V.me.steer || 0, drv: "me", pas: pa.veh && pa.veh.id === V.me.id && pa.veh.role === "p" ? "pa" : null });
     else if (V.me && V.me.role === "p" && pa.veh) act.push({ car: pa.veh.car, color: pa.veh.color, x: pa.x, z: pa.z, h: pa.ry, v: 0, st: 0, drv: "pa", pas: "me" });
@@ -166,8 +173,7 @@
         const o = who === "me" ? me : pa, S = V.seat(a.car, role), s = Math.sin(a.h), co = Math.cos(a.h);
         if (!o.ch) return; OSW.drawChar(o.ch, a.x + S.x * co + S.z * s, a.z - S.x * s + S.z * co, a.h, 0, 0, t, 1, null, 0.74, S.y - 0.1);
       });
-      // حيوانات بصندوق البكم
-      if (a.car === "pickup" && a.drv === "me") { const ks = c.acarry.me; ks.forEach((k, i) => { const sc = 0.55, ox2 = (i % 2 ? 0.45 : -0.45), oz2 = -1.4 - Math.floor(i / 2) * 0.55, s = Math.sin(a.h), co = Math.cos(a.h); M.trs(a.x + ox2 * co + oz2 * s, 0.5, a.z - ox2 * s + oz2 * co, a.h, 0, 0, sc, sc, sc, V._m2); R.draw(c.meshes[k], V._m2); }); }
+      { const co2 = V.owned().find((x) => x.id === (a.drv === "me" && V.me ? V.me.id : pa.veh && pa.veh.id)); if (co2) bed(co2, a.x, a.z, a.h); }
     });
   };
   V.drawing = () => !!(V.me || (ctx().pa.veh && ctx().pa.vis));
@@ -182,7 +188,7 @@
       document.body.appendChild(h); V.hudEl = h; V.spd = h.querySelector("#chSpd");
       h.addEventListener("click", (e) => { const b = e.target.closest("[data-ch]"); if (!b) return; if (b.dataset.ch === "view" && V.me) { V.me.view = V.me.view === "in" ? "out" : "in"; OSW.audio && OSW.audio.sfx("pop"); } else V.exit(); });
     }
-    document.documentElement.classList.toggle("driving", on); h.hidden = !on; if (on) h.querySelector("#chName").textContent = (V.CARS[V.me.car].e) + " " + V.CARS[V.me.car].n + (V.me.role === "p" ? " (راكب)" : "");
+    document.documentElement.classList.toggle("driving", on); h.hidden = !on; if (on) h.querySelector("#chName").textContent = (V.CARS[V.me.car].e) + " " + V.CARS[V.me.car].n + (V.me.role === "p" ? " (راكب)" : "") + (() => { const c2 = V.owned().find((x) => x.id === V.me.id); return c2 && c2.cargo && c2.cargo.length ? " · 🐾 " + c2.cargo.length : ""; })();
     ["btnSprint", "zoomctl", "guide"].forEach((id) => { const el = document.getElementById(id); if (el) el.style.visibility = on ? "hidden" : ""; });
   }
   V.hud = hud;

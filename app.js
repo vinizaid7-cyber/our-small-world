@@ -174,7 +174,7 @@
   function guideSay(text, ms = 7000) { $("#guideText").textContent = text; clearTimeout(gTimer); gTimer = setTimeout(() => ($("#guideText").textContent = ""), ms); }
   function guideTalk() {
     OSW.audio.sfx("pop"); const un = totalUnread(), pool = OSW.GUIDE_TIPS.slice();
-    pool.push("اضغط على أي بيت أو مكان وشخصيتك بتمشي له لحالها 🚶", "استعمل العصا (أو الأسهم/WASD) للمشي، واسحب الشاشة لتدوير الكاميرا 🎥", "الورد بيكبر لما الاثنين يسقوه كل يوم 🌹", "الحجّي والحجّة بدهم أكل وشرب كل يوم 🧓", "بيعوا المحاصيل عند سعدون بسعر أحسن 🏪", "اضغط 🤝 وامشوا سوا ماسكين إيد بعض 💞");
+    pool.push("اضغط على أي بيت أو مكان وشخصيتك بتمشي له لحالها 🚶", "استعمل العصا (أو الأسهم/WASD) للمشي، واسحب الشاشة لتدوير الكاميرا 🎥", "الورد بيكبر لما الاثنين يسقوه كل يوم 🌹", "بيعوا المحاصيل عند سعدون بسعر أحسن 🏪", "اضغط 🤝 وامشوا سوا ماسكين إيد بعض 💞");
     if (un) pool.push(`في ${un} شي جديد من ${ui.partnerName()} 🔴`);
     G.tasks().filter((t) => !t.done && !t.soft).forEach((t) => pool.push(`${t.e} ${t.t}`));
     const found = ui.my().found.length; pool.push(found < OSW.HIDDEN.length ? `لقيت ${found} من ${OSW.HIDDEN.length} كنوز مخبّأة… كمّل دوّر!` : "لقيت كل الكنوز، أنت أسطورة 🧭");
@@ -203,8 +203,9 @@
   app.enterHouse = enterHouse; app.exitHouse = exitHouse;
 
   async function goPlace(id) {
+    if (id === "fishingB") { if (W.mode === "out" && W.S.poi.fishingB) await W.walkToPOI("fishingB"); W.setInputEnabled(false); OSW.audio.sfx("pop"); P.open("fishing"); const pv = ui.onModalClose; ui.onModalClose = () => { pv && pv(); W.setInputEnabled(true); }; return; }
     if (!$("#modal").hidden && P.current === id) return;
-    if (!["fountain", "plaza", "tree", "garden", "lighthouse", "gate", "home", "ach", "shop", "farm", "flowers", "hajji", "tasks", "orders", "inv", "boutique", "wardrobe", "cart", "pens", "butcher", "draw", "fishing", "cars"].includes(id) && !G.openers[id]) return;
+    if (!["fountain", "plaza", "tree", "garden", "lighthouse", "gate", "home", "ach", "shop", "farm", "flowers", "tasks", "orders", "inv", "boutique", "wardrobe", "cart", "pens", "butcher", "draw", "fishing", "fishingB", "cars"].includes(id) && !G.openers[id]) return;
     if (W.mode === "out" && W._int.me.veh) return ui.toast("🚪 انزلوا من السيارة أول");
     if (W.mode === "out" && W.S.poi[id]) { const p = W.S.poi[id], m = W._int.me; if ((p.z > 1000) !== (m.z > 1000)) return ui.toast("🚗 المكان بالجزيرة الثانية — لازم سيارة عشان توصلوا!"); await W.walkToPOI(id); }
     W.setInputEnabled(false); OSW.audio.sfx("pop"); P.open(id);
@@ -261,6 +262,7 @@
     if (act === "dealer" && W.mode === "out") return enterInterior("dealer");
     if (k === "barn") return barnAct();
     if (k === "pet") { OSW.audio.sfx("heart"); ui.hearts("🐱", 6); W.say("pet", rand(["مياوو 😻", "بدي سمكة 🐟", "فركلي راسي 💕", "بحبكم! مياو"]), 3500); return; }
+    if (k === "mypet") { const p = OSW.game.state().pets.find((x) => x.id === v); if (!p) return; const PT = OSW.game.PETS[p.kind]; OSW.audio.sfx("heart"); ui.hearts(PT.e, 6); W.say("pet:" + v, (p.name ? p.name + ": " : "") + rand(PT.says), 3500); return; }
     if (k === "npc") return npcTalk(v);
     return goPlace(k);
   }
@@ -345,7 +347,7 @@
     snd.onclick = () => { const on = OSW.audio.toggle(); snd.textContent = on ? "🔊" : "🔇"; ui.toast(on ? "الصوت شغّال 🎶" : "الصوت مسكّر", "", 1500); };
     $("#btnAch").onclick = () => !busyNav && goPlace("ach"); $("#btnMenu").onclick = () => !busyNav && goPlace("gate");
     $("#btnTasks").onclick = () => !busyNav && goPlace("tasks"); $("#btnChat").onclick = () => OSW.chat.toggle(); $("#btnFurn").onclick = () => !busyNav && P.open("furniture"); $("#placeRot").onclick = () => rotateFurn(); $("#placeCancel").onclick = () => cancelPlacing();
-    const sp = $("#btnSprint"); sp.onpointerdown = (e) => { e.preventDefault(); W.setSprint(true); sp.classList.add("on"); }; const spOff = () => { W.setSprint(false); sp.classList.remove("on"); }; sp.onpointerup = spOff; sp.onpointerleave = spOff; sp.onpointercancel = spOff; $("#coinPill").onclick = () => !busyNav && goPlace("inv"); $("#dayPill").onclick = () => !busyNav && goPlace("plaza");
+    const sp = $("#btnSprint"); sp.onpointerdown = (e) => { e.preventDefault(); W.setSprint(true); sp.classList.add("on"); }; const spOff = () => { W.setSprint(false); sp.classList.remove("on"); }; sp.onpointerup = spOff; sp.onpointerleave = spOff; sp.onpointercancel = spOff; $("#coinPill").onclick = () => !busyNav && goPlace("inv"); $("#needPill").onclick = () => !busyNav && P.open("needs"); $("#dayPill").onclick = () => !busyNav && goPlace("plaza");
     $("#guide").onclick = guideTalk;
     $("#zoomctl").onclick = (e) => {
       const b = e.target.closest("[data-z]"); if (!b) return; const z = b.dataset.z;
