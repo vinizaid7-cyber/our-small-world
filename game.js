@@ -41,13 +41,6 @@
     sheep: { n: "خروف", e: "🐑", price: 60, mature: 72 * HOUR, sell: 170, cap: 6, note: "بيكبر بـ3 أيام وبعدين بتبيعه للملحمة" },
     cow: { n: "بقرة", e: "🐄", price: 130, mature: 96 * HOUR, sell: 380, cap: 3, prod: "milk", period: 12 * HOUR, note: "بتعطي حليب كل 12 ساعة بعد ما تكبر (4 أيام)" },
   });
-  const PETS = (G.PETS = {
-    dog: { n: "كلب", e: "🐶", price: 150, note: "وفي، بيركض وراك وين ما رحت", says: ["هاو هاو! 🐕", "يلا نلعب! 🎾", "بحبك كتير! 💕", "ذيلي بيهتز من الفرحة 🐶"] },
-    cat: { n: "قطة", e: "🐱", price: 100, note: "ناعمة ومدلّلة، بتمشي جنبك", says: ["مياو 😻", "بدي أنام بحضنك 💤", "فركلي راسي 💕", "مياووو 🐟"] },
-    rabbit: { n: "أرنب", e: "🐰", price: 80, note: "بيقفز وراك قفزات", says: ["🥕 بدي جزرة!", "بنط بنط 🐇", "ودني بتنبسط!", "😊"] },
-    duck: { n: "بطة", e: "🦆", price: 50, note: "بتمشي متمايلة ولطيفة", says: ["كواك كواك 🦆", "بدي أسبح بالبحيرة 💦", "كواك! 😄", "🦆💕"] },
-  });
-  const PET_CAP = 3, NEED = { food: 100 / (8 * 3600000), drink: 100 / (5 * 3600000) };
   const PRODUCE = (G.PRODUCE = { egg: { n: "بيض", e: "🥚", sell: 4 }, milk: { n: "حليب طازج", e: "🥛", sell: 11 }, fish_s: { n: "سمكة صغيرة", e: "🐟", sell: 6 }, fish_m: { n: "سمكة كبيرة", e: "🐠", sell: 16 }, fish_g: { n: "سمكة ذهبية", e: "✨🐟", sell: 80 }, boot: { n: "حذاء قديم", e: "🥾", sell: 1 } });
   const SUPPLY = (G.SUPPLY = { hay: { n: "علف الحيوانات", e: "🌾", price: 6, note: "بيطعم كل الحيوانات 24 ساعة" }, wcan: { n: "ماء سقاية الورد", e: "💦", price: 3, note: "سقية وحدة" }, fert: { n: "سماد المزرعة", e: "🌿", price: 8, note: "بيسرّع نمو الزرعة 25%" } });
   const CLOTH = (G.CLOTH = Object.fromEntries(Object.entries(OSW.CLOTHES).filter(([k]) => k !== "casual")));
@@ -83,14 +76,13 @@
   function fold(events) {
     const S = { coins: 50, inv: {}, plots: Array(PLOTS).fill(null), m: { hajji: { food: 70, drink: 70, joy: 60, up: false }, hajjeh: { food: 70, drink: 70, joy: 60, up: false } }, mt: 0,
       slots: {}, comp: {}, streak: 0, lastComp: -99, runStart: 0, paidMile: {}, orders: {}, till: {}, tillPaid: {}, buys: 0, harvests: 0, plants: 0, sells: 0, feeds: 0, refused: 0, blessed: {}, gifts: [],
-      tog: {}, acts: {}, fed: {}, carry: {}, cart: { crates: [], pulls: [], deliveries: 0, last: null }, barnT: 0, animals: [], acarry: {}, asold: 0, sheepSold: 0, draws: {}, drawCoins: {}, furn: {}, scenes: {}, sceneCoins: {}, wedGifts: {}, weddings: 0, pets: [], need: {} };
+      tog: {}, acts: {}, fed: {}, carry: {}, cart: { crates: [], pulls: [], deliveries: 0, last: null }, barnT: 0, cars: [], animals: [], acarry: {}, asold: 0, sheepSold: 0, draws: {}, drawCoins: {}, furn: {}, scenes: {}, sceneCoins: {}, wedGifts: {}, weddings: 0 };
     OSW.HOME.defaults.forEach((d) => (S.furn[d.id] = { id: d.id, item: d.item, x: d.x, z: d.z, rot: d.rot }));
     const ev = events.slice().sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : a.id < b.id ? -1 : 1));
     S.mt = ev.length ? new Date(ev[0].created_at).getTime() : Date.now();
     const decay = (t) => { const dt = Math.max(0, t - S.mt); ["hajji", "hajjeh"].forEach((w) => { const m = S.m[w]; m.food = Math.max(0, m.food - dt * DECAY.food); m.drink = Math.max(0, m.drink - dt * DECAY.drink); m.joy = Math.max(0, m.joy - dt * DECAY.joy); if (m.food < 15 || m.drink < 15) m.up = true; }); S.mt = t; };
     const add = (id, n) => (S.inv[id] = (S.inv[id] || 0) + n);
     const adv = (an, t) => { if (t <= an.mt) return; const A = AN[an.kind], dt = Math.max(0, Math.min(t, an.fedUntil) - an.mt); an.age += dt; if (A.prod) { const md = Math.max(0, Math.min(dt, an.age - A.mature)); an.prod = Math.min(3 * A.period, an.prod + md); } an.mt = t; };
-    const need = (a, t) => { const n = S.need[a] || (S.need[a] = { food: 100, drink: 100, t, sip: 0 }), dt = Math.max(0, t - n.t); n.food = Math.max(0, n.food - dt * NEED.food); n.drink = Math.max(0, n.drink - dt * NEED.drink); n.t = Math.max(n.t, t); return n; };
     const acar = (a) => (S.acarry[a] = S.acarry[a] || []);
     const car = (a) => (S.carry[a] = S.carry[a] || []);
     ev.forEach((e) => {
@@ -162,6 +154,12 @@
         const f = S.furn[d.inst]; if (!f) return; add("fu_" + f.item, 1); delete S.furn[d.inst]; mark();
       } else if (ty === "furn_sell") {
         const f = S.furn[d.inst]; if (!f) return; S.coins += Math.floor(OSW.FURN[f.item].price * 0.7); delete S.furn[d.inst]; mark();
+      } else if (ty === "cbuy") {
+        const C = OSW.veh && OSW.veh.CARS[d.car]; if (!C || S.coins < C.price) return; S.coins -= C.price; S.cars.push({ id: e.id, car: d.car, color: d.color || "#e63946", at: "A" }); mark();
+      } else if (ty === "cpaint") {
+        const c = S.cars.find((x) => x.id === d.id); if (!c || S.coins < 30) return; S.coins -= 30; c.color = d.color; mark();
+      } else if (ty === "cpark") {
+        const c = S.cars.find((x) => x.id === d.id); if (c) { c.at = d.at; mark(); }
       } else if (ty === "abuy") {
         const A = AN[d.kind]; if (!A || S.coins < A.price || S.animals.filter((x) => x.kind === d.kind).length >= A.cap) return;
         S.coins -= A.price; S.animals.push({ id: e.id, kind: d.kind, born: t, mt: t, age: 0, prod: 0, fedUntil: t + 6 * HOUR }); mark();
@@ -172,7 +170,7 @@
         let eg = 0, mk = 0; S.animals.forEach((an) => { adv(an, t); const A = AN[an.kind]; if (!A.prod) return; const u = Math.floor(an.prod / A.period); an.prod -= u * A.period; if (A.prod === "egg") eg += u; else mk += u; });
         if (!eg && !mk) return; if (eg) add("egg", eg); if (mk) add("milk", mk); mark();
       } else if (ty === "acarry") {
-        const i = S.animals.findIndex((x) => x.id === d.id), cs = acar(a); if (i < 0 || cs.length >= 2) return; const an = S.animals[i]; adv(an, t); if (an.age < AN[an.kind].mature) return;
+        const i = S.animals.findIndex((x) => x.id === d.id), cs = acar(a); if (i < 0 || cs.length >= (S.cars.some((c) => c.car === "pickup") ? 6 : 2)) return; const an = S.animals[i]; adv(an, t); if (an.age < AN[an.kind].mature) return;
         S.animals.splice(i, 1); cs.push(an); mark();
       } else if (ty === "adrop") {
         const cs = acar(a); if (!cs.length) return; const back = []; cs.forEach((an) => { if (S.animals.filter((x) => x.kind === an.kind).length < AN[an.kind].cap) { an.mt = t; S.animals.push(an); } else back.push(an); }); S.acarry[a] = back; mark();
@@ -186,16 +184,6 @@
         const r = (S.draws[d.round] = S.draws[d.round] || { by: {}, prompt: d.prompt }); r.by[a] = e.id;
         if (Object.keys(r.by).length >= 2 && !r.paid) { r.paid = 1; const k = day; S.drawCoins[k] = (S.drawCoins[k] || 0) + 1; if (S.drawCoins[k] <= 2) S.coins += 20; }
         mark();
-      } else if (ty === "pbuy") {
-        const PT = PETS[d.kind]; if (!PT || S.coins < PT.price || S.pets.filter((x) => x.owner === a).length >= PET_CAP) return;
-        S.coins -= PT.price; S.pets.push({ id: e.id, kind: d.kind, owner: a, name: String(d.name || "").trim().slice(0, 14), t }); mark();
-      } else if (ty === "needinit") {
-        if (!S.need[a]) S.need[a] = { food: 100, drink: 100, t, sip: 0 };
-      } else if (ty === "eat") {
-        const f = FOOD[d.item]; if (!f || (S.inv[d.item] || 0) < 1) return;
-        const n = need(a, t); add(d.item, -1); n.food = Math.min(100, n.food + f.food * 1.2); n.drink = Math.min(100, n.drink + f.drink * 1.2); mark();
-      } else if (ty === "sip") {
-        const n = need(a, t); if (t - (n.sip || 0) < 90000) return; n.sip = t; n.drink = Math.min(100, n.drink + 18); mark();
       } else if (ty === "together") {
         S.tog[day] = (S.tog[day] || 0) + 1; if (S.tog[day] <= 10) S.coins += 3;
       }
@@ -225,14 +213,13 @@
       const prog = Math.min(1, c.age / A.mature); out.push({ id: an.id, kind: an.kind, A, age: c.age, prog, mature: prog >= 1, size: 0.45 + 0.55 * prog, units: A.prod ? Math.floor(prod / A.period) : 0, fed: an.fedUntil > now, fedLeft: Math.max(0, an.fedUntil - now), left: Math.max(0, A.mature - c.age) }); });
     return out;
   };
-  G.needOf = (uid) => { const n = G.state().need[uid] || { food: 100, drink: 100, t: Date.now() }, dt = Math.max(0, Date.now() - n.t); return { food: Math.max(0, n.food - dt * NEED.food), drink: Math.max(0, n.drink - dt * NEED.drink), sip: n.sip || 0 }; };
-  G.needMul = () => { if (!db || !db.uid) return 1; const n = G.needOf(db.uid), lo = Math.min(n.food, n.drink); return lo >= 25 ? 1 : 0.72 + 0.28 * (lo / 25); };
+  G.carryCap = () => (G.state().cars.some((c) => c.car === "pickup") ? 6 : 2);
   G.animalCarry = (uid) => (G.state().acarry[uid] || []);
   const mine = (day, ty) => !!((G.state().acts[day] || {})[db.uid + ":" + ty]);
   G.has = (id) => (G.state().inv[id] || 0) >= 1;
   G.speedMul = () => {
     const lk = (db.kv["look:" + db.uid] || {}), o = OSW.CLOTHES[lk.outfit || "casual"] || OSW.CLOTHES.casual;
-    return (o.speed || 1) * Math.pow(0.92, G.carryOf(db.uid).length) * Math.pow(0.88, G.animalCarry(db.uid).length) * G.needMul();
+    return (o.speed || 1) * Math.pow(0.92, G.carryOf(db.uid).length) * Math.pow(0.88, G.animalCarry(db.uid).length);
   };
 
   /* ---------- تنفيذ الأفعال ---------- */
@@ -250,12 +237,7 @@
     W.setCarry("me", G.carryOf(db.uid).map((c) => CROPS[c.crop].c)); if (db.partner) W.setCarry("partner", G.carryOf(db.partner.id).map((c) => CROPS[c.crop].c));
     W.setCart(s.cart.crates.map((c) => CROPS[c.crop].c), s.cart.last);
     W.setSpeedMul(G.speedMul());
-    if (W.setAnimals) { const av = G.animalsView(); W.setAnimals(av.map((a) => ({ id: a.id, kind: a.kind, size: a.size, fed: a.fed }))); W.setAnimalCarry("me", G.animalCarry(db.uid).map((a) => a.kind)); if (db.partner) W.setAnimalCarry("partner", G.animalCarry(db.partner.id).map((a) => a.kind)); }
-    if (!s.need[db.uid] && !G._ni) { G._ni = true; db.addEntry({ house: "game", title: "needinit", data: {} }).then(() => G.sync3d()).catch(() => { G._ni = false; }); }
-    if (W.setPets) W.setPets(s.pets.map((p) => ({ id: p.id, kind: p.kind, owner: p.owner === db.uid ? "me" : "partner" })));
-    { const nv = G.needOf(db.uid), lo = Math.min(nv.food, nv.drink), fe = document.getElementById("foodNum"), de = document.getElementById("drinkNum"), np = document.getElementById("needPill");
-      if (fe) fe.textContent = Math.round(nv.food); if (de) de.textContent = Math.round(nv.drink); if (np) np.classList.toggle("low", lo < 25);
-      if (lo < 25 && Date.now() - (G._nw || 0) > 600000) { G._nw = Date.now(); toast(nv.food <= nv.drink ? "🍞 جعت! كُل من مخزنك أو اشتري من سعدون (بتمشي أبطأ لما تجوع)" : "💧 عطشان! اشرب من النافورة أو من مخزنك (بتمشي أبطأ لما تعطش)"); } }
+    if (W.setAnimals) { const av = G.animalsView(); W.setAnimals(av.map((a) => ({ id: a.id, kind: a.kind, size: a.size }))); W.setAnimalCarry("me", G.animalCarry(db.uid).map((a) => a.kind)); if (db.partner) W.setAnimalCarry("partner", G.animalCarry(db.partner.id).map((a) => a.kind)); }
     const fk = JSON.stringify(G.furnList()); if (G._fk !== fk) { G._fk = fk; W.setFurniture(G.furnList()); }
     const lc = s.lastCloth, bags = lc && lc.a === db.uid && (ui.my().bagsSeen || 0) < lc.t ? Math.min(3, db.entries.filter((e) => e.house === "game" && e.title === "buy" && e.author === db.uid && new Date(e.created_at).getTime() > (ui.my().bagsSeen || 0) && /^cl_/.test((e.data || {}).id)).length) : 0;
     W.setBags(bags);
@@ -296,27 +278,7 @@
   const meter = (l, v, c) => `<div class="mrow"><span>${l}</span><div class="mbar"><i style="width:${Math.round(v)}%;background:${c}"></i></div><b>${Math.round(v)}</b></div>`;
   const irow = (e, name, sub, btns) => `<div class="irow"><span class="ie">${e}</span><div class="iname"><b>${esc(name)}</b><small>${sub}</small></div><div class="ib">${btns}</div></div>`;
 
-  const petsPanel = (s) => {
-    const mineP = s.pets.filter((p) => p.owner === db.uid), others = s.pets.filter((p) => p.owner !== db.uid);
-    const cards = Object.entries(PETS).map(([k, P]) => `<div class="seed"><span>${P.e}</span><b>${P.n}</b><small>${P.price}🪙</small><small>${P.note}</small><button class="btn sm gold" data-act="g-pbuy" data-k="${k}" ${s.coins < P.price || mineP.length >= PET_CAP ? "disabled" : ""}>تبنّى</button></div>`).join("");
-    const row = (p) => irow(PETS[p.kind].e, p.name || PETS[p.kind].n, p.owner === db.uid ? "إلك — بيمشي وراك 🐾" : `عند ${esc(ui.partnerName())}`, "");
-    return `<p class="hint">تبنّى حيوان أليف بيمشي وراك بالقرية، وبتقدر تلمسه عشان يلاعبك 💕 (لحد ${PET_CAP} حيوانات لكل واحد)</p>
-      <input class="in" id="petName" maxlength="14" placeholder="اسم الحيوان (اختياري)" style="margin-bottom:8px"><div class="seeds">${cards}</div>
-      <b>حيواناتك (${mineP.length}/${PET_CAP})</b><div class="items" style="margin:8px 0">${mineP.map(row).join("") || '<div class="empty">لسا ما تبنّيت حدا 🐾</div>'}${others.map(row).join("")}</div>`;
-  };
-
   G.openers = {
-    needs() {
-      const s = G.state(), n = G.needOf(db.uid), mul = G.needMul(), have = Object.entries(FOOD).filter(([k]) => (s.inv[k] || 0) > 0);
-      const rows = have.map(([k, f]) => irow(f.e, f.n, `🍞+${Math.round(f.food * 1.2)} 💧+${Math.round(f.drink * 1.2)} · عندك ${s.inv[k]}`, `<button class="btn sm gold" data-act="g-eat" data-i="${k}">${f.drink > f.food ? "اشرب" : "كُل"}</button>`)).join("");
-      const lo = Math.min(n.food, n.drink), msg = lo < 25 ? `😩 ${n.food < n.drink ? "جوعان" : "عطشان"}! سرعتك صارت ${Math.round(mul * 100)}%` : lo < 55 ? "🙂 قريب بدك تاكل أو تشرب" : "😊 شبعان ومرتوي";
-      ui.openModal(`<h3>🍽️ جوعك وعطشك</h3>
-        ${meter("🍞 الشبع", n.food, "#f4a261")}${meter("💧 الري", n.drink, "#4aa3e0")}
-        <div class="chk" style="margin:8px 0;justify-content:center">${msg}</div>
-        <p class="hint">بتجوع وبتعطش مع الوقت. لما تنزل عن 25 بتمشي أبطأ. كُل واشرب من مخزنك، أو اشرب مجاناً من النافورة ⛲</p>
-        <div class="row" style="margin:8px 0"><button class="btn alt sm" data-act="g-sip">⛲ اشرب من النافورة</button><button class="btn gold sm" data-act="g-gotoshop">🏪 اشتري أكل من سعدون</button></div>
-        <b>مخزنك</b><div class="items" style="margin-top:8px">${rows || '<div class="empty">ما عندك أكل ولا مشروبات. اشتري من سعدون 🏪</div>'}</div>`);
-    },
     shop() {
       const s = G.state(), tab = G.ui.tab, wk = Math.floor(G.today() / 7), till = Math.floor(s.till[wk] || 0), paid = s.tillPaid[wk];
       const lines = ["أهلين فيكم! اللي بدكم إياه عندي 😎", "اليوم الخضرة طازة والأسعار على قد الحال 🥬", "بدي أقبض راتبي آخر الأسبوع، اشتروا كتير! 😂", "للحجّي والحجّة عندي أحسن شاي بالقرية ☕", "جيبوا المحاصيل بصناديق وأنا بدفع أحسن سعر 📦"];
@@ -325,7 +287,6 @@
       let body = "";
       if (tab === "food" || tab === "drink" || tab === "sweet") body = foodTab(tab);
       else if (tab === "farm") body = Object.entries(SUPPLY).map(([k, f]) => buy(k, f, `${f.note} · عندك ${s.inv[k] || 0}`, k === "wcan" ? [1, 3, 7] : [1, 3])).join("");
-      else if (tab === "pets") body = petsPanel(s);
       else if (tab === "gift") body = `<p class="hint">اشترِ هدية وسعدون بيوصّلها لـ${esc(ui.partnerName())} مع كلمة منك 💌</p><input class="in" id="giftNote" maxlength="120" placeholder="اكتب كلمة حلوة مع الهدية…" style="margin-bottom:8px">` + Object.entries(GIFTS).map(([k, g]) => irow(g.e, g.n, "", `<button class="btn sm berry" data-act="g-gift" data-id="${k}" ${s.coins < g.price ? "disabled" : ""}>أرسل · ${g.price}🪙</button>`)).join("");
       else body = `<p class="hint">أسعار اليوم بتتغير كل يوم ▲▼. المحاصيل اللي بمخزن المزرعة ببيعها هون:</p>` + (Object.keys(PRODUCE).filter((k) => s.inv[k] > 0).map((k) => { const c = PRODUCE[k]; return irow(c.e, `${c.n} ×${s.inv[k]}`, `سعر ${c.sell}🪙 للواحدة`, `<button class="btn sm gold" data-act="g-psell" data-id="${k}" data-q="1">بيع 1</button><button class="btn sm gold" data-act="g-psell" data-id="${k}" data-q="${s.inv[k]}">الكل</button>`); }).join("") + Object.keys(CROPS).filter((k) => s.inv[k] > 0).map((k) => { const c = CROPS[k]; return irow(c.e, `${c.n} ×${s.inv[k]}`, `سعر اليوم ${G.priceOf(k, G.today())}🪙 ${G.trend(k, G.today())}`, `<button class="btn sm gold" data-act="g-sell" data-id="${k}" data-q="1">بيع 1</button><button class="btn sm gold" data-act="g-sell" data-id="${k}" data-q="${s.inv[k]}">الكل</button>`); }).join("") || `<div class="empty">ما عندك محاصيل بالمخزن. اقطفوا من المزرعة وحطوا الصناديق بالمخزن 🌾</div>`);
       const carried = G.carryOf(db.uid);
@@ -333,7 +294,7 @@
         <div class="npc-say"><span class="nav">🧑‍🍳</span><div class="res-say"><small>سعدون</small>${esc(lines[Math.floor(Date.now() / 60000) % lines.length])}</div></div>
         ${carried.length ? `<div class="chk" style="margin:6px 0">📦 معك ${carried.length} صندوق <button class="btn sm gold" data-act="g-sellcrate">سلّمهم لسعدون (سعر اليوم)</button></div>` : ""}
         <div class="salary"><small>راتب سعدون الأسبوعي: ${till}/${SALARY}🪙 ${paid ? "✅ انصرف (وأعطاكم 10🪙 مكافأة!)" : "— كل ما اشتريتوا بيقرب يقبض"}</small><div class="progress"><i style="width:${Math.min(100, till)}%"></i></div></div>
-        <div class="seg" style="margin:10px 0">${[["food", "🍞 أكل"], ["drink", "🥤 مشروبات"], ["sweet", "🍰 حلويات"], ["farm", "🌱 مزرعة وورد"], ["pets", "🐾 أليفة"], ["gift", "🎁 هدايا"], ["sell", "🧺 بيع"]].map(([k, t]) => `<button class="${tab === k ? "on" : ""}" data-act="g-tab" data-k="${k}">${t}</button>`).join("")}</div>
+        <div class="seg" style="margin:10px 0">${[["food", "🍞 أكل"], ["drink", "🥤 مشروبات"], ["sweet", "🍰 حلويات"], ["farm", "🌱 مزرعة وورد"], ["gift", "🎁 هدايا"], ["sell", "🧺 بيع"]].map(([k, t]) => `<button class="${tab === k ? "on" : ""}" data-act="g-tab" data-k="${k}">${t}</button>`).join("")}</div>
         <div class="items">${body}</div>`);
     },
     farm() {
@@ -395,11 +356,11 @@
       const s = G.state(), av = G.animalsView(), carry = G.animalCarry(db.uid), fedAll = av.length && av.every((a) => a.fed), minLeft = av.length ? Math.min(...av.map((a) => a.fedLeft)) : 0, eg = av.filter((a) => a.kind === "chicken").reduce((n, a) => n + a.units, 0), mk = av.filter((a) => a.kind === "cow").reduce((n, a) => n + a.units, 0);
       const days = (ms) => (ms >= 86400000 ? Math.floor(ms / 86400000) + " يوم " + Math.floor((ms % 86400000) / 3600000) + " س" : Math.max(1, Math.ceil(ms / 60000 / 60 * 10) / 10) + " س");
       const cards = Object.entries(AN).map(([k, A]) => { const n = av.filter((a) => a.kind === k).length; return `<div class="seed"><span>${A.e}</span><b>${A.n}</b><small>${A.price}🪙 · ${n}/${A.cap}</small><button class="btn sm gold" data-act="g-abuy" data-k="${k}" ${s.coins < A.price || n >= A.cap ? "disabled" : ""}>اشتري صغير</button><small>${A.note}</small></div>`; }).join("");
-      const rows = av.map((a, i) => irow(a.A.e, `${a.A.n} #${i + 1}${a.mature ? " ✅ كبير" : ""}`, `<div class="progress" style="height:8px;margin:4px 0"><i style="width:${Math.round(a.prog * 100)}%"></i></div>${a.mature ? (a.units ? `جاهز: ${a.units} ${a.A.prod === "egg" ? "🥚" : "🥛"}` : a.A.prod ? "بينتج…" : `جاهز للملحمة (${a.A.sell}🪙)`) : "بيكبر… باقي " + days(a.left)}${a.fed ? "" : " · 😢 جوعان"}`, a.mature ? `<button class="btn sm berry" data-act="g-acarry" data-id="${a.id}" ${carry.length >= 2 ? "disabled" : ""}>🧍 شيله</button>` : "")).join("");
+      const rows = av.map((a, i) => irow(a.A.e, `${a.A.n} #${i + 1}${a.mature ? " ✅ كبير" : ""}`, `<div class="progress" style="height:8px;margin:4px 0"><i style="width:${Math.round(a.prog * 100)}%"></i></div>${a.mature ? (a.units ? `جاهز: ${a.units} ${a.A.prod === "egg" ? "🥚" : "🥛"}` : a.A.prod ? "بينتج…" : `جاهز للملحمة (${a.A.sell}🪙)`) : "بيكبر… باقي " + days(a.left)}${a.fed ? "" : " · 😢 جوعان"}`, a.mature ? `<button class="btn sm berry" data-act="g-acarry" data-id="${a.id}" ${carry.length >= G.carryCap() ? "disabled" : ""}>🧍 شيله</button>` : "")).join("");
       ui.openModal(`<h3>🐾 حيوانات المزرعة</h3>${coinBar()}
         <p class="hint">اطعموا الحيوانات كل يوم عشان تكبر وتنتج 🌾. الدجاج بيعطي بيض، البقر حليب، والخرفان لما يكبروا (3 أيام) بتشيلوهم وبتبيعوهم للملحمة 🥩.</p>
         <div class="chk" style="margin:6px 0;justify-content:center">${!av.length ? "ما عندكم حيوانات لسا — اشتروا من تحت 👇" : fedAll ? `😊 شبعانين لمدة ${days(minLeft)}` : "😢 في حيوانات جوعانة! اطعموهم"}</div>
-        <div class="row" style="margin:6px 0"><button class="btn gold sm" data-act="g-afeed" ${s.inv.hay && av.length ? "" : "disabled"}>🌾 اطعم الكل (عندك ${s.inv.hay || 0})</button><button class="btn alt sm" data-act="g-gotoshop-hay">اشتري علف 🏪</button><button class="btn alt sm" data-act="g-gotoshop-pets">🐶 حيوانات أليفة</button><button class="btn berry sm" data-act="g-acollect" ${eg + mk ? "" : "disabled"}>🧺 اجمع (${eg}🥚 ${mk}🥛)</button></div>
+        <div class="row" style="margin:6px 0"><button class="btn gold sm" data-act="g-afeed" ${s.inv.hay && av.length ? "" : "disabled"}>🌾 اطعم الكل (عندك ${s.inv.hay || 0})</button><button class="btn alt sm" data-act="g-gotoshop-hay">اشتري علف 🏪</button><button class="btn berry sm" data-act="g-acollect" ${eg + mk ? "" : "disabled"}>🧺 اجمع (${eg}🥚 ${mk}🥛)</button></div>
         ${carry.length ? `<div class="pick" style="margin:8px 0;font-size:18px">معك: ${carry.map((c) => AN[c.kind].e).join(" ")} <button class="btn sm gold" data-act="g-gotobutcher">للملحمة 🥩</button> <button class="btn sm alt" data-act="g-adrop">رجّعهم</button></div>` : ""}
         ${(s.inv.egg || s.inv.milk) ? `<div class="chk" style="margin:6px 0">مخزن المنتجات: ${s.inv.egg || 0}🥚 ${s.inv.milk || 0}🥛 <button class="btn sm alt" data-act="g-pstand">بيع ببسطة المزرعة (-20%)</button></div>` : ""}
         <b>الحيوانات (${av.length})</b><div class="items" style="margin:8px 0">${rows || '<div class="empty">الحظيرة فاضية</div>'}</div>
@@ -409,6 +370,15 @@
       const f = G.ui.fish || (G.ui.fish = { st: "idle" }), s = G.state(), tot = ["fish_s", "fish_m", "fish_g", "boot"].map((k) => PRODUCE[k].e + "×" + (s.inv[k] || 0)).join("  ");
       const body = f.st === "idle" ? `<button class="btn gold" style="font-size:20px;padding:14px 30px" data-act="g-cast">🎣 ارمي الصنارة</button>${f.msg ? `<p class="hint" style="font-size:18px;margin-top:10px">${f.msg}</p>` : ""}` : f.st === "wait" ? `<div style="font-size:54px;animation:pop 1s infinite alternate">🎣</div><p class="hint">استنى لحد ما تهتز العوامة… 🌊</p>` : `<button class="btn berry" style="font-size:26px;padding:18px 34px;animation:pop .3s infinite alternate" data-act="g-reel">🐟 اسحب!!</button>`;
       ui.openModal(`<h3>🎣 صيد السمك</h3>${coinBar()}<p class="hint">ارمي الصنارة وأول ما تطلع 🐟 اسحب بسرعة! الصيد بتبيعه عند سعدون أو ببسطة المزرعة.</p><div style="text-align:center;margin:14px 0;min-height:110px">${body}</div><div class="chk" style="justify-content:center">${tot}</div>`);
+    },
+    cars() {
+      const V = OSW.veh, s = G.state(), sel = G.ui.ccolor || V.COLORS[0], bar = (v, m) => `<div class="progress" style="height:7px;margin:2px 0"><i style="width:${Math.round((v / m) * 100)}%"></i></div>`;
+      const cat = Object.entries(V.CARS).map(([k, C]) => `<div class="seed carc"><span>${C.e}</span><b>${C.n}</b><small>${C.note}</small><div class="stat">⚡ السرعة ${bar(C.vmax, 42)}🚀 التسارع ${bar(C.acc, 15)}🎯 التحكم ${bar(C.hand, 1.75)}📦 حيوانات ${C.cargo} · 👥 راكبين 2</div><button class="btn sm gold" data-act="g-cbuy" data-k="${k}" ${s.coins < C.price ? "disabled" : ""}>${C.price}🪙 اشتري</button></div>`).join("");
+      const mine = s.cars.map((c) => { const C = V.CARS[c.car]; return irow(C.e, `${C.n}`, `<span class="dot" style="background:${c.color}"></span> موجودة ${c.at === "B" ? "بالجزيرة الثانية 🏝️" : "بالقرية 🏘️"}`, `<button class="btn sm alt" data-act="g-cpaint" data-id="${c.id}" ${s.coins < 30 ? "disabled" : ""}>🎨 دهان 30🪙</button>`); }).join("");
+      ui.openModal(`<h3>🚗 معرض السيارات</h3>${coinBar()}<p class="hint">كل سيارة بتسع اثنين (انت وشريكك) وإلها خصائص. بتسوقوا من جوا السيارة 🛣️ والطريق الطويل للجزيرة الثانية للسيارات بس!</p>
+        <div style="margin:8px 0"><b>لون السيارة الجديدة:</b><div class="dr-colors" style="justify-content:flex-start;margin-top:6px">${V.COLORS.map((c) => `<button class="dr-c ${sel === c ? "on" : ""}" data-act="g-ccolor" data-k="${c}" style="background:${c}" aria-label="${c}"></button>`).join("")}</div></div>
+        ${s.cars.length ? `<b>سياراتكم</b><div class="items" style="margin:8px 0">${mine}</div><p class="hint">اضغط على السيارة بالموقف لتركبها 🚪 (موقف المعرض بالقرية، وموقف الجزيرة).</p>` : ""}
+        <b>الكتالوج</b><div class="seeds" style="display:block">${cat}</div>`);
     },
     butcher() {
       const s = G.state(), carry = G.animalCarry(db.uid), av = G.animalsView(), ready = av.filter((a) => a.mature && (a.kind === "sheep"));
@@ -499,20 +469,19 @@
       case "g-cartpull": return busy(async () => { await G.do("cart_pull", {}); OSW.audio.sfx("pop"); const w = G.view().pullWait; if (!w.other) toast("سحبت! خلّي شريكك يسحب خلال 20 ثانية 🤝", "love"); else { OSW.audio.sfx("fanfare"); ui.hearts("🛒", 12); } });
       case "g-cast": { const f = G.ui.fish; f.st = "wait"; f.msg = ""; OSW.audio.sfx("pop"); P.refresh(); const my = (f.token = Math.random()); setTimeout(() => { if (G.ui.fish.token !== my || !document.querySelector("[data-act=g-cast],.hint")) return; f.st = "bite"; OSW.audio.sfx("ding"); P.refresh(); setTimeout(() => { if (G.ui.fish.token === my && f.st === "bite") { f.st = "idle"; f.msg = "😅 فلتت السمكة!"; P.refresh(); } }, 1200); }, 1500 + Math.random() * 3000); return; }
       case "g-reel": { const f = G.ui.fish; f.token = 0; f.st = "idle"; const r = Math.random(), id = r < 0.5 ? "fish_s" : r < 0.8 ? "fish_m" : r < 0.9 ? "fish_g" : "boot"; f.msg = `${PRODUCE[id].e} طلعت ${PRODUCE[id].n}!`; OSW.audio.sfx(id === "fish_g" ? "fanfare" : "coin"); return busy(async () => { await db.addEntry({ house: "game", title: "fish", data: { id } }); G.sync3d(); P.refresh(); }); }
+      case "g-ccolor": G.ui.ccolor = el.dataset.k; return P.refresh();
+      case "g-cbuy": { const C = OSW.veh.CARS[el.dataset.k]; if (needCoins(C.price)) return; return busy(async () => { await G.do("cbuy", { car: el.dataset.k, color: G.ui.ccolor || OSW.veh.COLORS[0] }); OSW.audio.sfx("fanfare"); ui.hearts("🚗", 12); toast(`${C.e} مبروك! ${C.n} صارت إلكم - مركونة بموقف المعرض`, "gold"); }); }
+      case "g-cpaint": return busy(async () => { await G.do("cpaint", { id: el.dataset.id, color: G.ui.ccolor || OSW.veh.COLORS[0] }); OSW.audio.sfx("magic"); toast("🎨 انتغيّر لون السيارة"); });
       case "g-abuy": { const A = AN[el.dataset.k]; if (needCoins(A.price)) return; return busy(async () => { await G.do("abuy", { kind: el.dataset.k }); OSW.audio.sfx("coin"); ui.hearts(A.e, 8); toast(`${A.e} اشتريتوا ${A.n} صغير!`); }); }
       case "g-afeed": return busy(async () => { await G.do("afeed", {}); OSW.audio.sfx("pop"); ui.hearts("🌾", 8); toast("🌾 الحيوانات شبعت"); });
       case "g-acollect": return busy(async () => { await G.do("acollect", {}); OSW.audio.sfx("coin"); toast("🧺 جمعتوا البيض والحليب"); });
       case "g-acarry": return busy(async () => { await G.do("acarry", { id: el.dataset.id }); OSW.audio.sfx("pop"); toast("🧍 شلت الحيوان! روح للملحمة 🥩"); });
       case "g-adrop": return busy(async () => { await G.do("adrop", {}); OSW.audio.sfx("pop"); });
-      case "g-asell": return busy(async () => { const t = G.animalCarry(db.uid).reduce((n, c) => n + AN[c.kind].sell, 0); await G.do("asell", {}); OSW.audio.sfx("fanfare"); ui.hearts("🪙", 14); toast(`🥩 أبو سليمان دفعلك ${t}🪙`, "gold"); const ab = OSW.world.npcPos && OSW.world; OSW.world.say("abusulaiman", "تسلم إيدك! صفقة رابحة 🤝", 4000); });
+      case "g-asell": return busy(async () => { const t = G.animalCarry(db.uid).reduce((n, c) => n + AN[c.kind].sell, 0); await G.do("asell", {}); OSW.audio.sfx("fanfare"); ui.hearts("🪙", 14); toast(`🥩 أبو سليمان دفعلك ${t}🪙`, "gold"); });
       case "g-psell": return busy(async () => { await G.do("psell", { id: el.dataset.id, qty: +el.dataset.q }); OSW.audio.sfx("coin"); toast("🪙 انباعت!"); });
       case "g-pstand": return busy(async () => { const s = G.state(); for (const k of Object.keys(PRODUCE)) if (s.inv[k] > 0) await db.addEntry({ house: "game", title: "psell", data: { id: k, qty: s.inv[k], stand: 1 } }); G.sync3d(); P.refresh(); OSW.audio.sfx("coin"); });
       case "g-gotobutcher": ui.closeModal(); return OSW.app.goPlace("butcher");
       case "g-gotopens": ui.closeModal(); return OSW.app.goPlace("pens");
-      case "g-gotoshop-pets": st.tab = "pets"; ui.closeModal(); return OSW.app.goPlace("shop");
-      case "g-pbuy": { const PT = PETS[el.dataset.k]; if (!PT || needCoins(PT.price)) return; const nm = ((document.getElementById("petName") || {}).value || "").trim().slice(0, 14); return busy(async () => { await G.do("pbuy", { kind: el.dataset.k, name: nm }); OSW.audio.sfx("fanfare"); ui.hearts(PT.e, 14); toast(`${PT.e} تبنّيت ${nm || PT.n}! بيمشي وراك بالقرية`, "love"); }); }
-      case "g-eat": { const f = FOOD[el.dataset.i]; if (!f) return; return busy(async () => { await G.do("eat", { item: el.dataset.i }); OSW.audio.sfx("pop"); ui.hearts(f.e, 6); toast(`${f.e} بالهنا والشفا`); }); }
-      case "g-sip": { const W = OSW.world, me = W.getMe(); if (W.mode !== "out" || Math.hypot(me.x, me.z) > 14) return toast("⛲ النافورة بنص الساحة، قرّب منها وجرّب"); if (Date.now() - G.needOf(db.uid).sip < 90000) return toast("لسا شربت قبل شوي 💧 استنى شوي"); return busy(async () => { await G.do("sip", {}); OSW.audio.sfx("magic"); ui.hearts("💧", 6); toast("💧 شربت من النافورة"); }); }
       case "g-gotoshop-hay": st.tab = "farm"; ui.closeModal(); return OSW.app.goPlace("shop");
       case "g-water": { if ((G.state().inv.wcan || 0) < 1) { toast("ما عندك ماء سقاية 💦 اشتري من سعدون"); return; } return busy(async () => { await G.do("water", {}); OSW.audio.sfx("magic"); ui.hearts("💦", 10); toast("سقيت الورد 🌹", "love"); if (G.view().completeNow) { ui.hearts("💞", 16); OSW.audio.sfx("fanfare"); } }); }
       case "g-feed": { const w = el.dataset.w, m = v().m[w]; if (m.up && el.dataset.i !== m.req) return toast("الحجّ زعلان وما بيقبل غير " + FOOD[m.req].e); return busy(async () => { const wasUp = m.up; await G.do("feed", { who: w, item: el.dataset.i }); OSW.audio.sfx("heart"); OSW.world.say(w, wasUp ? "الله يسامحكم… تسلم إيدك! 🤲" : rnd(["الله يسعدك! 🤲", "تسلم إيدك يا ولدي!", "بالهنا والشفا! 😊", "الله يخليكم لبعض 💞"]), 4000); if (G.state().blessed[G.today()]) ui.hearts("🤲", 12); }); }

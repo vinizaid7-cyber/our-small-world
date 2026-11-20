@@ -244,10 +244,45 @@
     return { id: "boutique", mesh: B.build(R.gl), boxes, acts, labels, poi, bounds: { x0: b.x0, x1: b.x1, z0: b.z0, z1: b.z1 }, spawn: { x: SH.ox, z: b.z1 - 3 }, exitAt: "boutique", env: "warm", camDist: 20, camPitch: 0.95,
       npcs: [{ id: "nawal", ref: "nawal", x: SH.ox, z: -0.1, face: 0, act: "counter" }] };
   }
-  INT.defs = { home: build_home, shop: build_shop, boutique: build_boutique };
+  function build_butcher() {
+    const B = new Builder(), boxes = [], acts = [], labels = [], poi = {};
+    const b = shopBase(B, boxes, { floor: "#e9e1d2", floor2: "#d6cdb9", wall: "#f7efe2" });
+    B.box(SH.ox, 0, b.z0 + 0.6, SH.hw * 2 - 1, 0.3, 0.8, "#b9b3a6"); B.box(SH.ox, 3.3, b.z0 + 0.8, SH.hw * 2 - 2, 0.1, 0.1, "#777");
+    for (let i = 0; i < 9; i++) { const x = SH.ox - 8 + i * 2; B.cyl(x, 1.4, b.z0 + 0.8, 0.03, 0.03, 1.9, "#777", 4); B.sphere(x, 1.9, b.z0 + 0.8, 0.28, 0.6, 0.22, i % 2 ? "#d9534f" : "#c0392b", 7); B.box(x - 0.18, 1.5, b.z0 + 0.75, 0.36, 0.05, 0.05, "#f1d9c6"); }
+    boxes.push({ x0: b.x0 + 0.5, x1: b.x1 - 0.5, z0: b.z0, z1: b.z0 + 1.4 });
+    B.box(SH.ox, 0, 1.2, 7.4, 1.0, 1.5, "#fff"); B.box(SH.ox, 1.0, 1.2, 7.6, 0.12, 1.7, "#c9c2b4"); B.box(SH.ox, 1.12, 1.5, 7.0, 0.7, 0.9, "#bfe9ff", 0.35);
+    [[-3, "#e57373"], [-1.6, "#d9534f"], [-0.2, "#f1b8a8"], [1.2, "#c0392b"], [2.6, "#e57373"]].forEach(([x, cc]) => { B.box(SH.ox + x, 1.14, 1.5, 1.0, 0.18, 0.6, "#fff"); B.sphere(SH.ox + x, 1.4, 1.5, 0.42, 0.2, 0.26, cc, 6); });
+    B.box(SH.ox - 3.0, 1.12, 0.6, 0.8, 0.5, 0.6, "#8a5a3b"); B.box(SH.ox + 3.2, 1.12, 0.7, 0.7, 0.14, 0.5, "#555"); B.box(SH.ox + 3.2, 1.26, 0.7, 0.5, 0.2, 0.04, "#8fd0ff", 0.6);
+    boxes.push({ x0: SH.ox - 3.9, x1: SH.ox + 3.9, z0: 0.3, z1: 2.1 });
+    acts.push({ act: "counter", x: SH.ox, y: 1.2, z: 1.2, r: 3.4 }); poi.counter = { x: SH.ox, z: 3.6 };
+    [[-7.5, 3.0], [7.5, 3.4]].forEach(([x, z], i) => { B.box(SH.ox + x, 0, z, 1.4, 0.9, 1.0, "#a97c50"); B.box(SH.ox + x, 0.9, z, 1.2, 0.08, 0.9, "#e8d9b0"); });
+    B.box(SH.ox + 8.6, 0, -2.5, 1.2, 2.6, 2.2, "#dfe6ec"); B.box(SH.ox + 8.0, 1.2, -2.5, 0.06, 0.3, 0.3, "#999");
+    labels.push({ id: "bul", text: "🥩 ملحمة أبو سليمان", x: SH.ox, y: 3.6, z: 0, cls: "", max: 60, scope: "in" }, { id: "bux", text: "🚪 اطلع", x: SH.ox, y: 3.4, z: b.z1, cls: "sm tap", act: "exit", max: 40, scope: "in" });
+    acts.push({ act: "exit", x: SH.ox, y: 1.2, z: b.z1 - 0.3, r: 2.2 }); poi.exit = { x: SH.ox, z: b.z1 - 2.2 };
+    return { id: "butcher", mesh: B.build(R.gl), boxes, acts, labels, poi, bounds: { x0: b.x0, x1: b.x1, z0: b.z0, z1: b.z1 }, spawn: { x: SH.ox, z: b.z1 - 3 }, exitAt: "butchershop", env: "warm", camDist: 20, camPitch: 0.95,
+      npcs: [{ id: "abu_in", ref: "abusulaiman", x: SH.ox, z: -0.2, face: 0, act: "counter" }] };
+  }
+  function build_dealer() {
+    const B = new Builder(), boxes = [], acts = [], labels = [], poi = {};
+    const b = shopBase(B, boxes, { floor: "#d7dbe0", floor2: "#c6cbd2", wall: "#f1f3f7" });
+    const cols = ["#e63946", "#4dabf7", "#ffd23f", "#2a9d8f", "#9b5de5"];
+    [[-6, 0], [-2, 1], [2, 2], [6, 3]].forEach(([dx, k]) => { const x = SH.ox + dx, z = b.z0 + 2.6; B.cyl(x, 0, z, 1.9, 1.9, 0.3, "#8e8e96", 12); B.box(x, 0.3, z, 1.9, 0.5, 3.4, cols[k]); B.box(x, 0.8, z - 0.3, 1.5, 0.55, 1.7, "#bfe9ff", 0.4); B.box(x, 0.84, z - 0.3, 1.58, 0.06, 1.8, cols[k]); [[-0.9, -1.2], [0.9, -1.2], [-0.9, 1.2], [0.9, 1.2]].forEach(([wx, wz]) => B.box(x + wx, 0, z + wz, 0.26, 0.6, 0.6, "#222")); });
+    boxes.push({ x0: b.x0 + 0.5, x1: b.x1 - 0.5, z0: b.z0, z1: b.z0 + 4.8 });
+    B.box(SH.ox, 0, 1.6, 6.4, 1.0, 1.3, "#2b3a55"); B.box(SH.ox, 1.0, 1.6, 6.6, 0.12, 1.5, "#d7dbe0"); B.box(SH.ox + 2.0, 1.12, 1.6, 0.8, 0.45, 0.5, "#555"); B.box(SH.ox + 2.0, 1.35, 1.8, 0.5, 0.22, 0.04, "#8fd0ff", 1);
+    boxes.push({ x0: SH.ox - 3.3, x1: SH.ox + 3.3, z0: 0.8, z1: 2.4 });
+    acts.push({ act: "counter", x: SH.ox, y: 1.2, z: 1.6, r: 3.4 }); poi.counter = { x: SH.ox, z: 4.0 };
+    acts.push({ act: "counter", x: SH.ox, y: 1.2, z: b.z0 + 2.6, r: 9 });
+    labels.push({ id: "dll", text: "🚗 معرض السيارات", x: SH.ox, y: 3.6, z: 0, cls: "", max: 60, scope: "in" }, { id: "dlx", text: "🚪 اطلع", x: SH.ox, y: 3.4, z: b.z1, cls: "sm tap", act: "exit", max: 40, scope: "in" });
+    acts.push({ act: "exit", x: SH.ox, y: 1.2, z: b.z1 - 0.3, r: 2.2 }); poi.exit = { x: SH.ox, z: b.z1 - 2.2 };
+    return { id: "dealer", mesh: B.build(R.gl), boxes, acts, labels, poi, bounds: { x0: b.x0, x1: b.x1, z0: b.z0, z1: b.z1 }, spawn: { x: SH.ox, z: b.z1 - 3 }, exitAt: "dealer", env: "warm", camDist: 20, camPitch: 0.95,
+      npcs: [{ id: "karim_in", ref: "karim", x: SH.ox, z: 0.2, face: 0, act: "counter" }] };
+  }
+  INT.defs = { home: build_home, shop: build_shop, boutique: build_boutique, butcher: build_butcher, dealer: build_dealer };
   INT.get = (id) => INT.cache[id] || (INT.cache[id] = INT.defs[id]());
-  INT.outAt = { home: { x: 0, z: -6.4 }, shop: { x: -24, z: 15.6 }, boutique: { x: -40, z: 37.2 } };
-  INT.enterAct = { home: "home", shop: "shop", boutique: "boutique" };
+  INT.outAt = { home: { x: 0, z: -6.4 }, shop: { x: -24, z: 15.6 }, boutique: { x: OSW.EX.BOUTIQUE.x + Math.sin(OSW.EX.BOUTIQUE.ry) * 6.6, z: OSW.EX.BOUTIQUE.z + Math.cos(OSW.EX.BOUTIQUE.ry) * 6.6 }, butcher: { x: OSW.EX.BUTCHER.x + Math.sin(OSW.EX.BUTCHER.ry) * 7, z: OSW.EX.BUTCHER.z + Math.cos(OSW.EX.BUTCHER.ry) * 7 }, dealer: { x: OSW.EX.DEALER.x + Math.sin(OSW.EX.DEALER.ry) * 7.2, z: OSW.EX.DEALER.z + Math.cos(OSW.EX.DEALER.ry) * 7.2 } };
+  INT.enterAct = { home: "home", shop: "shop", boutique: "boutique", butcher: "butchershop", dealer: "dealer" };
+  OSW.NPC_BY.abusulaiman = { id: "abusulaiman", name: "أبو سليمان الجزّار", emoji: "🧔", look: { gender: "boy", color: "#f4f1e8", hair: "#1b1b1b", hairStyle: "cap", cap: "#f4f1e8", apron: "#b3263e", mustache: true }, act: "counter", lines: ["الخروف البلدي أحلى شي! جيبوا خرفانكم 🐑", "اللحمة الطازة كل يوم عندي 🥩", "ما بشتري الصغار… استنوا يكبروا 😄", "منسف اليوم؟ عندي اللحمة 🍲"] };
+  OSW.NPC_BY.karim = { id: "karim", name: "أبو كريم", emoji: "🧑‍💼", look: { gender: "boy", color: "#2b3a55", hair: "#2a1d12", hairStyle: "short", tie: "#c0392b" }, act: "counter", lines: ["كل سيارة بتسع اثنين، إنت وحبيبتك 🚗❤️", "البكم بيشيل 6 خرفان مرة وحدة 🛻", "السبورت أسرع شي على الطريق الطويل 🏎️", "الطريق للجزيرة طويل… جهزوا الأغاني 🎶"] };
 
   OSW.NPC_BY.nawal = { id: "nawal", name: "نوال", emoji: "👩‍🎨", look: { gender: "girl", color: "#b565b0", hair: "#3b2a20", hairStyle: "ponytail", skin: "#f2c9a0" }, act: "counter",
     lines: ["أهلين فيكم! شو بتدوروا؟ عندي أحلى الأطقم 👗", "البدلة الرسمية للمناسبات بس… بتتقل عالمشي 😅", "الجري بلبس رياضي أسرع بكتير! 🏃", "جرّبوا قدام المرآة 🪞"] };

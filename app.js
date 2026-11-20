@@ -204,8 +204,9 @@
 
   async function goPlace(id) {
     if (!$("#modal").hidden && P.current === id) return;
-    if (!["fountain", "plaza", "tree", "garden", "lighthouse", "gate", "home", "ach", "shop", "farm", "flowers", "hajji", "tasks", "orders", "inv", "boutique", "wardrobe", "cart", "pens", "butcher", "draw", "fishing"].includes(id) && !G.openers[id]) return;
-    if (W.mode === "out" && W.S.poi[id]) await W.walkToPOI(id);
+    if (!["fountain", "plaza", "tree", "garden", "lighthouse", "gate", "home", "ach", "shop", "farm", "flowers", "hajji", "tasks", "orders", "inv", "boutique", "wardrobe", "cart", "pens", "butcher", "draw", "fishing", "cars"].includes(id) && !G.openers[id]) return;
+    if (W.mode === "out" && W._int.me.veh) return ui.toast("🚪 انزلوا من السيارة أول");
+    if (W.mode === "out" && W.S.poi[id]) { const p = W.S.poi[id], m = W._int.me; if ((p.z > 1000) !== (m.z > 1000)) return ui.toast("🚗 المكان بالجزيرة الثانية — لازم سيارة عشان توصلوا!"); await W.walkToPOI(id); }
     W.setInputEnabled(false); OSW.audio.sfx("pop"); P.open(id);
     const prev = ui.onModalClose; ui.onModalClose = () => { prev && prev(); W.setInputEnabled(true); };
   }
@@ -250,14 +251,16 @@
     if (k === "console") return openConsole(v);
     if (k === "scene") return OSW.events && OSW.events.openScene(v);
     if (k === "furn") return furnTap(v);
-    if (k === "counter") return goPlace(W.interior === "boutique" ? "boutique" : "shop");
+    if (k === "counter") return goPlace(W.interior === "boutique" ? "boutique" : W.interior === "butcher" ? "butcher" : W.interior === "dealer" ? "cars" : "shop");
     if (k === "shelf") return goPlace("shop");
     if (k === "rack") return goPlace("boutique");
     if (k === "mirror") return goPlace("wardrobe");
     if (W.mode === "out" && (act === "home" || act === "shop" || act === "boutique")) return enterInterior(act);
+    if (k === "car") return OSW.veh.tap(v);
+    if (act === "butchershop" && W.mode === "out") return enterInterior("butcher");
+    if (act === "dealer" && W.mode === "out") return enterInterior("dealer");
     if (k === "barn") return barnAct();
     if (k === "pet") { OSW.audio.sfx("heart"); ui.hearts("🐱", 6); W.say("pet", rand(["مياوو 😻", "بدي سمكة 🐟", "فركلي راسي 💕", "بحبكم! مياو"]), 3500); return; }
-    if (k === "mypet") { const p = OSW.game.state().pets.find((x) => x.id === v); if (!p) return; const PT = OSW.game.PETS[p.kind]; OSW.audio.sfx("heart"); ui.hearts(PT.e, 6); W.say("pet:" + v, (p.name ? p.name + ": " : "") + rand(PT.says), 3500); return; }
     if (k === "npc") return npcTalk(v);
     return goPlace(k);
   }
@@ -342,7 +345,7 @@
     snd.onclick = () => { const on = OSW.audio.toggle(); snd.textContent = on ? "🔊" : "🔇"; ui.toast(on ? "الصوت شغّال 🎶" : "الصوت مسكّر", "", 1500); };
     $("#btnAch").onclick = () => !busyNav && goPlace("ach"); $("#btnMenu").onclick = () => !busyNav && goPlace("gate");
     $("#btnTasks").onclick = () => !busyNav && goPlace("tasks"); $("#btnChat").onclick = () => OSW.chat.toggle(); $("#btnFurn").onclick = () => !busyNav && P.open("furniture"); $("#placeRot").onclick = () => rotateFurn(); $("#placeCancel").onclick = () => cancelPlacing();
-    const sp = $("#btnSprint"); sp.onpointerdown = (e) => { e.preventDefault(); W.setSprint(true); sp.classList.add("on"); }; const spOff = () => { W.setSprint(false); sp.classList.remove("on"); }; sp.onpointerup = spOff; sp.onpointerleave = spOff; sp.onpointercancel = spOff; $("#coinPill").onclick = () => !busyNav && goPlace("inv"); $("#needPill").onclick = () => !busyNav && P.open("needs"); $("#dayPill").onclick = () => !busyNav && goPlace("plaza");
+    const sp = $("#btnSprint"); sp.onpointerdown = (e) => { e.preventDefault(); W.setSprint(true); sp.classList.add("on"); }; const spOff = () => { W.setSprint(false); sp.classList.remove("on"); }; sp.onpointerup = spOff; sp.onpointerleave = spOff; sp.onpointercancel = spOff; $("#coinPill").onclick = () => !busyNav && goPlace("inv"); $("#dayPill").onclick = () => !busyNav && goPlace("plaza");
     $("#guide").onclick = guideTalk;
     $("#zoomctl").onclick = (e) => {
       const b = e.target.closest("[data-z]"); if (!b) return; const z = b.dataset.z;

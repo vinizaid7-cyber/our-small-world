@@ -220,7 +220,7 @@ void main(){
   // env: {sunDir,sunCol,ambTop,ambBot,night,fogN,fogF,time}
   R.begin = (eye, target, fov, env) => {
     const gl = R.gl, u = R.u;
-    const proj = M.perspective(fov, R.aspect, 0.8, 520), view = M.lookAt(eye, target);
+    const proj = M.perspective(fov, R.aspect, R.near || 0.8, 520), view = M.lookAt(eye, target);
     M.mul(proj, view, R.vp); M.invert(R.vp, R.ivp); R.eye = eye;
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT); gl.uniform1f(u.uShadow, 0);
     gl.uniformMatrix4fv(u.uVP, false, R.vp); gl.uniform3fv(u.uSunDir, env.sunDir); gl.uniform3fv(u.uSunCol, env.sunCol);

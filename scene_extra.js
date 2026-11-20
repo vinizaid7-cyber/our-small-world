@@ -12,7 +12,9 @@
   X.WINDMILL = { x: -5, z: -41 };
 
   /* ================= أماكن عامة جديدة ================= */
-  X.BUTCHER = { x: -44, z: 1 };
+  X.BUTCHER = { x: 30, z: 1148, ry: -PI / 2 };
+  X.BOUTIQUE = { x: -30, z: 1148, ry: PI / 2 };
+  X.DEALER = { x: -23, z: 86, ry: PI / 2 };
   X.SQUARE = { x: 0, z: 60 };
 
   /* ================= أجزاء مشتركة ================= */
@@ -27,7 +29,6 @@
     // قضبان
     const segs = [[x0, z0, x1, z1]];
     if (gap && Math.abs(z0 - z1) < 0.01 && Math.abs(z0 - gap[2]) < 0.5) { segs.length = 0; if (gap[0] > Math.min(x0, x1)) segs.push([x0, z0, gap[0], z1]); if (gap[1] < Math.max(x0, x1)) segs.push([gap[1], z0, x1, z1]); }
-    if (col.seg) segs.forEach(([a, b, c, d]) => { if (hy(c - a, d - b) > 0.01) col.seg(a, b, c, d); });
     segs.forEach(([a, b, c, d]) => { const l = hy(c - a, d - b); if (l < 0.3) return; [0.35, 0.72].forEach((y) => { B.push((a + c) / 2, y, (b + d) / 2, ang); B.box(0, 0, 0, 0.1, 0.12, l, "#a97c50"); B.pop(); }); });
   }
   X.fenceLine = fenceLine;
@@ -75,7 +76,6 @@
     // ظل وتصادم (النص الخلفي بس)
     SH.disc(cx, 0.1, cz - 1, 13, "#000000", 18);
     for (let i = -3; i <= 3; i++) col(cx + i * 3.4, cz - 4.2, 3.2);
-    if (col.rect) { col.rect(cx - rx, cz - d / 2, cx - rx + 0.3, cz + d / 2); col.rect(cx + rx - 0.3, cz - d / 2, cx + rx, cz + d / 2); col.rect(cx - rx, cz - d / 2, cx + rx, cz - d / 2 + 0.3); }
   }
 
   /* ---- طاحونة وصومعة ---- */
@@ -148,7 +148,7 @@
   /* ================= الملحمة ================= */
   X.buildButcher = function (c) {
     const { B, SH, S, reg, label, col } = c, b = X.BUTCHER;
-    B.push(b.x, 0, b.z);
+    B.push(b.x, 0, b.z, b.ry || 0);
     hp.found(B, 8.4, 5.6, "#8d8478");
     B.box(0, 0.35, 0, 8.4, 3.5, 5.6, "#f3e7d3"); B.box(0, 0.35, 2.75, 8.4, 1.15, 0.12, "#a3392e");        // حيط + شريط أحمر
     B.box(0, 3.85, 0, 9.0, 0.45, 6.2, "#7a2e1f"); B.box(0, 4.3, 0, 8.4, 0.2, 5.6, "#9b3b2b");
@@ -172,8 +172,9 @@
     B.box(-5.2, 0, 3.2, 1.0, 0.8, 1.0, "#c9a06a"); B.box(-5.3, 0.8, 3.1, 0.8, 0.6, 0.8, "#b9915a"); B.box(5.3, 0, 3.2, 1.2, 0.5, 1.0, "#9a6a45");
     B.pop();
     SH.disc(b.x, 0.1, b.z, 6.6, "#000000", 16); col(b.x, b.z, 5.2);
-    S.poi.butcher = { x: b.x - 1.0, z: b.z + 6.8 };
-    reg("butcher", b.x, 2.4, b.z, 6.2, S.poi.butcher.x, S.poi.butcher.z); label("butcher", "🥩 ملحمة أبو سليمان", b.x, 9.0, b.z, { act: "butcher", max: 85, badge: "butcher" });
+    const fx = Math.sin(b.ry || 0), fz = Math.cos(b.ry || 0);
+    S.poi.butchershop = { x: b.x + fx * 7.0, z: b.z + fz * 7.0 };
+    reg("butchershop", b.x, 2.4, b.z, 6.2, S.poi.butchershop.x, S.poi.butchershop.z); label("butchershop", "🥩 ملحمة أبو سليمان", b.x, 9.0, b.z, { act: "butchershop", max: 85, badge: "butcher" });
   };
 
   X.buildPier = function (c) {
@@ -181,6 +182,87 @@
     B.box(64.9, 0.1, -2, 1.6, 0.16, 3.0, "#b98d5e"); [[-1.3], [1.3]].forEach(([dz]) => { B.box(65.5, 0, -2 + dz, 0.14, 1.1, 0.14, "#7a5236"); }); B.box(66.0, 0.15, -2, 0.1, 1.3, 0.1, "#7a5236"); B.box(66.4, 1.3, -2, 1.0, 0.04, 0.04, "#555");
     B.box(62.5, 0, -3.5, 1.0, 0.5, 0.7, "#a97c50"); B.box(62.5, 0.5, -3.5, 1.1, 0.1, 0.8, "#7a5236");
     S.poi.fishing = { x: 63.6, z: -2 }; reg("fishing", 65, 1, -2, 3.2, 63.6, -2); label("fishing", "🎣 صيد السمك", 65, 3.4, -2, { act: "fishing", max: 70 });
+  };
+
+
+  /* ================= محل الأناقة (صار بالجزيرة الثانية) ================= */
+  X.buildBoutique = function (c) {
+    const { B, SH, S, reg, label, col } = c, bq = X.BOUTIQUE;
+    B.push(bq.x, 0, bq.z, bq.ry); hp.found(B, 8, 5.4);
+    B.box(0, 0.35, 0, 8, 3.7, 5.4, "#f7d6ec"); B.box(0, 4.05, 0, 8.8, 0.4, 6.2, "#8e4a94"); B.box(0, 4.45, 2.4, 7.0, 0.9, 0.4, "#b565b0");
+    B.box(-2.1, 0.6, 2.72, 3.2, 2.6, 0.12, "#6b4a70"); B.box(-2.1, 0.7, 2.8, 2.9, 2.4, 0.1, "#ffe3f3", 1); B.box(2.6, 0.6, 2.72, 2.2, 2.6, 0.12, "#6b4a70"); B.box(2.6, 0.7, 2.8, 1.9, 2.4, 0.1, "#ffe3f3", 1);
+    hp.door(B, 0.1, 2.7, "#8e4a94", 1.3, 2.4);
+    for (let i = 0; i < 6; i++) { B.push(-3.4 + i * 1.36, 3.4, 3.4, 0, -0.5); B.box(0, 0, 0, 1.3, 0.1, 2.0, i % 2 ? "#fff" : "#d6639c"); B.pop(); }
+    [[-4.8, "#ff7aa8"], [-5.9, "#6d3fb3"], [4.9, "#2b3a55"]].forEach(([x, cc]) => { B.cyl(x, 0, 3.6, 0.5, 0.3, 1.2, cc, 8); B.box(x, 1.2, 3.6, 0.5, 0.6, 0.3, cc); B.sphere(x, 2.05, 3.6, 0.22, 0.26, 0.22, "#f2d9c8", 7); });
+    B.pop(); SH.disc(bq.x, 0.1, bq.z, 6.4, "#000000", 16); col(bq.x, bq.z, 5.0);
+    S.poi.boutique = { x: bq.x + Math.sin(bq.ry) * 6.6, z: bq.z + Math.cos(bq.ry) * 6.6 };
+    reg("boutique", bq.x, 2.4, bq.z, 5.6, S.poi.boutique.x, S.poi.boutique.z); label("boutique", "👗 محل الأناقة", bq.x, 8.6, bq.z, { act: "boutique", max: 90 });
+  };
+
+  /* ================= معرض السيارات (القرية، جنب الطريق) ================= */
+  X.buildDealer = function (c) {
+    const { B, SH, S, reg, label, col } = c, d = X.DEALER;
+    B.push(d.x, 0, d.z, d.ry); hp.found(B, 10, 7, "#8e8e96");
+    B.box(0, 0.35, 0, 10, 3.9, 7, "#eef1f5"); B.box(0, 4.25, 0, 10.6, 0.4, 7.6, "#2b3a55"); B.box(0, 4.65, 3.0, 9, 1.4, 0.4, "#c0392b");
+    B.box(0, 0.6, 3.52, 8.2, 2.9, 0.12, "#bfe9ff", 0.45); [-4.1, -1.4, 1.4, 4.1].forEach((x) => B.box(x, 0.4, 3.55, 0.14, 3.2, 0.16, "#2b3a55"));
+    hp.door(B, 0, 3.55, "#2b3a55", 1.8, 2.4);
+    B.box(0, 4.7, 3.22, 8.4, 1.0, 0.1, "#f4ead2"); for (let i = 0; i < 6; i++) B.box(-3.5 + i * 1.4, 4.9, 3.28, 1.0, 0.6, 0.04, i % 2 ? "#c0392b" : "#2b3a55");
+    [[-3.6, "#e63946"], [3.6, "#4dabf7"]].forEach(([x, cc]) => { B.box(x, 0.35, 1.6, 2.2, 0.15, 3.4, "#d7d9de"); B.box(x, 0.5, 1.6, 1.6, 0.5, 2.8, cc); B.box(x, 1.0, 1.4, 1.3, 0.45, 1.5, lt(cc, 0.3)); });
+    B.pop(); SH.disc(d.x, 0.1, d.z, 7, "#000000", 16); col(d.x, d.z, 5.4);
+    const fx = Math.sin(d.ry), fz = Math.cos(d.ry);
+    S.poi.dealer = { x: d.x + fx * 7.2, z: d.z + fz * 7.2 }; reg("dealer", d.x, 2.4, d.z, 6.4, S.poi.dealer.x, S.poi.dealer.z); label("dealer", "🚗 معرض السيارات", d.x, 9.4, d.z, { act: "dealer", max: 110 });
+    // موقف القرية
+    const A = OSW.veh ? OSW.veh.LOTS.A : { x: 11, z: 72 };
+    B.box(A.x - 0.2, 0.06, 83, 9, 0.05, 27, "#4a4d55"); for (let i = 0; i <= 6; i++) B.box(A.x - 0.2, 0.1, 70.1 + i * 4.2, 8, 0.03, 0.12, "#f4f4f4"); label("lotA", "🅿️ موقف", A.x + 1.5, 3, 96, { cls: "sm", max: 40 });
+    // بوابة الطريق الطويل
+    B.box(-5.6, 0, 100, 0.6, 5.0, 0.6, "#c0392b"); B.box(5.6, 0, 100, 0.6, 5.0, 0.6, "#c0392b"); B.box(0, 4.6, 100, 12.2, 0.9, 0.5, "#f4ead2"); B.box(0, 4.7, 100.3, 11.6, 0.7, 0.05, "#2b3a55");
+    for (let i = 0; i < 8; i++) B.box(-5.2 + i * 1.5, 5.5, 100, 0.8, 0.3, 0.3, i % 2 ? "#fff" : "#c0392b");
+    label("roadgate", "🛣️ طريق الجزيرة · للسيارات فقط", 0, 7.2, 100, { cls: "sm", max: 70 });
+    col(-5.6, 100, 0.6); col(5.6, 100, 0.6);
+  };
+
+  /* ================= الطريق الطويل + الجزيرة الثانية ================= */
+  X.buildRoadAndIsland = function (c) {
+    const { B, F, SH, S, reg, label, col, rnd, P } = c, V = OSW.veh, I = V.ISLE, R0 = V.ROAD, zEnd = R0.z1;
+    // بحر
+    B.disc(0, -0.4, 0, 2600, "#3b8fd0", 48); B.disc(I.x, -0.38, I.z, I.r + 14, "#79c6ee", 40);
+    // الطريق (أسفلت) + جسر فوق البحر
+    B.box(0, -0.75, (250 + zEnd) / 2, R0.w + 1.2, 0.9, zEnd - 250, "#6e6f78");
+    B.strip([[0, R0.z0], [0, zEnd + 6]], R0.w, 0.14, "#3b3f47");
+    B.strip([[-4.5, R0.z0], [-4.5, zEnd + 6]], 0.22, 0.16, "#f4f4f4"); B.strip([[4.5, R0.z0], [4.5, zEnd + 6]], 0.22, 0.16, "#f4f4f4");
+    for (let z = R0.z0 + 6; z < zEnd; z += 7) B.box(0, 0.15, z, 0.2, 0.03, 2.6, "#ffd23f");
+    for (let z = 250; z < zEnd; z += 40) B.cyl(0, -4, z, 1.0, 1.0, 3.5, "#8a8a92", 8);
+    for (let z = R0.z0 + 20; z < zEnd; z += 8) [-1, 1].forEach((sd) => B.box(sd * 5.4, 0, z, 0.2, 0.95, 0.2, "#9aa0a8"));
+    [-1, 1].forEach((sd) => { B.box(sd * 5.4, 0.75, (R0.z0 + 20 + zEnd) / 2, 0.14, 0.14, zEnd - R0.z0 - 20, "#c9ccd2"); B.box(sd * 5.4, 0.4, (R0.z0 + 20 + zEnd) / 2, 0.1, 0.1, zEnd - R0.z0 - 20, "#c9ccd2"); });
+    // أعمدة إنارة
+    for (let z = R0.z0 + 30, i = 0; z < zEnd; z += 32, i++) { const sd = i % 2 ? 1 : -1; B.cyl(sd * 5.4, 0, z, 0.1, 0.08, 4.4, "#4a3d38", 6); B.box(sd * 4.6, 4.3, z, 1.6, 0.1, 0.12, "#4a3d38"); B.sphere(sd * 3.9, 4.15, z, 0.3, 0.2, 0.3, "#ffe7a0", 6, 1); }
+    // لوحات المسافة كل 100م
+    for (let z = 200, k = 0; z < zEnd - 50; z += 100, k++) { const rem = Math.round((zEnd - z) / 10) * 10; B.box(6.6, 0, z, 0.14, 2.4, 0.14, "#555"); B.box(6.6, 1.6, z, 0.16, 1.1, 2.2, "#1f7a44"); B.box(6.7, 1.7, z, 0.05, 0.9, 2.0, "#f4f4f4", 0.2); label("km" + k, "🏝️ الجزيرة بعد " + rem + " م", 6.6, 3.6, z, { cls: "sm", max: 55 }); }
+    // بوابة النهاية
+    B.box(-5.6, 0, zEnd + 4, 0.6, 5.0, 0.6, "#1f7a44"); B.box(5.6, 0, zEnd + 4, 0.6, 5.0, 0.6, "#1f7a44"); B.box(0, 4.6, zEnd + 4, 12.2, 0.9, 0.5, "#f4ead2"); label("isgate", "🏝️ أهلاً بكم بالجزيرة الثانية", 0, 6.8, zEnd + 4, { cls: "", max: 90 });
+    // الجزيرة: رمل + عشب + ساحة
+    B.disc(I.x, 0.02, I.z, I.r, "#eddcb5", 48); B.disc(I.x, 0.04, I.z, I.r - 14, P.g1, 48); B.disc(I.x, 0.06, I.z, 20, "#d9cba6", 32); B.disc(I.x, 0.07, I.z, 18, "#efe2c2", 32);
+    B.strip([[0, zEnd + 6], [0, I.z - 18]], R0.w, 0.14, "#3b3f47");
+    B.cyl(I.x, 0, I.z, 3.2, 3.2, 0.7, "#9aa7b8", 16); B.cyl(I.x, 0.6, I.z, 2.8, 2.8, 0.1, "#63b6ee", 16); B.cyl(I.x, 0.1, I.z, 0.35, 0.3, 2.6, "#c0c8d6", 8); B.sphere(I.x, 2.9, I.z, 0.9, 0.35, 0.9, "#c0c8d6", 10, 0, true); col(I.x, I.z, 3.4);
+    label("isl", "🏝️ الجزيرة الثانية", I.x, 9, I.z + 12, { cls: "", max: 130 });
+    // موقف الجزيرة
+    const L = V.LOTS.B; B.box(L.x + 0.2, 0.1, L.z + 10.5, 9, 0.05, 27, "#4a4d55"); for (let i = 0; i <= 6; i++) B.box(L.x + 0.2, 0.14, L.z - 2.1 + i * 4.2, 8, 0.03, 0.12, "#f4f4f4"); label("lotB", "🅿️ موقف", L.x - 1.5, 3, L.z + 24, { cls: "sm", max: 40 });
+    // محلات الجزيرة
+    X.buildBoutique(c); X.buildButcher({ B, SH, S, reg, label, col });
+    // نخيل وزينة
+    const palm = (x, z, s) => { const lean = rnd() * 0.5 - 0.25; B.push(x, 0, z, rnd() * 6.28); B.push(0, 0, 0, 0, lean); B.cyl(0, 0, 0, 0.3 * s, 0.2 * s, 4.2 * s, "#9a7650", 6); for (let i = 0; i < 4; i++) B.box(0, (0.8 + i * 0.9) * s, 0, 0.5 * s, 0.07, 0.5 * s, "#7a5a3a"); B.pop(); F.push(x + Math.sin(lean) * 0, 4.1 * s, z, 0); for (let i = 0; i < 7; i++) { F.push(0, 0, 0, (i / 7) * PI * 2); F.push(0, 0, 0, 0, 0.6 + (i % 2) * 0.25); F.box(0, 0, 1.2 * s, 0.7 * s, 0.05, 2.6 * s, i % 2 ? "#4fa860" : "#3f9a52"); F.pop(); F.pop(); } F.sphere(0, -0.1, 0, 0.35, 0.3, 0.35, "#7a5a3a", 5); F.pop(); B.pop(); col(x, z, 0.5); S._sh(x, z, 1.8); };
+    for (let t = 0, n = 0; t < 4000 && n < 70; t++) {
+      const a = rnd() * PI * 2, r = 20 + rnd() * (I.r - 24), x = I.x + Math.sin(a) * r, z = I.z + Math.cos(a) * r;
+      if (Math.abs(x) < 8 && z < I.z) continue; if (hy(x + 30, z - 1148) < 9 || hy(x - 30, z - 1148) < 9 || (x > -14 && x < 6 && z > 1096 && z < 1130)) continue; if (z < 1100 && Math.abs(x) < 14) continue;
+      n++; palm(x, z, 0.9 + rnd() * 0.5);
+    }
+    // مظلات وكراسي شاطئ
+    for (let i = 0; i < 6; i++) { const a = 0.5 + i * 0.9, r = I.r - 7, x = I.x + Math.sin(a + 2.2) * r, z = I.z + Math.cos(a + 2.2) * r; B.cyl(x, 0, z, 0.06, 0.06, 2.4, "#eee", 5); B.cyl(x, 2.2, z, 1.5, 0, 0.7, ["#e63946", "#ffd23f", "#2a9d8f", "#ff8c42", "#9b5de5", "#4dabf7"][i], 8); B.box(x + 1.2, 0.1, z, 0.8, 0.12, 1.8, "#f4f4f4"); }
+    for (let i = 0; i < 22; i++) { const a = rnd() * 6.28, r = I.r - 10 + rnd() * 8; B.sphere(I.x + Math.sin(a) * r, 0.2, I.z + Math.cos(a) * r, 0.5 + rnd() * 0.5, 0.35, 0.5, "#9aa0a8", 5); }
+    [[-16, 1135], [16, 1135], [-16, 1165], [16, 1165]].forEach(([x, z]) => { B.cyl(x, 0, z, 0.1, 0.08, 3.4, "#4a3d38", 6); B.sphere(x, 3.6, z, 0.34, 0.4, 0.34, "#ffe7a0", 7, 1); col(x, z, 0.3); });
+    [[-9, 1170, 0], [9, 1170, 0], [0, 1196, PI]].forEach(([x, z, r]) => { B.push(x, 0, z, r); B.box(0, 0.4, 0, 1.8, 0.1, 0.55, "#a97c50"); B.box(0, 0.8, -0.22, 1.8, 0.45, 0.08, "#a97c50"); B.box(-0.8, 0, 0, 0.1, 0.4, 0.5, "#555"); B.box(0.8, 0, 0, 0.1, 0.4, 0.5, "#555"); B.pop(); });
+    // مرسى صغير
+    B.box(0, 0.05, I.z + I.r + 6, 3.4, 0.2, 18, "#b98d5e"); B.push(6, 0.3, I.z + I.r + 8, 0.3); B.box(0, 0, 0, 2.2, 0.5, 5, "#f4f1e8"); B.box(0, 0.5, 0, 1.4, 0.7, 1.8, "#c0392b"); B.pop();
   };
 
   /* ================= بيوت أهل القرية (8 تصاميم) ================= */
@@ -294,15 +376,12 @@
     B.box(0.0, 0.5, 4.8, 1.4, 0.9, 0.7, "#9a6a45"); B.sphere(-4.9, 0.6, 3.6, 0.5, 0.4, 0.5, "#e0c36a", 6); B.sphere(-5.4, 0.45, 4.2, 0.4, 0.3, 0.4, "#e0c36a", 6);
   };
   X.HOUSE_COUNT = 8;
-  // بصمة كل تصميم [عرض، عمق] (البيت الدائري بدون مستطيل)
-  X.FOOT = { 0: [9, 6.6], 1: [8.4, 6.2], 2: [10, 6.8], 3: [6.8, 6], 4: [9.2, 6.6], 6: [6.4, 5.4], 7: [9, 6.4] };
 
   /* ================= بيت جاهز (كل شي حواليه) ================= */
   X.buildVillager = function (c, v) {
     const { B, SH, col, label } = c, m = META[v.t % X.HOUSE_COUNT];
     B.push(v.x, 0, v.z, PI); HOUSE[v.t % X.HOUSE_COUNT](B, v); B.pop();
     SH.disc(v.x, 0.1, v.z, m.r + 1.6, "#000000", 14); col(v.x, v.z, m.r - 0.6);
-    { const fp = X.FOOT[v.t % X.HOUSE_COUNT]; if (fp && col.rect) col.rect(v.x - fp[0] / 2 - 0.25, v.z - fp[1] / 2 - 0.25, v.x + fp[0] / 2 + 0.25, v.z + fp[1] / 2 + 0.25); }
     // صندوق بريد + عمود إنارة جنب الباب (الباب بالجهة -z)
     B.push(v.x, 0, v.z - 6.6, 0); B.box(0, 0, 0, 0.1, 1.1, 0.1, "#555"); B.box(0, 1.1, 0, 0.55, 0.38, 0.4, v.roof); B.box(0.3, 1.25, 0, 0.04, 0.2, 0.1, "#e63946"); B.pop();
     label(v.id, "🏠 " + v.name, v.x, m.h + 1.2, v.z, { max: 52, cls: "sm" });

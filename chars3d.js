@@ -147,8 +147,6 @@
   OSW.NPCS = [
     { id: "saadoun", name: "سعدون", emoji: "🧑‍🍳", look: { gender: "boy", color: "#f4f1e8", hair: "#1b1b1b", hairStyle: "cap", cap: "#2f8f5b", apron: "#2f8f5b", mustache: true }, pos: [-24, 13.2], face: 0, stay: true, act: "shop",
       lines: ["أهلين وسهلين! شو بدك اليوم؟ عندي أطيب خضرة بالقرية 🥬", "والله الطماطم اليوم نار! جرّب وبتشكرني 😎", "أنا ما بسرق… بس بحسب غلط أحياناً 😂", "راتبي ما بكفي حق القهوة! اشتروا كتير يا جماعة ☕", "للحجّي والحجّة عندي خبز طازة وشاي وتمر 🌴"] },
-    { id: "abusulaiman", name: "أبو سليمان الجزّار", emoji: "🧔", look: { gender: "boy", color: "#f4f1e8", hair: "#1b1b1b", hairStyle: "cap", cap: "#f4f1e8", apron: "#b3263e", mustache: true }, pos: [-41.6, 6.9], face: 0, stay: true, act: "butcher",
-      lines: ["الخروف البلدي أحلى شي! جيبوا خرفانكم 🐑", "اللحمة الطازة كل يوم عندي 🥩", "ما بشتري الصغار… استنوا يكبروا 😄", "منسف اليوم؟ عندي اللحمة 🍲"] },
     { id: "hajji", name: "الحجّي أبو محمود", emoji: "👳", look: { gender: "boy", elder: true, color: "#efe9d8", pants: "#cfc7b4", hair: "#eee", hairStyle: "keffiyeh", mustache: true, cane: true }, pos: [-64.4, 14.2], face: 0.3, stay: true, act: "hajji",
       lines: ["الله يحفظكم ويجمعكم يا ولدي، ويرزقكم السعادة 🤲", "أيام زمان كان الشاي على الفحم أطيب! ☕", "ما أحلى لمّة الحبايب… دوموا لبعض.", "الحبيب الصادق يا ابني بيسأل عنك وانت مش جنبو."] },
     { id: "hajjeh", name: "الحجّة أم محمود", emoji: "👵", look: { gender: "girl", elder: true, color: "#5a3d6b", hair: "#f7f7f7", hairStyle: "hijab", skin: "#e8bf98" }, pos: [-59.6, 14.2], face: -0.3, stay: true, act: "hajji",

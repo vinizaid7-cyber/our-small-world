@@ -440,14 +440,18 @@ html.inside #world{background:radial-gradient(circle at 50% 38%,#3d2f5e,#1b1530 
 .dr-pair figcaption{display:flex;gap:5px;justify-content:center;align-items:center;font-weight:700;font-size:13px}.dr-pair figcaption i{width:10px;height:10px;border-radius:50%}
 .dr-rx{display:flex;gap:3px;justify-content:center;margin-top:3px}.dr-rx button{background:var(--panel2);border-radius:99px;padding:1px 8px;font-size:14px}.dr-rx button.on{background:#ffd9e6}
 
-/* ===== جوع/عطش + قوالب البيت ===== */
-.pill.need{cursor:pointer;gap:6px}
-.pill.need b{min-width:1.6em;display:inline-block;text-align:center}
-.pill.need.low{background:#fde4e4;color:#9b1c1c;animation:needpulse 1.4s ease-in-out infinite}
-@keyframes needpulse{0%,100%{box-shadow:0 0 0 0 rgba(214,51,108,.0)}50%{box-shadow:0 0 0 6px rgba(214,51,108,.28)}}
-.tpls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0}
-.tpl{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-radius:14px;border:2px solid rgba(0,0,0,.12);background:#fff;font:inherit;cursor:pointer;color:#2A1F4D}
-.tpl span{font-size:26px;line-height:1}
-.tpl small{font-size:12px;font-weight:700}
-.tpl.on{border-color:#d6336c;background:#fff0f5;box-shadow:0 0 0 3px rgba(214,51,108,.18)}
-@media (prefers-reduced-motion:reduce){.pill.need.low{animation:none}}
+/* ---------- السيارات ---------- */
+.seeds .carc{display:block;width:100%;text-align:start;padding:10px 12px;flex:1 1 100%}
+.carc>span{font-size:34px;float:inline-start;margin-inline-end:10px}
+.carc b{display:block;font-size:17px}.carc small{display:block;color:var(--ink2);margin-bottom:4px}
+.carc .stat{clear:both;display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;font-size:13px;margin:6px 0}
+.carc .btn{width:100%;margin-top:6px}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}
+#carHud{position:fixed;inset:0;pointer-events:none;z-index:40;font-family:var(--display)}
+#carHud[hidden]{display:none}
+.ch-speed{position:absolute;bottom:calc(120px + var(--sab));left:50%;transform:translateX(-50%);background:rgba(20,22,30,.72);color:#fff;border-radius:18px;padding:4px 18px;text-align:center;backdrop-filter:blur(4px)}
+.ch-speed b{font-size:34px;font-weight:400}.ch-speed small{display:block;font-size:12px;opacity:.8;margin-top:-6px}
+.ch-name{position:absolute;top:calc(70px + var(--sat));left:50%;transform:translateX(-50%);background:rgba(255,255,255,.85);border-radius:99px;padding:3px 14px;font-size:15px;white-space:nowrap}
+.ch-btns{position:absolute;bottom:calc(30px + var(--sab));right:16px;display:flex;flex-direction:column;gap:10px;pointer-events:auto}
+.ch-btns button{background:#fff;border-radius:99px;padding:10px 16px;font-size:16px;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+html.driving #hud .hb-hide,html.driving #btnFurn{display:none}

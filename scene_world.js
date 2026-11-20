@@ -2,14 +2,15 @@
 (function () {
   const OSW = window.OSW, X = OSW.EX, R = OSW.R, Builder = OSW.Builder, M = OSW.M;
   const dk = OSW.col.dk, lt = OSW.col.lt, PI = Math.PI, hy = Math.hypot;
-  const S = (OSW.S = { acts: [], colliders: [], rects: [], dynRects: {}, labels: [], poi: {}, pos: {}, dyn: {}, ready: false, bounds: { x0: -112, x1: 112, z0: -62, z1: 98 } });
+  const angDiff0 = (a, b) => { let d = b - a; while (d > PI) d -= PI * 2; while (d < -PI) d += PI * 2; return d; };
+  const S = (OSW.S = { acts: [], colliders: [], labels: [], poi: {}, pos: {}, dyn: {}, ready: false, bounds: { x0: -112, x1: 112, z0: -62, z1: 98 } });
 
   /* ---------- المواقع ---------- */
   const POS = S.pos;
   const VH = []; // بيوت القرية: ما بقى فيه، كل الأماكن صارت جوّا بيتنا
   Object.assign(POS, {
     home: { x: 0, z: -14 }, fountain: { x: 0, z: 0 }, tree: { x: -15, z: 0.5 }, plaza: { x: 15, z: -0.5 }, shop: { x: -24, z: 9.5 }, flowers: { x: 24, z: 9 },
-    hajji: { x: -62, z: 8 }, farm: { x: -22, z: -28 }, boutique: { x: -40, z: 31 }, gate: { x: 0, z: 31 }, garden: { x: 62, z: 19 }, lighthouse: { x: 75, z: -2 }, lake: { x: 72, z: -2 },
+    hajji: { x: -62, z: 8 }, farm: { x: -22, z: -28 }, gate: { x: 0, z: 31 }, garden: { x: 62, z: 19 }, lighthouse: { x: 75, z: -2 }, lake: { x: 72, z: -2 },
   });
   OSW.VILLAGERS = [
     { id: "v1", x: -12, z: 40, name: "بيت أبو خالد", wall: "#e8d3b0", roof: "#a4452c", t: 0 },
@@ -32,12 +33,6 @@
   S.col = null;
   const reg = (act, x, y, z, r, px, pz) => { S.acts.push({ act, x, y, z, r }); if (px != null) S.poi[act] = { x: px, z: pz }; };
   const col = (x, z, r) => S.colliders.push({ x, z, r });
-  // سلسلة دوائر متلاصقة = جدار صلب (للأسوار المنحنية)
-  col.line = (x0, z0, x1, z1, r = 0.3) => { const L = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.ceil(L / (r * 1.3))); for (let i = 0; i <= n; i++) S.colliders.push({ x: x0 + ((x1 - x0) * i) / n, z: z0 + ((z1 - z0) * i) / n, r }); };
-  // مستطيل صلب (حدود x0,z0 → x1,z1)
-  col.rect = (x0, z0, x1, z1) => S.rects.push({ x0: Math.min(x0, x1), x1: Math.max(x0, x1), z0: Math.min(z0, z1), z1: Math.max(z0, z1) });
-  // سور مستقيم: مستطيل رفيع إذا كان على المحور، وإلا سلسلة دوائر
-  col.seg = (x0, z0, x1, z1, th = 0.12) => { if (Math.abs(x1 - x0) < 0.01 || Math.abs(z1 - z0) < 0.01) col.rect(Math.min(x0, x1) - th, Math.min(z0, z1) - th, Math.max(x0, x1) + th, Math.max(z0, z1) + th); else col.line(x0, z0, x1, z1, 0.3); };
   const label = (id, text, x, y, z, o = {}) => S.labels.push(Object.assign({ id, text, x, y, z, cls: "", max: 60 }, o));
   S.reg = reg; S.label = label; S.col = col;
 
@@ -82,7 +77,7 @@
     const gl = R.gl, P = SEAS[season] || SEAS.summer;
     S.season = season; S.palette = P;
     ["main", "foliage", "shadow"].forEach((k) => S.dyn[k] && R.free(S.dyn[k]));
-    S.acts.length = 0; S.colliders.length = 0; S.rects.length = 0; S.labels.length = 0; Object.keys(S.poi).forEach((k) => delete S.poi[k]); PATHS.length = 0;
+    S.acts.length = 0; S.colliders.length = 0; S.labels.length = 0; Object.keys(S.poi).forEach((k) => delete S.poi[k]); PATHS.length = 0;
     const B = new Builder(), F = new Builder(), SH = new Builder();
     S._sh = (x, z, r) => SH.disc(x, 0.1, z, r, "#000000", 12);
     const rnd = OSW.seeded(4242);
@@ -91,7 +86,7 @@
     VH.forEach((h) => { const p = POS[h.id], m = OSW.HMETA[h.id] || {}; S.poi["house:" + h.id] = { x: p.x, z: p.z + (m.dz || 5.6) }; });
     Object.assign(S.poi, {
       home: { x: 0, z: -7.2 }, fountain: { x: 0, z: 5.6 }, plaza: { x: 15, z: 3.4 }, tree: { x: -15, z: 5.2 }, shop: { x: -24, z: 15.8 }, flowers: { x: 22.4, z: 14.6 },
-      hajji: { x: -62, z: 14.8 }, boutique: { x: -40, z: 37.2 }, gate: { x: 0, z: 28.4 }, garden: { x: 62, z: 25.4 }, lighthouse: { x: 61, z: -2 },
+      hajji: { x: -62, z: 14.8 }, gate: { x: 0, z: 28.4 }, garden: { x: 62, z: 25.4 }, lighthouse: { x: 61, z: -2 },
     });
     OSW.VILLAGERS.forEach((v) => (S.poi[v.id] = { x: v.x, z: v.z - 5.8 }));
     planPaths();
@@ -99,7 +94,7 @@
     /* الأرض والتلال البعيدة */
     B.disc(0, 0, 0, 260, P.g2, 40); B.disc(2, 0.01, 6, 128, P.g1, 40);
     for (let i = 0; i < 46; i++) { const x = -90 + rnd() * 190, z = -40 + rnd() * 95; B.push(x, 0.04, z, 0, 0, 0, 1, 1, 0.6 + rnd() * 0.5); B.disc(0, 0, 0, 3 + rnd() * 7, rnd() < 0.5 ? lt(P.g1, 0.07) : dk(P.g2, 0.05), 12); B.pop(); }
-    for (let i = 0; i < 26; i++) { const a = (i / 26) * PI * 2, r = 170 + rnd() * 50; B.sphere(Math.cos(a) * r, -4, Math.sin(a) * r, 55 + rnd() * 40, 24 + rnd() * 26, 55 + rnd() * 40, i % 2 ? P.hill : dk(P.hill, 0.1), 8, 0, true); }
+    for (let i = 0; i < 26; i++) { const a = (i / 26) * PI * 2, r = 170 + rnd() * 50, sk = Math.abs(angDiff0(a, PI / 2)) < 0.62; if (sk) { rnd(); rnd(); rnd(); rnd(); continue; } B.sphere(Math.cos(a) * r, -4, Math.sin(a) * r, 55 + rnd() * 40, 24 + rnd() * 26, 55 + rnd() * 40, i % 2 ? P.hill : dk(P.hill, 0.1), 8, 0, true); }
     for (let i = 0; i < 9; i++) { const a = PI * (1.1 + i * 0.1), r = 210; B.cyl(Math.cos(a) * r, -2, Math.sin(a) * r, 34 + rnd() * 20, 0, 60 + rnd() * 40, i % 2 ? "#a7b6d3" : "#97a8c9", 7); }
 
     /* بحيرة + جزيرة */
@@ -151,14 +146,12 @@
     [-5.6, 5.6].forEach((dx) => { B.box(g.x + dx, 0, g.z, 1.5, 4.8, 1.5, "#b7aea0"); B.box(g.x + dx, 4.8, g.z, 1.9, 0.4, 1.9, "#8d8478"); B.sphere(g.x + dx, 5.6, g.z, 0.4, 0.45, 0.4, "#ffe7a0", 7, 1); col(g.x + dx, g.z, 1.1); });
     B.box(g.x, 4.6, g.z, 10.8, 0.9, 0.9, "#6b4a3a"); B.box(g.x, 4.7, g.z + 0.46, 10.0, 0.7, 0.08, "#8a6350");
     for (let i = 0; i < 10; i++) { const x = g.x + (i < 5 ? -1 : 1) * (8 + (i % 5) * 2.6); B.box(x, 0, g.z, 0.3, 1.5, 0.3, "#b98d5e"); col(x, g.z, 0.5); }
-    col.seg(g.x - 27.9, g.z, g.x - 8, g.z); col.seg(g.x + 8, g.z, g.x + 27.9, g.z);
     B.box(g.x - 20.4, 0.9, g.z, 15, 0.25, 0.2, "#a97c50"); B.box(g.x + 20.4, 0.9, g.z, 15, 0.25, 0.2, "#a97c50");
     reg("gate", g.x, 3, g.z, 5.5); label("gate", "🚪 البوابة", g.x, 7.6, g.z, { act: "gate", max: 70, cls: "gate" });
     /* الحديقة (ملعب صغير) */
     const ga = POS.garden;
     B.push(ga.x, 0.06, ga.z, 0, 0, 0, 1, 1, 0.72); B.disc(0, 0, 0, 10, "#8fd694", 24); B.pop();
     for (let i = 0; i < 26; i++) { const a = (i / 26) * PI * 2; const x = ga.x + Math.cos(a) * 10, z = ga.z + Math.sin(a) * 7.2; if (Math.abs(a - PI / 2) < 0.4) continue; B.box(x, 0, z, 0.25, 1.0, 0.25, "#b98d5e"); col(x, z, 0.45); }
-    for (let i = 0; i < 26; i++) { const a0 = (i / 26) * PI * 2, a1 = ((i + 1) / 26) * PI * 2; if (Math.abs(a0 - PI / 2) < 0.4 || Math.abs(a1 - PI / 2) < 0.4) continue; col.line(ga.x + Math.cos(a0) * 10, ga.z + Math.sin(a0) * 7.2, ga.x + Math.cos(a1) * 10, ga.z + Math.sin(a1) * 7.2, 0.3); }
     [-1.3, 1.3].forEach((dx) => { B.push(ga.x + 3.5 + dx * 1.6, 0, ga.z - 1.2, 0, 0, dx * 0.22); B.box(0, 0, 0, 0.18, 3.6, 0.18, "#7a5236"); B.pop(); });
     B.box(ga.x + 3.5, 3.5, ga.z - 1.2, 4.2, 0.2, 0.2, "#7a5236"); B.box(ga.x + 2.6, 1.0, ga.z - 1.2, 1.2, 0.14, 0.5, "#e63e6d"); B.box(ga.x + 4.4, 1.2, ga.z - 1.2, 1.2, 0.14, 0.5, "#4aa3ff");
     B.box(ga.x - 4, 0.5, ga.z - 1.5, 0.2, 0.9, 2.4, "#cfd3d8"); B.box(ga.x - 4.6, 0.5, ga.z - 1.5, 0.2, 2.2, 2.4, "#ff9f1c"); B.box(ga.x - 5.2, 0, ga.z - 1.5, 0.2, 0.9, 2.4, "#cfd3d8");
@@ -185,7 +178,6 @@
     const fl = POS.flowers;
     B.push(fl.x, 0.06, fl.z, 0, 0, 0, 1, 1, 1); B.disc(0, 0, 0, 5.2, "#7a5a3a", 24); B.disc(0, 0.03, 0, 4.7, "#5b3f27", 24); B.pop();
     for (let i = 0; i < 28; i++) { const a = (i / 28) * PI * 2, x = fl.x + Math.cos(a) * 6.4, z = fl.z + Math.sin(a) * 6.4; if (Math.abs(a - PI / 2) < 0.38) continue; B.sphere(x, 0.3, z, 0.4, 0.3, 0.4, "#f1ece0", 6); col(x, z, 0.45); }
-    for (let i = 0; i < 28; i++) { const a0 = (i / 28) * PI * 2, a1 = ((i + 1) / 28) * PI * 2; if (Math.abs(a0 - PI / 2) < 0.38 || Math.abs(a1 - PI / 2) < 0.38) continue; col.line(fl.x + Math.cos(a0) * 6.4, fl.z + Math.sin(a0) * 6.4, fl.x + Math.cos(a1) * 6.4, fl.z + Math.sin(a1) * 6.4, 0.3); }
     [-1, 1].forEach((d) => { B.cyl(fl.x + d * 2.0, 0, fl.z + 5.4, 0.18, 0.18, 3.6, "#fff", 6); for (let k = 0; k < 4; k++) B.sphere(fl.x + d * 2.0, 1.0 + k * 0.7, fl.z + 5.65, 0.3, 0.3, 0.2, ["#ff4d6d", "#ff8fab"][k % 2], 6, 0.6); });
     B.box(fl.x, 3.4, fl.z + 5.4, 4.4, 0.2, 0.3, "#fff"); for (let k = 0; k < 7; k++) B.sphere(fl.x - 2.0 + k * 0.67, 3.55, fl.z + 5.4, 0.3, 0.3, 0.3, ["#ff4d6d", "#ff8fab", "#ffb3c7"][k % 3], 6, 0.6);
     B.box(fl.x - 6.6, 0, fl.z - 1, 0.7, 0.7, 2.4, "#a97c50"); B.box(fl.x - 6.6, 0.7, fl.z - 1, 0.7, 0.14, 2.6, "#b98d5e");
@@ -209,27 +201,16 @@
     reg("hajji", hj.x, 2.4, hj.z, 5.4, S.poi.hajji.x, S.poi.hajji.z); label("hajji", "🧓 بيت الحجّي والحجّة", hj.x, 8, hj.z, { act: "hajji", max: 80, badge: "hajji" });
 
 
-    /* محل الأناقة */
-    const bq = POS.boutique;
-    B.push(bq.x, 0, bq.z); OSW.hparts.found(B, 8, 5.4);
-    B.box(0, 0.35, 0, 8, 3.7, 5.4, "#f7d6ec"); B.box(0, 4.05, 0, 8.8, 0.4, 6.2, "#8e4a94"); B.box(0, 4.45, 2.4, 7.0, 0.9, 0.4, "#b565b0");
-    B.box(-2.1, 0.6, 2.72, 3.2, 2.6, 0.12, "#6b4a70"); B.box(-2.1, 0.7, 2.8, 2.9, 2.4, 0.1, "#ffe3f3", 1); B.box(2.6, 0.6, 2.72, 2.2, 2.6, 0.12, "#6b4a70"); B.box(2.6, 0.7, 2.8, 1.9, 2.4, 0.1, "#ffe3f3", 1);
-    OSW.hparts.door(B, 0.1, 2.7, "#8e4a94", 1.3, 2.4);
-    for (let i = 0; i < 6; i++) { B.push(-3.4 + i * 1.36, 3.4, 3.4, 0, -0.5); B.box(0, 0, 0, 1.3, 0.1, 2.0, i % 2 ? "#fff" : "#d6639c"); B.pop(); }
-    [[-4.8, "#ff7aa8"], [-5.9, "#6d3fb3"], [4.9, "#2b3a55"]].forEach(([x, c]) => { B.cyl(x, 0, 3.6, 0.5, 0.3, 1.2, c, 8); B.box(x, 1.2, 3.6, 0.5, 0.6, 0.3, c); B.sphere(x, 2.05, 3.6, 0.22, 0.26, 0.22, "#f2d9c8", 7); B.cyl(x, 0, 3.6, 0.06, 0.06, 0.05, "#444", 5); });
-    B.pop(); SH.disc(bq.x, 0.1, bq.z, 6.4, "#000000", 16); col(bq.x, bq.z, 5.0);
-    reg("boutique", bq.x, 2.4, bq.z, 5.6, S.poi.boutique.x, S.poi.boutique.z); label("boutique", "👗 محل الأناقة", bq.x, 8.6, bq.z, { act: "boutique", max: 80 });
-
     /* بيوت أهل القرية: صفين وشوارع منظمة */
     OSW.VILLAGERS.forEach((v) => X.buildVillager({ B, SH, col, label }, v));
-    X.buildFarm({ B, F, SH, S, reg, label, col, rnd }); X.buildButcher({ B, SH, S, reg, label, col }); X.buildPier({ B, S, reg, label });
+    X.buildFarm({ B, F, SH, S, reg, label, col, rnd }); X.buildPier({ B, S, reg, label }); X.buildDealer({ B, SH, S, reg, label, col }); X.buildRoadAndIsland({ B, F, SH, S, reg, label, col, rnd, P });
 
     /* زينة: أشجار متنوعة وشجيرات وزهور وأحجار */
     const anchors = [];
     Object.keys(POS).forEach((k) => anchors.push([POS[k].x, POS[k].z, k === "lake" ? 17 : k === "farm" ? 3 : 8.4]));
     anchors.push([X.BUTCHER.x, X.BUTCHER.z, 9], [X.SQUARE.x, X.SQUARE.z, 12]);
     const inRect = (x, z, a, b, c2, d) => x > a && x < b && z > c2 && z < d;
-    const okSpot = (x, z, r) => !(x < S.bounds.x0 + 2 || x > S.bounds.x1 - 2 || z < S.bounds.z0 + 1 || z > S.bounds.z1 - 1) && !anchors.some((a) => hy(x - a[0], z - a[1]) < a[2] + r) && hy(x, z) > 14.5 && !nearPath(x, z, 3.4) && !inRect(x, z, -64, -8, -50, -6) && !inRect(x, z, -4, 10, -52, -34) && !inRect(x, z, 58, 92, -20, 14) && !inRect(x, z, -76, 76, 31, 75);
+    const okSpot = (x, z, r) => !(x < S.bounds.x0 + 2 || x > S.bounds.x1 - 2 || z < S.bounds.z0 + 1 || z > S.bounds.z1 - 1) && !anchors.some((a) => hy(x - a[0], z - a[1]) < a[2] + r) && hy(x, z) > 14.5 && !nearPath(x, z, 3.4) && !inRect(x, z, -64, -8, -50, -6) && !inRect(x, z, -4, 10, -52, -34) && !inRect(x, z, 58, 92, -20, 14) && !inRect(x, z, -76, 76, 31, 75) && !inRect(x, z, -34, 40, 70, 102);
     const kinds = ["oak", "pine", "cypress", "olive", "birch", "round"];
     function deco(x, z, k, s) {
       if (k === "pine") { B.cyl(x, 0, z, 0.25 * s, 0.2 * s, 1.2 * s, "#6b4a30", 6); for (let i = 0; i < 4; i++) F.cyl(x, (0.9 + i * 1.05) * s, z, (1.8 - i * 0.4) * s, 0.1, 1.9 * s, dk(P.l1, 0.2 + i * 0.04), 8); }
@@ -296,16 +277,6 @@
   };
   S.rebuildHome = (cfg) => {
     const B = new Builder(), h = POS.home, wall = cfg.wall, roof = cfg.roof;
-    // قوالب شكل البيت من برا: 0 = كلاسيك، 1..8 = تصاميم بيوت القرية
-    const tpl = +cfg.tpl || 0, HB = OSW.EX && OSW.EX.HOUSE && OSW.EX.HOUSE[tpl - 1];
-    if (tpl >= 1 && HB) {
-      const FP = OSW.EX.FOOT[tpl - 1] || [8, 6];
-      B.push(h.x, 0, h.z, 0); HB(B, { wall, roof, door: cfg.door, t: tpl - 1 });
-      B.cyl(5.9, 0, 4.4, 0.07, 0.07, 2.4, "#555", 6); B.sphere(5.9, 2.5, 4.4, 0.45, 0.4, 0.12, "#ff4d6d", 8, 0.8);
-      B.pop(); S.dynRects.home = { x0: h.x - FP[0] / 2 - 0.25, x1: h.x + FP[0] / 2 + 0.25, z0: h.z - FP[1] / 2 - 0.25, z1: h.z + FP[1] / 2 + 0.25 };
-      swap("home", B); return;
-    }
-    S.dynRects.home = null;
     B.push(h.x, 0, h.z, 0); OSW.hparts.found(B, 7.4, 5.8); B.box(0, 0.35, 0, 7.2, 3.6, 5.6, wall); B.prism(0, 3.95, 0, 8.2, 2.9, 6.4, roof);
     B.box(2.4, 5.2, -1.2, 0.9, 2.8, 0.9, "#8a5a44"); OSW.hparts.win(B, -2.4, 1.6, 2.8, 1.3, 1.5); OSW.hparts.win(B, 2.4, 1.6, 2.8, 1.3, 1.5);
     OSW.hparts.door(B, 0, 2.8, cfg.door || "#8a3b3b"); B.sphere(0, 2.5, 2.97, 0.42, 0.42, 0.1, "#ff4d6d", 8, 1); B.sphere(0, 5.3, 3.0, 0.45, 0.4, 0.15, "#ff4d6d", 8, 0.8);
