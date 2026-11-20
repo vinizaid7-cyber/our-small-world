@@ -27,6 +27,7 @@
     // قضبان
     const segs = [[x0, z0, x1, z1]];
     if (gap && Math.abs(z0 - z1) < 0.01 && Math.abs(z0 - gap[2]) < 0.5) { segs.length = 0; if (gap[0] > Math.min(x0, x1)) segs.push([x0, z0, gap[0], z1]); if (gap[1] < Math.max(x0, x1)) segs.push([gap[1], z0, x1, z1]); }
+    if (col.seg) segs.forEach(([a, b, c, d]) => { if (hy(c - a, d - b) > 0.01) col.seg(a, b, c, d); });
     segs.forEach(([a, b, c, d]) => { const l = hy(c - a, d - b); if (l < 0.3) return; [0.35, 0.72].forEach((y) => { B.push((a + c) / 2, y, (b + d) / 2, ang); B.box(0, 0, 0, 0.1, 0.12, l, "#a97c50"); B.pop(); }); });
   }
   X.fenceLine = fenceLine;
@@ -74,6 +75,7 @@
     // ظل وتصادم (النص الخلفي بس)
     SH.disc(cx, 0.1, cz - 1, 13, "#000000", 18);
     for (let i = -3; i <= 3; i++) col(cx + i * 3.4, cz - 4.2, 3.2);
+    if (col.rect) { col.rect(cx - rx, cz - d / 2, cx - rx + 0.3, cz + d / 2); col.rect(cx + rx - 0.3, cz - d / 2, cx + rx, cz + d / 2); col.rect(cx - rx, cz - d / 2, cx + rx, cz - d / 2 + 0.3); }
   }
 
   /* ---- طاحونة وصومعة ---- */
@@ -292,12 +294,15 @@
     B.box(0.0, 0.5, 4.8, 1.4, 0.9, 0.7, "#9a6a45"); B.sphere(-4.9, 0.6, 3.6, 0.5, 0.4, 0.5, "#e0c36a", 6); B.sphere(-5.4, 0.45, 4.2, 0.4, 0.3, 0.4, "#e0c36a", 6);
   };
   X.HOUSE_COUNT = 8;
+  // بصمة كل تصميم [عرض، عمق] (البيت الدائري بدون مستطيل)
+  X.FOOT = { 0: [9, 6.6], 1: [8.4, 6.2], 2: [10, 6.8], 3: [6.8, 6], 4: [9.2, 6.6], 6: [6.4, 5.4], 7: [9, 6.4] };
 
   /* ================= بيت جاهز (كل شي حواليه) ================= */
   X.buildVillager = function (c, v) {
     const { B, SH, col, label } = c, m = META[v.t % X.HOUSE_COUNT];
     B.push(v.x, 0, v.z, PI); HOUSE[v.t % X.HOUSE_COUNT](B, v); B.pop();
     SH.disc(v.x, 0.1, v.z, m.r + 1.6, "#000000", 14); col(v.x, v.z, m.r - 0.6);
+    { const fp = X.FOOT[v.t % X.HOUSE_COUNT]; if (fp && col.rect) col.rect(v.x - fp[0] / 2 - 0.25, v.z - fp[1] / 2 - 0.25, v.x + fp[0] / 2 + 0.25, v.z + fp[1] / 2 + 0.25); }
     // صندوق بريد + عمود إنارة جنب الباب (الباب بالجهة -z)
     B.push(v.x, 0, v.z - 6.6, 0); B.box(0, 0, 0, 0.1, 1.1, 0.1, "#555"); B.box(0, 1.1, 0, 0.55, 0.38, 0.4, v.roof); B.box(0.3, 1.25, 0, 0.04, 0.2, 0.1, "#e63946"); B.pop();
     label(v.id, "🏠 " + v.name, v.x, m.h + 1.2, v.z, { max: 52, cls: "sm" });

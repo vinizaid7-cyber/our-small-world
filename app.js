@@ -257,6 +257,7 @@
     if (W.mode === "out" && (act === "home" || act === "shop" || act === "boutique")) return enterInterior(act);
     if (k === "barn") return barnAct();
     if (k === "pet") { OSW.audio.sfx("heart"); ui.hearts("🐱", 6); W.say("pet", rand(["مياوو 😻", "بدي سمكة 🐟", "فركلي راسي 💕", "بحبكم! مياو"]), 3500); return; }
+    if (k === "mypet") { const p = OSW.game.state().pets.find((x) => x.id === v); if (!p) return; const PT = OSW.game.PETS[p.kind]; OSW.audio.sfx("heart"); ui.hearts(PT.e, 6); W.say("pet:" + v, (p.name ? p.name + ": " : "") + rand(PT.says), 3500); return; }
     if (k === "npc") return npcTalk(v);
     return goPlace(k);
   }
@@ -341,7 +342,7 @@
     snd.onclick = () => { const on = OSW.audio.toggle(); snd.textContent = on ? "🔊" : "🔇"; ui.toast(on ? "الصوت شغّال 🎶" : "الصوت مسكّر", "", 1500); };
     $("#btnAch").onclick = () => !busyNav && goPlace("ach"); $("#btnMenu").onclick = () => !busyNav && goPlace("gate");
     $("#btnTasks").onclick = () => !busyNav && goPlace("tasks"); $("#btnChat").onclick = () => OSW.chat.toggle(); $("#btnFurn").onclick = () => !busyNav && P.open("furniture"); $("#placeRot").onclick = () => rotateFurn(); $("#placeCancel").onclick = () => cancelPlacing();
-    const sp = $("#btnSprint"); sp.onpointerdown = (e) => { e.preventDefault(); W.setSprint(true); sp.classList.add("on"); }; const spOff = () => { W.setSprint(false); sp.classList.remove("on"); }; sp.onpointerup = spOff; sp.onpointerleave = spOff; sp.onpointercancel = spOff; $("#coinPill").onclick = () => !busyNav && goPlace("inv"); $("#dayPill").onclick = () => !busyNav && goPlace("plaza");
+    const sp = $("#btnSprint"); sp.onpointerdown = (e) => { e.preventDefault(); W.setSprint(true); sp.classList.add("on"); }; const spOff = () => { W.setSprint(false); sp.classList.remove("on"); }; sp.onpointerup = spOff; sp.onpointerleave = spOff; sp.onpointercancel = spOff; $("#coinPill").onclick = () => !busyNav && goPlace("inv"); $("#needPill").onclick = () => !busyNav && P.open("needs"); $("#dayPill").onclick = () => !busyNav && goPlace("plaza");
     $("#guide").onclick = guideTalk;
     $("#zoomctl").onclick = (e) => {
       const b = e.target.closest("[data-z]"); if (!b) return; const z = b.dataset.z;

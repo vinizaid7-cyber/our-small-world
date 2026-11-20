@@ -82,15 +82,17 @@
   const SW = { wall: ["#FFF1D6", "#FFD6E0", "#D6ECFF", "#E3D6FF", "#D8F5E4", "#FFE9B8"], roof: ["#E5484D", "#2F7DE1", "#6E4BC4", "#12A594", "#F08A24", "#2B2B3A"], door: ["#8a3b3b", "#2f4f7a", "#4b3a7a", "#1f6b5e", "#7a4a1f", "#222222"], emoji: ["💞", "🏡", "🌹", "⭐", "🦋", "🔥"] };
   P.homeCfg = () => Object.assign({ wall: SW.wall[0], roof: SW.roof[0], door: SW.door[0], emoji: "💞", flag: "💞" }, db.kv.home || {});
   P.homeName = () => (db.kv.home && db.kv.home.name) || (db.partner ? `بيت ${db.me.name} و${db.partner.name}` : "بيتنا");
-  let homeDraft;
+  let homeDraft, homePrev = false;
+  const TPL = [["0", "💞", "كلاسيك"], ["1", "🏛️", "فيلا بشرفة"], ["2", "🕌", "حجر عربي"], ["3", "🔷", "عصري"], ["4", "🛖", "كوخ ريفي"], ["5", "🏰", "قصر صغير"], ["6", "⭕", "دائري"], ["7", "🏙️", "بيت المدينة"], ["8", "🚜", "بيت مزارع"]];
   function home(reuse) {
-    if (!reuse || !homeDraft) { homeDraft = P.homeCfg(); homeDraft.name = homeDraft.name || P.homeName(); }
+    if (!reuse || !homeDraft) { homeDraft = P.homeCfg(); homeDraft.name = homeDraft.name || P.homeName(); homePrev = false; }
+    const tplField = `<div class="field"><label>شكل البيت من برا</label><div class="tpls">${TPL.map(([v, e, n]) => `<button class="tpl ${String(homeDraft.tpl || 0) === v ? "on" : ""}" data-act="home-pick" data-k="tpl" data-v="${v}"><span>${e}</span><small>${n}</small></button>`).join("")}</div><small class="hint">بتشوفوا الشكل على بيتكم فوراً. غير الكلاسيك بياخد لون الجدران والسقف (الباب بلونه الأصلي)</small></div>`;
     const total = db.entries.filter((e) => !["comment", "board", "light", "wish", "fountain"].includes(e.house)).length;
     const sw = (k) => `<div class="field"><label>${{ wall: "لون الجدران", roof: "لون السقف", door: "لون الباب", emoji: "شعار البيت" }[k]}</label><div class="swatches">${SW[k].map((c) => k === "emoji" ? `<button style="background:#fff;font-size:20px" class="${homeDraft.emoji === c ? "on" : ""}" data-act="home-pick" data-k="emoji" data-v="${c}">${c}</button>` : `<button style="background:${c}" class="${homeDraft[k] === c ? "on" : ""}" data-act="home-pick" data-k="${k}" data-v="${c}" aria-label="${c}"></button>`).join("")}</div></div>`;
     ui.openModal(`<h3>🏡 بيتنا</h3>
       <div class="row hint" style="margin-bottom:10px"><span>📚 ${total} شي محفوظ</span>${P.days() != null ? `<span>💞 ${P.days()} يوم</span>` : ""}</div>
       <div class="field"><label>اسم بيتكم</label><input class="in" id="homeName" value="${esc(homeDraft.name)}" maxlength="30"></div>
-      ${sw("wall")}${sw("roof")}${sw("door")}${sw("emoji")}
+      ${tplField}${sw("wall")}${sw("roof")}${sw("door")}${sw("emoji")}
       <div class="field"><label>تاريخ بداية حكايتكم</label><input type="date" class="in" id="startIn" value="${esc(startDate() || "")}" max="${OSW.todayKey()}"></div>
       <button class="btn berry" data-act="home-save" style="width:100%">احفظ</button>`);
   }
@@ -252,7 +254,11 @@
       case "start-save": { const v = $("#startIn").value; if (!v) return; return busy(async () => { await db.kvSet("start_date", { date: v }); ui.toast("انحفظ التاريخ 💞"); OSW.app.updateDays(); plaza(); P.checkAchievements(); }); }
       case "note-add": { const t = $("#noteText"); const txt = (t.value || "").trim(); if (!txt) return; return busy(async () => { await db.addEntry({ house: "board", body: txt }); OSW.audio.sfx("pop"); plaza(); }); }
       case "note-del": return busy(async () => { await db.removeEntry(el.dataset.id); plaza(); });
-      case "home-pick": { homeDraft[el.dataset.k] = el.dataset.v; homeDraft.name = ($("#homeName") || {}).value || homeDraft.name; const s = $("#startIn").value; home_keep(s); return; }
+      case "home-pick": {
+        homeDraft[el.dataset.k] = el.dataset.v; homeDraft.name = ($("#homeName") || {}).value || homeDraft.name; const s = $("#startIn").value;
+        if (el.dataset.k !== "emoji") { OSW.world.updateHome(Object.assign({}, homeDraft), P.homeName()); if (!homePrev) { homePrev = true; const old = ui.onModalClose; ui.onModalClose = () => { homePrev = false; if (old) old(); OSW.app.updateHome(); }; } }
+        home_keep(s); return;
+      }
       case "home-save": return busy(async () => { const cfg = Object.assign({}, homeDraft, { name: ($("#homeName").value || "").trim() || undefined, flag: homeDraft.emoji }); await db.kvSet("home", cfg); const s = $("#startIn").value; if (s && s !== startDate()) await db.kvSet("start_date", { date: s }); OSW.app.updateHome(); OSW.app.updateDays(); ui.closeModal(); ui.toast("بيتكم صار أحلى 🏡"); P.checkAchievements(); });
       case "game-new": return newGame();
       case "gcard": return flip(+el.dataset.i, el);
