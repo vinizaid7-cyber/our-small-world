@@ -12,6 +12,12 @@
   ];
   X.plotPos = (i) => { if (i < 12) return { x: FARM.plotX + (i % FARM.cols) * FARM.step, z: FARM.plotZ + Math.floor(i / FARM.cols) * FARM.step }; const L = X.LANDS[Math.floor((i - 12) / 6)], k = (i - 12) % 6; return { x: L.x + (k % 2 ? 2.7 : -2.7), z: L.z + (Math.floor(k / 2) - 1) * 5.4 }; };
   // حظائر الحيوانات (مستطيلات يتحركوا فيها)
+  // شوارع القرية (أسفلت فوق الممرات الموجودة) — بتستخدمها سيارات أهل القرية كمان
+  X.STREETS = [[[-76, 34.5], [76, 34.5]], [[-76, 57], [76, 57]], [[0, 14], [0, 34.5]], [[0, 34.5], [0, 57]], [[0, 57], [0, 73]], [[74, 34.5], [74, 57]], [[-74, 34.5], [-74, 57]]];
+  X.buildStreets = (B) => {
+    X.STREETS.forEach((p, i) => B.strip(p, i === 4 ? 8 : 5, 0.085, "#4a4d55"));
+    X.STREETS.forEach((p) => { const a = p[0], b = p[1], L = hy(b[0] - a[0], b[1] - a[1]), n = Math.floor(L / 4), ang = Math.atan2(b[0] - a[0], b[1] - a[1]); for (let k = 0; k < n; k++) { const t = (k + 0.5) / n; B.push(a[0] + (b[0] - a[0]) * t, 0.1, a[1] + (b[1] - a[1]) * t, ang); B.box(0, 0, 0, 0.14, 0.02, 1.7, "#f4f4f4"); B.pop(); } });
+  };
   X.PENS = { cow: { x0: -56, x1: -48.6, z0: -29, z1: -17 }, sheep: { x0: -48.6, x1: -41.3, z0: -29, z1: -17 }, chicken: { x0: -41.3, x1: -34, z0: -29, z1: -17 } };
   X.CART_HOME = { x: -18.5, z: -12.6 };
   X.WINDMILL = { x: -5, z: -41 };
@@ -227,7 +233,9 @@
     // موقف القرية
     const A = OSW.veh ? OSW.veh.LOTS.A : { x: 11, z: 72 };
     B.box(A.x - 0.2, 0.06, A.z + 15, 9, 0.05, 36, "#4a4d55"); for (let i = 0; i <= 6; i++) B.box(A.x - 0.2, 0.1, A.z - 2.9 + i * 5.9, 8, 0.03, 0.12, "#f4f4f4"); label("lotA", "🅿️ موقف", A.x + 1.5, 3, A.z + 33, { cls: "sm", max: 40 });
-    { const H = OSW.veh ? OSW.veh.LOTS.H : { x: 13, z: -44 }; B.box(H.x - 0.2, 0.06, H.z + 15, 9, 0.05, 36, "#4a4d55"); for (let i = 0; i <= 6; i++) B.box(H.x - 0.2, 0.1, H.z - 2.9 + i * 5.9, 8, 0.03, 0.12, "#f4f4f4"); label("lotH", "🅿️ موقف بيتنا", H.x + 1.5, 3, H.z + 33, { cls: "sm", max: 60 }); }
+    { const H = OSW.veh ? OSW.veh.LOTS.H : { x: 13, z: -44 }; B.box(H.x - 0.2, 0.06, H.z + 15, 9, 0.05, 36, "#4a4d55"); for (let i = 0; i <= 6; i++) B.box(H.x - 0.2, 0.1, H.z - 2.9 + i * 5.9, 8, 0.03, 0.12, "#f4f4f4"); label("lotH", "🏠 كراج بيتنا", H.x + 1.5, 3.8, H.z + 33, { cls: "sm", max: 60 });
+      for (let i = 0; i <= 6; i += 2) { const zz = H.z - 2.9 + i * 5.9; [H.x - 4.4, H.x + 4.0].forEach((xx) => B.box(xx, 0, zz, 0.28, 3.1, 0.28, "#7a5236")); B.box(H.x - 0.2, 3.1, zz, 9, 0.16, 0.22, "#8a5a3b"); }
+      [H.x - 4.4, H.x + 4.0].forEach((xx) => B.box(xx, 3.1, H.z + 15, 0.2, 0.16, 36, "#8a5a3b")); }
     // بوابة الطريق الطويل
     B.box(-5.6, 0, 100, 0.6, 5.0, 0.6, "#c0392b"); B.box(5.6, 0, 100, 0.6, 5.0, 0.6, "#c0392b"); B.box(0, 4.6, 100, 12.2, 0.9, 0.5, "#f4ead2"); B.box(0, 4.7, 100.3, 11.6, 0.7, 0.05, "#2b3a55");
     for (let i = 0; i < 8; i++) B.box(-5.2 + i * 1.5, 5.5, 100, 0.8, 0.3, 0.3, i % 2 ? "#fff" : "#c0392b");

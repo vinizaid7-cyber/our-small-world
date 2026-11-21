@@ -17,6 +17,10 @@
   const unit = (id) => { const f = G.FOOD[id], c = G.CROPS[id]; if (f) return f.price; if (c) return c.sell; return { egg: 4, milk: 11, fish_s: 6, fish_m: 16 }[id] || 5; };
   L.dishPrice = (d) => Math.round(Object.keys(d.need).reduce((n, k) => n + unit(k) * d.need[k], 0) * 1.35) + 3;
 
+  /* ---------- مواد الطبخ (سعدون بيبيعها) ---------- */
+  const ING = (L.ING = { cucumber: 8, tomato: 10, carrot: 11, wheat: 6, lemon: 22, egg: 6, milk: 14, fish_s: 9 });
+  const nameE = (k) => { const it = G.ITEM[k] || { n: k, e: "📦" }; return [it.e, it.n]; };
+
   /* ---------- طي الأحداث ---------- */
   L.fold = (ty, e, d, t, a, day, S, H) => {
     const lands = S.lands || (S.lands = {}), up = S.up || (S.up = {}), mark = H.mark;
@@ -27,6 +31,7 @@
       S.coins += Math.floor(Ld.price * 0.7); delete lands[Ld.id]; mark(); return true;
     }
     if (ty === "farm_up") { const U = UPS[d.k]; if (!U) return true; const lv = up[d.k] || 0; if (lv >= U.cost.length || S.coins < U.cost[lv]) return true; S.coins -= U.cost[lv]; up[d.k] = lv + 1; mark(); return true; }
+    if (ty === "ibuy") { const pr = ING[d.id], q = Math.max(1, Math.min(20, d.q | 0)); if (!pr || S.coins < pr * q) return true; S.coins -= pr * q; H.add(d.id, q); mark(); return true; }
     if (ty === "dsell") {
       const D = OSW.fam && OSW.fam.DISHES[d.item], fr = S.fridge || {}; if (!D || (fr[d.item] || 0) < 1) return true;
       fr[d.item]--; if (fr[d.item] <= 0) delete fr[d.item]; S.coins += L.dishPrice(D); S.dsold = (S.dsold || 0) + 1; mark(); return true;
@@ -80,6 +85,26 @@
     const rows = Object.keys(UPS).map((k) => { const U = UPS[k], lv = up[k] || 0, max = lv >= U.cost.length; return irow(U.e, `${U.n} (مستوى ${lv}/${U.cost.length})`, U.note, max ? "<small>✅ أعلى مستوى</small>" : `<button class="btn sm gold" data-act="g-fam-lup" data-k="${k}" ${s.coins < U.cost[lv] ? "disabled" : ""}>طوّر · ${U.cost[lv]}🪙</button>`); }).join("");
     ui().openModal(`<h3>⬆️ تطويرات المزرعة</h3>${coinBar()}<div class="items">${rows}</div><p class="hint">الحد الحالي: ${G.carryMax()} صناديق بالإيد · ${G.cartMax()} بالعربة · دجاج ${G.capOf("chicken")} · خرفان ${G.capOf("sheep")} · أبقار ${G.capOf("cow")}</p>${back("farm")}`);
   };
+  L.ingShop = (s) => `<p class="hint">مواد طبخ طازجة (خضار، بيض، حليب، سمك). كلها بتنحط بمخزنكم، وبعدين بتخزّنوها بالثلاجة 🧊 وبتطبخوا. وبتقدروا تزرعوها بنفسكم أرخص!</p>` +
+    Object.keys(ING).map((k) => { const [e, n] = nameE(k); return irow(e, n, `عندكم ${s.inv[k] || 0}`, `<button class="btn sm gold" data-act="g-fam-libuy" data-id="${k}" data-q="1" ${s.coins < ING[k] ? "disabled" : ""}>1 · ${ING[k]}🪙</button><button class="btn sm gold" data-act="g-fam-libuy" data-id="${k}" data-q="5" ${s.coins < ING[k] * 5 ? "disabled" : ""}>5 · ${ING[k] * 5}🪙</button>`); }).join("");
+  G.openers.prices = () => {
+    const day = G.today(), C = G.CROPS, tag = (p) => (p >= 12 ? "🔥 مرتفع — بيعوا اليوم" : p <= -8 ? "❄️ منخفض — استنوا" : "😐 عادي"), arr = (a, b) => (a > b ? "▲" : a < b ? "▼" : "•");
+    const rows = Object.keys(C).map((k) => { const base = C[k].sell, now = G.priceOf(k, day), tom = G.priceOf(k, day + 1), yes = G.priceOf(k, day - 1); return { k, base, now, tom, yes, pct: Math.round((now / base - 1) * 100) }; }).sort((a, b) => b.pct - a.pct);
+    const crop = rows.map((r) => irow(C[r.k].e, C[r.k].n, `اليوم <b>${r.now}🪙</b> (الأساسي ${r.base}) ${arr(r.now, r.yes)} عن مبارح · بكرة ${arr(r.tom, r.now)} ${r.tom}🪙`, `<small>${tag(r.pct)}<br>${r.pct > 0 ? "+" : ""}${r.pct}%</small>`)).join("");
+    const hi = rows.filter((r) => r.pct >= 12).map((r) => C[r.k].e).join(" "), lo = rows.filter((r) => r.pct <= -8).map((r) => C[r.k].e).join(" ");
+    const food = Object.keys(G.FOOD).map((k) => { const f = G.FOOD[k]; return `<span class="tag">${f.e} ${esc(f.n)} ${f.price}🪙</span>`; }).join(" ");
+    const ing = Object.keys(ING).map((k) => { const [e, n] = nameE(k); return `<span class="tag">${e} ${esc(n)} ${ING[k]}🪙</span>`; }).join(" ");
+    const prod = Object.keys(G.PRODUCE).map((k) => { const p = G.PRODUCE[k]; return `<span class="tag">${p.e} ${esc(p.n)} ${p.sell}🪙</span>`; }).join(" ");
+    const dishes = Object.values(OSW.fam.DISHES).map((d) => `<span class="tag">${d.e} ${esc(d.n)} ${L.dishPrice(d)}🪙</span>`).join(" ");
+    ui().openModal(`<h3>📈 لائحة أسعار سعدون</h3>${coinBar()}
+      <div class="chk" style="margin:6px 0">🔥 مرتفعة اليوم: ${hi || "ولا واحد"} · ❄️ منخفضة: ${lo || "ولا واحد"}</div>
+      <b>🌾 المحاصيل (سعر البيع اليوم، بيتغير كل يوم)</b><div class="items" style="margin:6px 0">${crop}</div><p class="hint">العربة بتنباع بزيادة 15%، وببسطة المزرعة بنقص 20%.</p>
+      <b>🧺 مواد الطبخ (شراء)</b><div style="margin:6px 0;display:flex;flex-wrap:wrap;gap:6px">${ing}</div>
+      <b>🍞 أكل وشرب (شراء، أسعار ثابتة)</b><div style="margin:6px 0;display:flex;flex-wrap:wrap;gap:6px">${food}</div>
+      <b>🥚 منتجات الحيوانات والصيد (بيع)</b><div style="margin:6px 0;display:flex;flex-wrap:wrap;gap:6px">${prod}</div>
+      <b>🍽️ الوجبات (كشك)</b><div style="margin:6px 0;display:flex;flex-wrap:wrap;gap:6px">${dishes}</div>
+      <div class="row" style="gap:6px;margin-top:8px"><button class="btn gold sm" data-act="g-gotoshop">🏪 رجوع لسعدون</button></div>`);
+  };
   G.openers.kiosk = () => {
     const s = G.state(), fr = s.fridge || {}, D = OSW.fam.DISHES, items = Object.keys(fr).filter((k) => D[k] && fr[k] > 0);
     const rows = items.map((k) => irow(D[k].e, `${D[k].n} ×${fr[k]}`, `سعر البيع ${L.dishPrice(D[k])}🪙`, `<button class="btn sm gold" data-act="g-fam-ldsell" data-item="${k}" data-q="1">بيع 1</button><button class="btn sm gold" data-act="g-fam-ldsell" data-item="${k}" data-q="${fr[k]}">الكل</button>`)).join("");
@@ -87,7 +112,7 @@
   };
   const MAP = [
     ["🏡 الساحة والبيت", [["home", "🏡", "بيتنا"], ["fountain", "⛲", "النافورة"], ["plaza", "🎠", "الساحة"], ["tree", "🌳", "الشجرة الكبيرة"], ["flowers", "🌹", "ورد الحب"], ["garden", "🌷", "الحديقة"], ["lighthouse", "🗼", "المنارة"]]],
-    ["🛒 الخدمات", [["shop", "🏪", "بقالة سعدون"], ["orders", "📋", "طلبات الناس"], ["cars", "🚗", "معرض السيارات"], ["gate", "⚙️", "بوابة القرية"]]],
+    ["🛒 الخدمات", [["shop", "🏪", "بقالة سعدون"], ["orders", "📋", "طلبات الناس"], ["prices", "📈", "لائحة الأسعار"], ["cars", "🚗", "معرض السيارات"], ["gate", "⚙️", "بوابة القرية"]]],
     ["🌾 المزرعة والأراضي", [["farm", "🌾", "المزرعة"], ["cart", "🛒", "عربة المزرعة"], ["pens", "🐄", "الحظائر"], ["lands", "🏞️", "سوق الأراضي"], ["farmup", "⬆️", "تطويرات المزرعة"]]],
     ["🏝️ الجزيرة الثانية (بالسيارة)", [["school", "🏫", "المدرسة"], ["butcher", "🥩", "ملحمة أبو سليمان"], ["boutique", "👗", "محل الأناقة"], ["fishing", "🎣", "صيد السمك"], ["acts", "🎈", "فعاليات الأولاد"]]],
     ["👨‍👩‍👧 العيلة", [["family", "👨‍👩‍👧", "العيلة والأولاد"], ["fridge", "🧊", "الثلاجة والطبخ"], ["mypets", "🐾", "حيواناتنا"], ["kiosk", "💰", "كشك الوجبات"]]],
@@ -101,6 +126,9 @@
     const d = el.dataset, busy = async (f) => { try { await f(); } catch (e) { toast("⚠️ " + esc(e.message)); } }, sfx = (n) => OSW.audio && OSW.audio.sfx(n), P_ = P();
     switch (a) {
       case "g-fam-lbuy": { const Ld = LANDS().find((x) => x.id === d.id); return busy(async () => { await G.do("land_buy", { id: d.id }); sfx("fanfare"); ui().hearts && ui().hearts("🏞️", 14); toast(`🏞️ مبروك! ${Ld.n} صارت أرضكم`, "gold"); L.syncLabels(); G.sync3d(); }); }
+      case "g-fam-libuy": return busy(async () => { await G.do("ibuy", { id: d.id, q: +d.q }); sfx("coin"); const [e, n] = nameE(d.id); toast(`${e} اشتريت ${d.q} ${n}`); });
+      case "g-fam-lhome": { const n = OSW.veh.sendHome(); return toast(n ? `🏠 ${n} سيارة رجعت لكراج البيت` : "كل السيارات بالكراج ✅"); }
+      case "g-fam-lshopi": G.ui.tab = "ing"; ui().closeModal(); return OSW.app.goPlace("shop");
       case "g-fam-lsell": return busy(async () => { await G.do("land_sell", { id: d.id }); sfx("coin"); toast("💰 انباعت الأرض"); L._lk = null; L.syncLabels(); G.sync3d(); P_.open("lands"); });
       case "g-fam-lgo": { const p = W().S.poi["land:" + d.id]; ui().closeModal(); if (W().mode !== "out") return toast("اطلعوا من البيت أول 🚪"); if (W()._int.me.veh) return toast("🚪 انزلوا من السيارة أول"); if (p) W().goTo(p.x, p.z); return; }
       case "g-fam-lup": return busy(async () => { await G.do("farm_up", { k: d.k }); sfx("fanfare"); ui().hearts && ui().hearts(UPS[d.k].e, 10); toast(`${UPS[d.k].e} تطوّرت المزرعة!`, "gold"); });

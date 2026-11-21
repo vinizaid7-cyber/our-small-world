@@ -472,3 +472,6 @@ html.driving #hud .hb-hide,html.driving #btnFurn{display:none}
 .pill.need{cursor:pointer}.eatb{background:#ffb347;color:#4a2a00;border-radius:10px;padding:1px 7px;margin-inline-start:4px;font-size:.78em;font-weight:700}
 #carHud .ch-bubble{position:fixed;top:14%;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.92);color:#33284a;padding:8px 14px;border-radius:16px;font-weight:700;opacity:0;transition:opacity .3s;pointer-events:none;max-width:86vw;text-align:center;z-index:30}
 #carHud .ch-bubble.on{opacity:1}
+
+#voiceBadge{position:fixed;top:58px;left:50%;transform:translateX(-50%);background:rgba(30,30,40,.82);color:#fff;padding:6px 14px;border-radius:16px;font-size:.85rem;z-index:40;pointer-events:none;max-width:90vw;text-align:center}
+.rbtn.on{background:#2a9d8f!important;color:#fff}

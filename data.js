@@ -187,7 +187,7 @@
         if (s === "SUBSCRIBED") await db._pres.track({ where: "village", name: db.me.name, t: Date.now() });
       });
       db._mv = sb.channel("osw-move", { config: { broadcast: { self: false } } });
-      db._mv.on("broadcast", { event: "pos" }, (m) => db.emit("pos", m.payload)).on("broadcast", { event: "draw" }, (m) => db.emit("draw", m.payload)).subscribe((st) => { db._mvOk = st === "SUBSCRIBED"; });
+      db._mv.on("broadcast", { event: "pos" }, (m) => db.emit("pos", m.payload)).on("broadcast", { event: "draw" }, (m) => db.emit("draw", m.payload)).on("broadcast", { event: "voice" }, (m) => db.emit("voice", m.payload)).subscribe((st) => { db._mvOk = st === "SUBSCRIBED"; });
       setInterval(() => db.touchSeen(), 120000);
     }
     db.track = (where) => { if (db._pres) db._pres.track({ where, name: db.me.name, t: Date.now() }); };

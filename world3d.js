@@ -558,7 +558,7 @@
       ["tree", "home", "flowers"].forEach((k) => D[k] && R.draw(D[k], null, null, 1, 0));
       OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc, 0); });
       Object.values(animals).forEach((a) => drawAnimal(a, t)); Object.values(pets3).forEach((o) => drawPet(o, t));
-      drawPeople(t); drawCart(t); OSW.veh.drawAll(t, true);
+      drawPeople(t); drawCart(t); OSW.veh.drawAll(t, true); if (OSW.life) OSW.life.draw(t);
       R.shadow(false);
     }
     // شفّاف: ظلال + شعاع المنارة + علامة اللمس
@@ -584,9 +584,6 @@
     if (pa.vis && !pa.sleep && !pa.inside && hy(me.x - pa.x, me.z - pa.z) < 4.2) { together += dt; if (together > 45 && W.onTogether) { together = 0; W.onTogether(); } } else together = Math.max(0, together - dt * 0.5);
     if (tapMark && tapMark.life > 0) tapMark.life -= dt;
     camStep(dt); drawScene(); updateLabels(); fxFrame();
-    // جودة تلقائية: إذا الجهاز بطيء بنصغّر الدقة لحتى تسلك اللعبة
-    const aq = (W._aq = W._aq || { n: 0, s: 0 }); aq.n++; aq.s += dt;
-    if (aq.s >= 3) { const fps = aq.n / aq.s; aq.n = 0; aq.s = 0; aq.low = fps < 22 ? (aq.low || 0) + 1 : 0; if (st.t > 8 && aq.low >= 2 && (R.q || 1) > 0.65) { R.q = (R.q || 1) * 0.85; aq.low = 0; R.resize(); } }
   }
 
   /* ---------- مدخلات اللمس والماوس ---------- */

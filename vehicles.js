@@ -96,10 +96,15 @@
   /* ---------- حالة السيارات المملوكة ومواقفها ---------- */
   const G = () => OSW.game, W = () => OSW.world, ctx = () => W()._int;
   V.owned = () => { const db = OSW.ui && OSW.ui.db; return db && db.entries && db.me && G() ? G().state().cars || [] : []; };
+  // السيارة المركونة بأي مكان ("free") بترجع لحالها لكراج البيت بعد 25 دقيقة
+  V.RETURN_MS = 25 * 60000;
+  V.atOf = (c) => { const a = c.at || "A"; return a === "free" && Date.now() - (c.ft || 0) > V.RETURN_MS ? "H" : a; };
   V.slot = (car) => {
-    const list = V.owned().filter((c) => (c.at || "A") === (car.at || "A")), i = Math.max(0, list.findIndex((c) => c.id === car.id)), L = V.LOTS[car.at || "A"];
+    const at = V.atOf(car); if (at === "free") return { x: car.fx, z: car.fz, h: car.fh };
+    const list = V.owned().filter((c) => V.atOf(c) === at), i = Math.max(0, list.findIndex((c) => c.id === car.id)), L = V.LOTS[at];
     return { x: L.x, z: L.z + i * L.dz, h: L.h };
   };
+  V.sendHome = () => { const me = V.me, n = V.owned().filter((c) => V.atOf(c) !== "H" && !(me && me.id === c.id)); n.forEach((c) => OSW.game.do("cpark", { id: c.id, at: "H" })); return n.length; };
   const busyIds = () => { const c = ctx(), s = new Set(); if (V.me) s.add(V.me.id); if (c.pa.veh && c.pa.veh.id) s.add(c.pa.veh.id); return s; };
 
   /* ---------- الدخول والنزول ---------- */
@@ -128,8 +133,12 @@
     if (m.role === "p") return leave(me, m, null);
     if (Math.abs(m.v) > 1.5 && !force) return OSW.ui.toast("🛑 وقّف السيارة أول");
     const near = ["A", "B", "H"].map((k) => ({ k, d: hy(me.x - V.LOTS[k].cx, me.z - V.LOTS[k].cz) })).sort((a, b) => a.d - b.d)[0];
-    if (near.d > 28 && !force) return OSW.ui.toast("🅿️ نزّلوا جنب موقف (جنب البيت، المعرض، أو الجزيرة)");
-    if (car) { if ((car.at || "A") !== near.k) OSW.game.do("cpark", { id: car.id, at: near.k }); }
+    if (near.d > 28) { // ركنة حرّة بأي مكان
+      if (car) OSW.game.do("cpark", { id: car.id, at: "free", x: me.x, z: me.z, h: m.h });
+      OSW.ui.toast("🅿️ ركنتوا السيارة هون. بترجع لحالها لكراج البيت بعد 25 دقيقة، أو ارجعوها من «العيلة ← 🏠 كراج البيت»", "", 4200);
+      return leave(me, m, null);
+    }
+    if (car) { if (V.atOf(car) !== near.k) OSW.game.do("cpark", { id: car.id, at: near.k }); }
     leave(me, m, near.k);
   };
   function leave(me, m, lot) {
@@ -140,6 +149,7 @@
   }
 
   /* ---------- الفيزياء ---------- */
+  const t0 = () => performance.now();
   V.step = (dt, ix, iy) => {
     const m = V.me, c = ctx(), me = c.me, pa = c.pa; if (!m) return;
     if (m.role === "p") {
@@ -152,10 +162,10 @@
     v -= v * Math.abs(v) * 0.0016 * dt * (D.acc);                  // مقاومة الهواء
     v = clamp(v, -D.vmax * 0.28, D.vmax);
     m.steer = (m.steer || 0) + (st - (m.steer || 0)) * Math.min(1, dt * 7);
-    m.h -= m.steer * D.hand * clamp(v / 4.5, -1, 1) / (1 + Math.abs(v) / D.vmax * 0.9) * dt * 1.6;
+    m.h -= m.steer * D.hand * clamp(v / 2.6, -1, 1) / (1 + Math.abs(v) / D.vmax * 0.8) * dt * 1.75;
     const ox = me.x, oz = me.z;
     me.x += Math.sin(m.h) * v * dt; me.z += Math.cos(m.h) * v * dt;
-    for (const k of c.S.colliders) { const dx = me.x - k.x, dz = me.z - k.z, rr = k.r + 1.25; if (dx * dx + dz * dz < rr * rr) { const d = hy(dx, dz) || 0.001; me.x = k.x + (dx / d) * rr; me.z = k.z + (dz / d) * rr; if (Math.abs(v) > 4) OSW.audio && OSW.audio.sfx("pop"); v *= 0.55; } }
+    for (const k of c.S.colliders) { const dx = me.x - k.x, dz = me.z - k.z, rr = k.r + (k.r < 1.2 ? 0.95 : 1.25); if (dx * dx + dz * dz < rr * rr) { const d = hy(dx, dz) || 0.001; me.x = k.x + (dx / d) * rr; me.z = k.z + (dz / d) * rr; if (Math.abs(v) > 6 && !(m.pt > t0())) { OSW.audio && OSW.audio.sfx("pop"); m.pt = t0() + 600; } v *= 0.82; } }
     if (!V.carOk(me.x, me.z)) { me.x = ox; me.z = oz; v *= -0.25; }
     m.v = v; me.ry = m.h; me.vx = Math.sin(m.h) * v; me.vz = Math.cos(m.h) * v; me.mv = 0; m.dist = (m.dist || 0) + Math.abs(v) * dt;
     me.vel = v; if (V.hudEl) { V.spd.textContent = Math.round(Math.abs(v) * 3.6); }
@@ -195,6 +205,11 @@
       { const co2 = V.owned().find((x) => x.id === (a.drv === "me" && V.me ? V.me.id : pa.veh && pa.veh.id)); if (co2) bed(co2, a.x, a.z, a.h); }
     });
   };
+  // سيارة أهل القرية (بتستخدمها life.js)
+  V.drawNpcCar = (kind, color, x, z, h, t, ch) => {
+    M.trs(x, 0, z, h, 0, 0, 1, 1, 1, V._m1); R.draw(carMesh(kind, color), V._m1);
+    if (ch) { const S = V.seat(kind, "d"), s = Math.sin(h), co = Math.cos(h); OSW.drawChar(ch, x + S.x * co + S.z * s, z - S.x * s + S.z * co, h, 0, 0, t, 1, null, 0.74, S.y - 0.1); }
+  };
   V.drawing = () => !!(V.me || (ctx().pa.veh && ctx().pa.vis));
   V._m1 = new Float32Array(16); V._m2 = new Float32Array(16);
 
@@ -203,9 +218,9 @@
     let h = document.getElementById("carHud");
     if (!h) {
       h = document.createElement("div"); h.id = "carHud"; h.hidden = true;
-      h.innerHTML = `<div class="ch-speed"><b id="chSpd">0</b><small>كم/س</small></div><div class="ch-name" id="chName"></div><div class="ch-bubble" id="carBubble"></div><div class="ch-btns"><button data-ch="back" aria-label="شوف الأولاد">🔙 الأولاد</button><button data-ch="kids" aria-label="الأولاد بالسيارة">🧒</button><button data-ch="view" aria-label="تغيير المنظر">👁️</button><button data-ch="exit" aria-label="نزول">🚪 انزل</button></div>`;
+      h.innerHTML = `<div class="ch-speed"><b id="chSpd">0</b><small>كم/س</small></div><div class="ch-name" id="chName"></div><div class="ch-bubble" id="carBubble"></div><div class="ch-btns"><button data-ch="back" aria-label="شوف الأولاد">🔙 الأولاد</button><button data-ch="kids" aria-label="الأولاد بالسيارة">🧒</button><button data-ch="horn" aria-label="بوق">📯</button><button data-ch="radio" aria-label="راديو">📻</button><button data-ch="view" aria-label="تغيير المنظر">👁️</button><button data-ch="exit" aria-label="نزول">🚪 انزل</button></div>`;
       document.body.appendChild(h); V.hudEl = h; V.spd = h.querySelector("#chSpd");
-      h.addEventListener("click", (e) => { const b = e.target.closest("[data-ch]"); if (!b) return; if (b.dataset.ch === "back" && V.me) { V.me.view = "in"; V.me.look = Math.abs(V.me.look || 0) > 1.5 ? 0 : PI; V.me.lookP = V.me.look ? 0.35 : 0.1; OSW.audio && OSW.audio.sfx("pop"); } else if (b.dataset.ch === "kids") { OSW.places.open("riders"); } else if (b.dataset.ch === "view" && V.me) { V.me.view = V.me.view === "in" ? "out" : "in"; OSW.audio && OSW.audio.sfx("pop"); } else V.exit(); });
+      h.addEventListener("click", (e) => { const b = e.target.closest("[data-ch]"); if (!b) return; if (b.dataset.ch === "back" && V.me) { V.me.view = "in"; V.me.look = Math.abs(V.me.look || 0) > 1.5 ? 0 : PI; V.me.lookP = V.me.look ? 0.35 : 0.1; OSW.audio && OSW.audio.sfx("pop"); } else if (b.dataset.ch === "horn") { OSW.audio && OSW.audio.sfx("horn"); } else if (b.dataset.ch === "radio") { const on = OSW.audio && OSW.audio.radio(); OSW.ui.toast(on ? "📻 الراديو شغّال" : "📻 طفّيت الراديو"); } else if (b.dataset.ch === "kids") { OSW.places.open("riders"); } else if (b.dataset.ch === "view" && V.me) { V.me.view = V.me.view === "in" ? "out" : "in"; OSW.audio && OSW.audio.sfx("pop"); } else V.exit(); });
     }
     document.documentElement.classList.toggle("driving", on); h.hidden = !on; if (on) h.querySelector("#chName").textContent = (V.CARS[V.me.car].e) + " " + V.CARS[V.me.car].n + (V.me.role === "p" ? " (راكب)" : "") + (() => { const c2 = V.owned().find((x) => x.id === V.me.id); return c2 && c2.cargo && c2.cargo.length ? " · 🐾 " + c2.cargo.length : ""; })();
     ["btnSprint", "zoomctl", "guide"].forEach((id) => { const el = document.getElementById(id); if (el) el.style.visibility = on ? "hidden" : ""; });

@@ -51,6 +51,7 @@
     coin: () => { tone(1200, 0.12, "square", 0.05, 0, false); tone(1600, 0.35, "square", 0.05, 0.08); },
     heart: () => { tone(660, 0.18, "sine", 0.12); tone(880, 0.3, "sine", 0.12, 0.1); },
     fanfare: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.55, "triangle", 0.13, i * 0.13)),
+    horn: () => { tone(392, 0.28, "sawtooth", 0.07, 0, false); tone(311, 0.28, "sawtooth", 0.06, 0, false); tone(392, 0.3, "sawtooth", 0.07, 0.34, false); tone(311, 0.3, "sawtooth", 0.06, 0.34, false); },
     babble: () => { const b = 650 + Math.random() * 450; [0, 0.1, 0.2, 0.34].forEach((a, i) => tone(b * (1 + (i % 2 ? 0.28 : 0) + Math.random() * 0.1), 0.1, "triangle", 0.05, a, false)); },
     giggle: () => [0, 0.08, 0.16, 0.24, 0.32, 0.4].forEach((a, i) => tone(950 + (i % 2) * 190 + Math.random() * 40, 0.06, "square", 0.022, a, false)),
     magic: () => [880, 1109, 1319, 1760].forEach((f, i) => tone(f, 0.4, "sine", 0.08, i * 0.07)),
@@ -75,6 +76,14 @@
       if (on) { ensure(); ambientTick(); }
     },
     toggle() { this.set(!enabled); return enabled; },
+    // راديو بسيط (ألحان هادية عشوائية) — يشتغل لو الصوت مفعّل
+    radio() {
+      if (this._radio) { clearInterval(this._radio); this._radio = null; return false; }
+      if (!enabled) this.set(true);
+      const sc = [262, 294, 330, 392, 440, 523, 587, 659]; let k = 3;
+      const play = () => { for (let i = 0; i < 4; i++) { k = Math.max(0, Math.min(sc.length - 1, k + Math.floor(Math.random() * 5) - 2)); tone(sc[k], 0.55, "triangle", 0.045, i * 0.5, true); } tone(sc[0] / 2, 1.8, "sine", 0.05, 0, true); };
+      play(); this._radio = setInterval(play, 2000); return true;
+    },
     sfx(name) { if (enabled && SFX[name]) SFX[name](); },
     setNight(d) { night = d; },
     resumeIfEnabled() { if (enabled) { ensure(); clearTimeout(timer); ambientTick(); } },

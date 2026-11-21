@@ -171,7 +171,7 @@
       } else if (ty === "cpaint") {
         const c = S.cars.find((x) => x.id === d.id); if (!c || S.coins < 30) return; S.coins -= 30; c.color = d.color; mark();
       } else if (ty === "cpark") {
-        const c = S.cars.find((x) => x.id === d.id); if (c) { c.at = d.at; mark(); }
+        const c = S.cars.find((x) => x.id === d.id); if (c) { c.at = d.at; if (d.at === "free") { c.fx = +d.x || 0; c.fz = +d.z || 0; c.fh = +d.h || 0; c.ft = t; } mark(); }
       } else if (ty === "abuy") {
         const A = AN[d.kind]; if (!A || S.coins < A.price || S.animals.filter((x) => x.kind === d.kind).length >= capOf(S, d.kind)) return;
         S.coins -= A.price; S.animals.push({ id: e.id, kind: d.kind, born: t, mt: t, age: 0, prod: 0, fedUntil: t + 6 * HOUR }); mark();
@@ -382,14 +382,16 @@
       else if (tab === "farm") body = Object.entries(SUPPLY).map(([k, f]) => buy(k, f, `${f.note} · عندك ${s.inv[k] || 0}`, k === "wcan" ? [1, 3, 7] : [1, 3])).join("");
       else if (tab === "pets") body = petsPanel(s);
       else if (tab === "kids") body = OSW.fam.kidsShop(s);
+      else if (tab === "ing") body = OSW.lands.ingShop(s);
       else if (tab === "gift") body = `<p class="hint">اشترِ هدية وسعدون بيوصّلها لـ${esc(ui.partnerName())} مع كلمة منك 💌</p><input class="in" id="giftNote" maxlength="120" placeholder="اكتب كلمة حلوة مع الهدية…" style="margin-bottom:8px">` + Object.entries(GIFTS).map(([k, g]) => irow(g.e, g.n, "", `<button class="btn sm berry" data-act="g-gift" data-id="${k}" ${s.coins < g.price ? "disabled" : ""}>أرسل · ${g.price}🪙</button>`)).join("");
       else body = `<p class="hint">أسعار اليوم بتتغير كل يوم ▲▼. المحاصيل اللي بمخزن المزرعة ببيعها هون:</p>` + (Object.keys(PRODUCE).filter((k) => s.inv[k] > 0).map((k) => { const c = PRODUCE[k]; return irow(c.e, `${c.n} ×${s.inv[k]}`, `سعر ${c.sell}🪙 للواحدة`, `<button class="btn sm gold" data-act="g-psell" data-id="${k}" data-q="1">بيع 1</button><button class="btn sm gold" data-act="g-psell" data-id="${k}" data-q="${s.inv[k]}">الكل</button>`); }).join("") + Object.keys(CROPS).filter((k) => s.inv[k] > 0).map((k) => { const c = CROPS[k]; return irow(c.e, `${c.n} ×${s.inv[k]}`, `سعر اليوم ${G.priceOf(k, G.today())}🪙 ${G.trend(k, G.today())}`, `<button class="btn sm gold" data-act="g-sell" data-id="${k}" data-q="1">بيع 1</button><button class="btn sm gold" data-act="g-sell" data-id="${k}" data-q="${s.inv[k]}">الكل</button>`); }).join("") || `<div class="empty">ما عندك محاصيل بالمخزن. اقطفوا من المزرعة وحطوا الصناديق بالمخزن 🌾</div>`);
       const carried = G.carryOf(db.uid);
       ui.openModal(`<h3>🏪 بقالة سعدون</h3>${coinBar()}
+        <div class="row" style="margin:6px 0"><button class="btn gold sm" data-act="g-fam-open" data-k="prices">📈 لائحة الأسعار (مرتفع / منخفض)</button></div>
         <div class="npc-say"><span class="nav">🧑‍🍳</span><div class="res-say"><small>سعدون</small>${esc(lines[Math.floor(Date.now() / 60000) % lines.length])}</div></div>
         ${carried.length ? `<div class="chk" style="margin:6px 0">📦 معك ${carried.length} صندوق <button class="btn sm gold" data-act="g-sellcrate">سلّمهم لسعدون (سعر اليوم)</button></div>` : ""}
         <div class="salary"><small>راتب سعدون الأسبوعي: ${till}/${SALARY}🪙 ${paid ? "✅ انصرف (وأعطاكم 10🪙 مكافأة!)" : "— كل ما اشتريتوا بيقرب يقبض"}</small><div class="progress"><i style="width:${Math.min(100, till)}%"></i></div></div>
-        <div class="seg" style="margin:10px 0">${[["food", "🍞 أكل"], ["drink", "🥤 مشروبات"], ["sweet", "🍰 حلويات"], ["farm", "🌱 مزرعة وورد"], ["pets", "🐾 أليفة"], ["kids", "👶 الأولاد"], ["gift", "🎁 هدايا"], ["sell", "🧺 بيع"]].map(([k, t]) => `<button class="${tab === k ? "on" : ""}" data-act="g-tab" data-k="${k}">${t}</button>`).join("")}</div>
+        <div class="seg" style="margin:10px 0">${[["food", "🍞 أكل"], ["ing", "🧺 مواد الطبخ"], ["drink", "🥤 مشروبات"], ["sweet", "🍰 حلويات"], ["farm", "🌱 مزرعة وورد"], ["pets", "🐾 أليفة"], ["kids", "👶 الأولاد"], ["gift", "🎁 هدايا"], ["sell", "🧺 بيع"]].map(([k, t]) => `<button class="${tab === k ? "on" : ""}" data-act="g-tab" data-k="${k}">${t}</button>`).join("")}</div>
         <div class="items">${body}</div>`);
     },
     farm() {

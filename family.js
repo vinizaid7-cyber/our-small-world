@@ -200,7 +200,7 @@
       <div class="seg" style="margin-bottom:8px"><button class="${kg === "boy" ? "on" : ""}" data-act="g-kidg" data-g="boy">👦 ولد</button><button class="${kg === "girl" ? "on" : ""}" data-act="g-kidg" data-g="girl">👧 بنت</button></div>
       <button class="btn berry" style="width:100%" data-act="g-kidborn" ${s.coins < 200 ? "disabled" : ""}>👶 جيب الطفل (200🪙)</button>` : `<p class="hint">عيلتكم كاملة 💞 (${cap} أولاد)</p>`;
     ui().openModal(`<h3>👨‍👩‍👧 عيلتنا</h3>${coinBar()}<div class="items" style="margin:8px 0">${rows || '<div class="empty">لسا ما عندكم أولاد 🍼</div>'}</div>${form}
-      <div class="sep"></div><div class="row" style="flex-wrap:wrap;gap:6px"><button class="btn alt sm" data-act="g-fam-open" data-k="acts">🎈 فعاليات الجزيرة</button><button class="btn alt sm" data-act="g-fam-open" data-k="fridge">🧊 الثلاجة</button><button class="btn alt sm" data-act="g-fam-open" data-k="mypets">🐾 حيواناتنا</button><button class="btn alt sm" data-act="g-fam-shop">🛍️ مستلزمات الأولاد</button><button class="btn alt sm" data-act="g-gotoschool">🏫 المدرسة</button><button class="btn alt sm" data-act="g-fam-cars">🚗 سياراتنا</button></div>`);
+      <div class="sep"></div><div class="row" style="flex-wrap:wrap;gap:6px"><button class="btn alt sm" data-act="g-fam-open" data-k="acts">🎈 فعاليات الجزيرة</button><button class="btn alt sm" data-act="g-fam-open" data-k="fridge">🧊 الثلاجة</button><button class="btn alt sm" data-act="g-fam-open" data-k="mypets">🐾 حيواناتنا</button><button class="btn alt sm" data-act="g-fam-shop">🛍️ مستلزمات الأولاد</button><button class="btn alt sm" data-act="g-gotoschool">🏫 المدرسة</button><button class="btn alt sm" data-act="g-fam-cars">🚗 سياراتنا</button><button class="btn alt sm" data-act="g-fam-lhome">🏠 كراج البيت (رجّع السيارات)</button></div>`);
   };
 
   G.openers.kid = () => {
@@ -243,7 +243,7 @@
       <b>🍽️ بالثلاجة</b><div class="items" style="margin:6px 0">${rows || '<div class="empty">الثلاجة فاضية! اشتروا أكل من سعدون وخزّنوه 🛒</div>'}</div>
       <b>📥 حط من المخزن</b><div class="items" style="margin:6px 0">${inv || '<div class="empty">ما عندكم مواد بالمخزن</div>'}</div>
       <b>👩‍🍳 وصفات</b><div class="items" style="margin:6px 0">${rec}</div>
-      <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn alt sm" data-act="g-gotoshop">🏪 سعدون</button><button class="btn alt sm" data-act="g-fam-open" data-k="kiosk">💰 بيع وجبات</button>${fi ? '<button class="btn alt sm" data-act="g-fam-furn">🔧 نقل/بيع الثلاجة</button>' : ""}<button class="btn alt sm" data-act="g-fam-open" data-k="family">👨‍👩‍👧 العيلة</button></div>`);
+      <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn alt sm" data-act="g-fam-lshopi">🧺 مواد الطبخ من سعدون</button><button class="btn alt sm" data-act="g-gotoshop">🏪 سعدون</button><button class="btn alt sm" data-act="g-fam-open" data-k="kiosk">💰 بيع وجبات</button>${fi ? '<button class="btn alt sm" data-act="g-fam-furn">🔧 نقل/بيع الثلاجة</button>' : ""}<button class="btn alt sm" data-act="g-fam-open" data-k="family">👨‍👩‍👧 العيلة</button></div>`);
   };
 
   G.openers.acts = () => {

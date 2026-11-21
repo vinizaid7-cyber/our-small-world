@@ -109,7 +109,7 @@
     for (let i = 0; i < 8; i++) B.box(57.5 + i * 0.9, 0.15, -2, 0.85, 0.14, 2.2, i % 2 ? "#a97c50" : "#b98d5e");
     [[72, -12, 5.6], [72, -6, 9.4], [72, -2, 9.8], [72, 2, 9.4], [72, 8.5, 6.4], [79, -2, 4]].forEach(([x, z, r]) => col(x, z, r));
     /* طرق وساحة */
-    PATHS.forEach((p) => B.strip(p, 3.4, 0.07, "#e3d3ad"));
+    PATHS.forEach((p) => B.strip(p, 3.4, 0.07, "#e3d3ad")); X.buildStreets(B);
     B.disc(0, 0.08, 0, 12.6, "#d3c196", 40); B.disc(0, 0.09, 0, 11.7, "#e9dcba", 40); B.disc(0, 0.1, 0, 8.4, "#e1d1aa", 40);
     for (let i = 0; i < 24; i++) { const a = (i / 24) * PI * 2; B.disc(Math.cos(a) * 10.1, 0.11, Math.sin(a) * 10.1, 0.5, "#cdbb90", 6); }
 
@@ -202,7 +202,7 @@
     Object.keys(POS).forEach((k) => anchors.push([POS[k].x, POS[k].z, k === "lake" ? 17 : k === "farm" ? 3 : 8.4]));
     anchors.push([X.BUTCHER.x, X.BUTCHER.z, 9], [X.SQUARE.x, X.SQUARE.z, 12]);
     const inRect = (x, z, a, b, c2, d) => x > a && x < b && z > c2 && z < d;
-    const okSpot = (x, z, r) => !(x < S.bounds.x0 + 2 || x > S.bounds.x1 - 2 || z < S.bounds.z0 + 1 || z > S.bounds.z1 - 1) && !anchors.some((a) => hy(x - a[0], z - a[1]) < a[2] + r) && hy(x, z) > 14.5 && !nearPath(x, z, 3.4) && !inRect(x, z, -64, -8, -50, -6) && !inRect(x, z, -4, 10, -52, -34) && !inRect(x, z, 58, 92, -20, 14) && !inRect(x, z, -76, 76, 31, 75) && !inRect(x, z, -34, 40, 70, 102) && !OSW.EX.LANDS.some((L) => inRect(x, z, L.x - 10, L.x + 10, L.z - 13, L.z + 15));
+    const okSpot = (x, z, r) => !(x < S.bounds.x0 + 2 || x > S.bounds.x1 - 2 || z < S.bounds.z0 + 1 || z > S.bounds.z1 - 1) && !anchors.some((a) => hy(x - a[0], z - a[1]) < a[2] + r) && hy(x, z) > 14.5 && !nearPath(x, z, 3.4) && !inRect(x, z, -64, -8, -50, -6) && !inRect(x, z, -4, 10, -52, -34) && !inRect(x, z, 58, 92, -20, 14) && !inRect(x, z, -76, 76, 31, 75) && !inRect(x, z, -34, 40, 70, 102) && !inRect(x, z, 70, 78, 31, 60) && !inRect(x, z, -78, -70, 31, 60) && !OSW.EX.LANDS.some((L) => inRect(x, z, L.x - 10, L.x + 10, L.z - 13, L.z + 15));
     const kinds = ["oak", "pine", "cypress", "olive", "birch", "round"];
     function deco(x, z, k, s) {
       if (k === "pine") { B.cyl(x, 0, z, 0.25 * s, 0.2 * s, 1.2 * s, "#6b4a30", 6); for (let i = 0; i < 4; i++) F.cyl(x, (0.9 + i * 1.05) * s, z, (1.8 - i * 0.4) * s, 0.1, 1.9 * s, dk(P.l1, 0.2 + i * 0.04), 8); }
@@ -228,7 +228,7 @@
     // عشب طويل متفرق
     for (let t = 0, n = 0; t < 6000 && n < 320; t++) { const x = S.bounds.x0 + rnd() * (S.bounds.x1 - S.bounds.x0), z = S.bounds.z0 + rnd() * (S.bounds.z1 - S.bounds.z0); if (!okSpot(x, z, 0.2)) continue; n++; for (let k = 0; k < 4; k++) F.cyl(x + (k - 1.5) * 0.12, 0, z + (k % 2) * 0.1, 0.07, 0.01, 0.55 + rnd() * 0.3, dk(P.g1, 0.12), 3); }
     // أعمدة إنارة وكراسي
-    S.lamps = [[-7, 9], [7, 9], [-7, 22], [7, 22], [-10, -10], [10, -10], [-14, 14], [14, 14], [0, 26], [-40, 8], [40, 6], [-30, -8], [60, 14], [-6, 37], [6, 37], [-36, 37], [36, 37], [-60, 37], [60, 37], [-6, 55], [6, 55], [-36, 56], [36, 56], [-60, 56], [60, 56], [-2, 46], [2, 46]];
+    S.lamps = [[-7, 9], [7, 9], [-7, 22], [7, 22], [-10, -10], [10, -10], [-14, 14], [14, 14], [0, 26], [-40, 8], [40, 6], [-30, -8], [60, 14], [-6, 37], [6, 37], [-36, 37], [36, 37], [-60, 37], [60, 37], [-6, 53.2], [6, 53.2], [-36, 53.2], [36, 53.2], [-60, 53.2], [60, 53.2], [-4.6, 46], [4.6, 46]];
     S.lamps.forEach(([x, z]) => { B.cyl(x, 0, z, 0.1, 0.1, 3.4, "#4a3d38", 6); B.sphere(x, 3.6, z, 0.34, 0.4, 0.34, "#ffe7a0", 7, 1); col(x, z, 0.3); });
     [[-8, 4, 0], [8, 4, 0], [-12, -6, 0.3], [12, -6, -0.3], [-4, 36.5, 0], [4, 36.5, 0], [-4, 57, 0], [4, 57, 0], [26, 12, 0], [-26, 17.5, 0]].forEach(([x, z, r]) => { B.push(x, 0, z, r); B.box(0, 0.4, 0, 1.8, 0.1, 0.55, "#a97c50"); B.box(0, 0.8, -0.22, 1.8, 0.45, 0.08, "#a97c50"); B.box(-0.8, 0, 0, 0.1, 0.4, 0.5, "#555"); B.box(0.8, 0, 0, 0.1, 0.4, 0.5, "#555"); B.pop(); });
     // ساحة السوق الجنوبية: بئر + برج ساعة + بسطات
