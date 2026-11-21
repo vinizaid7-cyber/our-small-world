@@ -360,9 +360,10 @@
   /* ---------- الإقلاع ---------- */
   async function boot() {
     db = OSW.createDB(); ui = OSW.ui; W = OSW.world; P = OSW.places; G = OSW.game;
-    ui.init(db); P.init(db);
+    ui.init(db); P.init(db); G.init(db, ui);
     const l = $("#loading");
-    if (!W.init()) { l.classList.add("gone"); authCard(`<div class="logo">😕</div><h1>المتصفح ما بيدعم 3D</h1><p>جرّب كروم أو افتح الموقع من متصفح أحدث، وتأكد إنو تسريع الرسوم (Hardware acceleration) شغّال.</p><button class="btn" onclick="location.reload()">جرّب مرة ثانية</button>`); return; }
+    let wok = false; try { wok = W.init(); } catch (e) { console.error(e); l.classList.add("gone"); authCard(`<div class="logo">😕</div><h1>مشكلة برسم العالم</h1><p>${esc(e.message)}</p><button class="btn" onclick="location.reload()">جرّب مرة ثانية</button>`); return; }
+    if (!wok) { l.classList.add("gone"); authCard(`<div class="logo">😕</div><h1>المتصفح ما بيدعم 3D</h1><p>جرّب كروم أو افتح الموقع من متصفح أحدث، وتأكد إنو تسريع الرسوم (Hardware acceleration) شغّال.</p><button class="btn" onclick="location.reload()">جرّب مرة ثانية</button>`); return; }
     bindHud();
     if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});
     window.addEventListener("unhandledrejection", (e) => ui.toast("⚠️ " + esc((e.reason && e.reason.message) || e.reason), "", 5000));

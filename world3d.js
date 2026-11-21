@@ -586,7 +586,7 @@
     camStep(dt); drawScene(); updateLabels(); fxFrame();
     // جودة تلقائية: إذا الجهاز بطيء بنصغّر الدقة لحتى تسلك اللعبة
     const aq = (W._aq = W._aq || { n: 0, s: 0 }); aq.n++; aq.s += dt;
-    if (aq.s >= 2) { const fps = aq.n / aq.s; aq.n = 0; aq.s = 0; if (fps < 26 && (R.q || 1) > 0.45) { R.q = (R.q || 1) * 0.8; R.resize(); } }
+    if (aq.s >= 3) { const fps = aq.n / aq.s; aq.n = 0; aq.s = 0; aq.low = fps < 22 ? (aq.low || 0) + 1 : 0; if (st.t > 8 && aq.low >= 2 && (R.q || 1) > 0.65) { R.q = (R.q || 1) * 0.85; aq.low = 0; R.resize(); } }
   }
 
   /* ---------- مدخلات اللمس والماوس ---------- */

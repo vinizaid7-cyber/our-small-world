@@ -230,7 +230,7 @@
     return S;
   }
   G.state = () => {
-    const evs = db.entries.filter((e) => e.house === "game"), key = evs.length + ":" + (evs.length ? evs[evs.length - 1].id : "") + ":" + db.uid;
+    const evs = (db && db.entries ? db.entries : []).filter((e) => e.house === "game"), key = evs.length + ":" + (evs.length ? evs[evs.length - 1].id : "") + ":" + (db ? db.uid : "");
     if (G._k !== key) { G._s = fold(evs); G._k = key; }
     return G._s;
   };
