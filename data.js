@@ -66,12 +66,12 @@
     };
     const loadScript = (src) => new Promise((res, rej) => {
       const s = document.createElement("script");
-      s.src = src; s.onload = res; s.onerror = () => { s.remove(); rej(new Error("x")); };
+      const t = setTimeout(() => { s.remove(); rej(new Error("timeout")); }, 6000);
+      s.src = src; s.onload = () => { clearTimeout(t); res(); }; s.onerror = () => { clearTimeout(t); s.remove(); rej(new Error("x")); };
       document.head.appendChild(s);
     });
     // بنجرّب نسخة محلية أول (supabase.js جنب index.html)، وبعدين عدة مصادر بديلة
     const LIBS = [
-      "supabase.js",
       "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
       "https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js",
       "https://fastly.jsdelivr.net/npm/@supabase/supabase-js@2",

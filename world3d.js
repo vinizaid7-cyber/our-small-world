@@ -584,6 +584,9 @@
     if (pa.vis && !pa.sleep && !pa.inside && hy(me.x - pa.x, me.z - pa.z) < 4.2) { together += dt; if (together > 45 && W.onTogether) { together = 0; W.onTogether(); } } else together = Math.max(0, together - dt * 0.5);
     if (tapMark && tapMark.life > 0) tapMark.life -= dt;
     camStep(dt); drawScene(); updateLabels(); fxFrame();
+    // جودة تلقائية: إذا الجهاز بطيء بنصغّر الدقة لحتى تسلك اللعبة
+    const aq = (W._aq = W._aq || { n: 0, s: 0 }); aq.n++; aq.s += dt;
+    if (aq.s >= 2) { const fps = aq.n / aq.s; aq.n = 0; aq.s = 0; if (fps < 26 && (R.q || 1) > 0.45) { R.q = (R.q || 1) * 0.8; R.resize(); } }
   }
 
   /* ---------- مدخلات اللمس والماوس ---------- */

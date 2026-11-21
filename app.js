@@ -367,9 +367,10 @@
     if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});
     window.addEventListener("unhandledrejection", (e) => ui.toast("⚠️ " + esc((e.reason && e.reason.message) || e.reason), "", 5000));
     let status = "auth";
-    try { status = await db.start(); }
+    const hang = setTimeout(() => { const ll = $("#loading"); if (ll && !ll.classList.contains("gone")) ll.querySelector("p").innerHTML = "الاتصال بطيء… استنى شوي أو <a href='check.html' style='color:#FFC24B'>افحص المشكلة</a>"; }, 12000);
+    try { status = await db.start(); clearTimeout(hang); }
     catch (e) {
-      l.classList.add("gone"); setTimeout(() => l.remove(), 800);
+      clearTimeout(hang); l.classList.add("gone"); setTimeout(() => l.remove(), 800);
       authCard(`<div class="logo">😕</div><h1>مشكلة بالاتصال</h1><p>${esc(e.message)}</p><a class="btn" style="display:block;text-decoration:none;margin-bottom:10px" href="check.html">🔍 افحص المشكلة</a><button class="btn alt" onclick="location.reload()">جرّب مرة ثانية</button>`);
       return;
     }
