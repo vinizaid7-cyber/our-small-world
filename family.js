@@ -243,7 +243,7 @@
       <b>🍽️ بالثلاجة</b><div class="items" style="margin:6px 0">${rows || '<div class="empty">الثلاجة فاضية! اشتروا أكل من سعدون وخزّنوه 🛒</div>'}</div>
       <b>📥 حط من المخزن</b><div class="items" style="margin:6px 0">${inv || '<div class="empty">ما عندكم مواد بالمخزن</div>'}</div>
       <b>👩‍🍳 وصفات</b><div class="items" style="margin:6px 0">${rec}</div>
-      <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn alt sm" data-act="g-gotoshop">🏪 سعدون</button>${fi ? '<button class="btn alt sm" data-act="g-fam-furn">🔧 نقل/بيع الثلاجة</button>' : ""}<button class="btn alt sm" data-act="g-fam-open" data-k="family">👨‍👩‍👧 العيلة</button></div>`);
+      <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn alt sm" data-act="g-gotoshop">🏪 سعدون</button><button class="btn alt sm" data-act="g-fam-open" data-k="kiosk">💰 بيع وجبات</button>${fi ? '<button class="btn alt sm" data-act="g-fam-furn">🔧 نقل/بيع الثلاجة</button>' : ""}<button class="btn alt sm" data-act="g-fam-open" data-k="family">👨‍👩‍👧 العيلة</button></div>`);
   };
 
   G.openers.acts = () => {
@@ -282,6 +282,7 @@
 
   /* ---------- النقرات ---------- */
   F.click = async (a, el) => {
+    if (a.indexOf("g-fam-l") === 0 && OSW.lands) return OSW.lands.click(a, el);
     const st = G.ui, d = el.dataset, busy = async (f) => { try { await f(); } catch (e) { toast("⚠️ " + esc(e.message)); } };
     const sfx = (n) => OSW.audio && OSW.audio.sfx(n), hearts = (e, n) => ui().hearts && ui().hearts(e, n || 6), me = () => W().getMe();
     switch (a) {

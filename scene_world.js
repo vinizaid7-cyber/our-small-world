@@ -202,7 +202,7 @@
     Object.keys(POS).forEach((k) => anchors.push([POS[k].x, POS[k].z, k === "lake" ? 17 : k === "farm" ? 3 : 8.4]));
     anchors.push([X.BUTCHER.x, X.BUTCHER.z, 9], [X.SQUARE.x, X.SQUARE.z, 12]);
     const inRect = (x, z, a, b, c2, d) => x > a && x < b && z > c2 && z < d;
-    const okSpot = (x, z, r) => !(x < S.bounds.x0 + 2 || x > S.bounds.x1 - 2 || z < S.bounds.z0 + 1 || z > S.bounds.z1 - 1) && !anchors.some((a) => hy(x - a[0], z - a[1]) < a[2] + r) && hy(x, z) > 14.5 && !nearPath(x, z, 3.4) && !inRect(x, z, -64, -8, -50, -6) && !inRect(x, z, -4, 10, -52, -34) && !inRect(x, z, 58, 92, -20, 14) && !inRect(x, z, -76, 76, 31, 75) && !inRect(x, z, -34, 40, 70, 102);
+    const okSpot = (x, z, r) => !(x < S.bounds.x0 + 2 || x > S.bounds.x1 - 2 || z < S.bounds.z0 + 1 || z > S.bounds.z1 - 1) && !anchors.some((a) => hy(x - a[0], z - a[1]) < a[2] + r) && hy(x, z) > 14.5 && !nearPath(x, z, 3.4) && !inRect(x, z, -64, -8, -50, -6) && !inRect(x, z, -4, 10, -52, -34) && !inRect(x, z, 58, 92, -20, 14) && !inRect(x, z, -76, 76, 31, 75) && !inRect(x, z, -34, 40, 70, 102) && !OSW.EX.LANDS.some((L) => inRect(x, z, L.x - 10, L.x + 10, L.z - 13, L.z + 15));
     const kinds = ["oak", "pine", "cypress", "olive", "birch", "round"];
     function deco(x, z, k, s) {
       if (k === "pine") { B.cyl(x, 0, z, 0.25 * s, 0.2 * s, 1.2 * s, "#6b4a30", 6); for (let i = 0; i < 4; i++) F.cyl(x, (0.9 + i * 1.05) * s, z, (1.8 - i * 0.4) * s, 0.1, 1.9 * s, dk(P.l1, 0.2 + i * 0.04), 8); }
@@ -310,7 +310,7 @@
     swap(name || "cart", B);
   };
   S.rebuildFarm = (plots) => {
-    const B = new Builder();
+    const B = new Builder(); if (OSW.lands) OSW.lands.beds(B);
     plots.forEach((p, i) => {
       if (!p) return;
       const pp = OSW.EX.plotPos(i), x = pp.x, z = pp.z, g = p.progress, ripe = g >= 1;

@@ -215,6 +215,7 @@
   // زرع/قطف بالإيد: بتضغط عالأرض، الشخصية بتمشي وبتشتغل
   function plotAct(i, walk) {
     if (walk) { const p = W.S.poi["plot:" + i]; return p ? W.goTo(p.x, p.z, "plot:" + i) : null; }
+    if (i >= 12 && OSW.lands && !OSW.lands.owned(i)) return OSW.lands.open(OSW.lands.landOfPlot(i));
     const v = G.view(), p = v.plots[i], carried = G.carryOf(db.uid);
     OSW.audio.sfx("pop");
     if (!p) {
@@ -223,7 +224,7 @@
       W.say("me", "🌱", 1600); return G.do("plant", { plot: i, crop: G.ui.last, fert }).then(() => ui.toast(`${c.e} زرعت ${c.n}${fert ? " بسماد 🌿" : ""}`, "", 1800)).catch((e) => ui.toast("⚠️ " + esc(e.message)));
     }
     if (!p.ripe) return ui.toast(`${G.CROPS[p.crop].e} لسا بدها ${p.left >= 60 ? Math.floor(p.left / 60) + " س " + (p.left % 60) : p.left} د`, "", 2200);
-    if (carried.length >= 3) return ui.toast("إيدك مليانة! 📦📦📦 حطّ الصناديق بالمخزن 🏚️ أو بالعربة 🛒", "gold", 3200);
+    if (carried.length >= G.carryMax()) return ui.toast("إيدك مليانة! 📦📦📦 حطّ الصناديق بالمخزن 🏚️ أو بالعربة 🛒", "gold", 3200);
     W.say("me", "🧺", 1600); return G.do("harvest", { plot: i }).then(() => { OSW.audio.sfx("coin"); ui.toast(`📦 شلت صندوق ${G.CROPS[p.crop].n} (${G.carryOf(db.uid).length}/3)`, "", 1800); }).catch((e) => ui.toast("⚠️ " + esc(e.message)));
   }
   function barnAct() {
@@ -247,6 +248,7 @@
     if (k === "hidden") return foundHidden(v);
     if (k === "partner") return toggleWalk();
     if (k === "plot") return plotAct(+v);
+    if (k === "land" && OSW.lands) return OSW.lands.open(v);
     if (k === "exit") return exitInterior();
     if (act === "wedding") return goPlace("wedding");
     if (k === "console") return openConsole(v);

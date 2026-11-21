@@ -751,6 +751,7 @@
       Object.keys(pets3).forEach((k) => { if (!seen.has(k)) { for (let i = labs.length - 1; i >= 0; i--) if (labs[i].dynamic === "petl" + k) { labs[i].el.remove(); labs.splice(i, 1); } delete pets3[k]; } });
     },
     petsPos: () => Object.values(pets3).map((o) => ({ id: o.id, x: o.x, z: o.z, name: o.nm ? o.nm.replace(/^\S+\s/, "") : "" })),
+    setLandLabels(list) { for (let i = labs.length - 1; i >= 0; i--) if (labs[i].dynamic === "landl") { labs[i].el.remove(); labs.splice(i, 1); } list.forEach((d) => mkLabel({ id: "landl_" + d.id, text: d.text, x: d.x, y: 4.6, z: d.z, cls: "tag", max: 95, act: d.act, dynamic: "landl" })); },
     setCarry(w, colors) { carry[w] = colors || []; },
     setBags(n) { bagState.n = n || 0; },
     setSpeedMul(m) { me.speedMul = m; },

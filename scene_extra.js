@@ -5,7 +5,12 @@
 
   /* ================= المزرعة (جنب البيت) ================= */
   const FARM = (X.FARM = { x0: -58, x1: -12, z0: -44, z1: -9, plotX: -27, plotZ: -39, step: 5.4, cols: 3, gateX: -24, hangar: { x: -45, z: -37, w: 22, d: 12 } });
-  X.plotPos = (i) => ({ x: FARM.plotX + (i % FARM.cols) * FARM.step, z: FARM.plotZ + Math.floor(i / FARM.cols) * FARM.step });
+  // أراضي للبيع حوالين القرية (6 قطع، كل وحدة فيها 6 أرضيات زراعة)
+  X.LANDS = [
+    { id: "l1", n: "أرض الزيتون", x: -92, z: -34, price: 700 }, { id: "l2", n: "أرض الغرب", x: -92, z: -6, price: 1000 }, { id: "l3", n: "أرض الوادي", x: -92, z: 22, price: 1400 },
+    { id: "l4", n: "أرض الشمال", x: 38, z: -46, price: 1900 }, { id: "l5", n: "أرض التلّة", x: 74, z: -46, price: 2600 }, { id: "l6", n: "المزرعة الكبرى", x: 98, z: 40, price: 3500 },
+  ];
+  X.plotPos = (i) => { if (i < 12) return { x: FARM.plotX + (i % FARM.cols) * FARM.step, z: FARM.plotZ + Math.floor(i / FARM.cols) * FARM.step }; const L = X.LANDS[Math.floor((i - 12) / 6)], k = (i - 12) % 6; return { x: L.x + (k % 2 ? 2.7 : -2.7), z: L.z + (Math.floor(k / 2) - 1) * 5.4 }; };
   // حظائر الحيوانات (مستطيلات يتحركوا فيها)
   X.PENS = { cow: { x0: -56, x1: -48.6, z0: -29, z1: -17 }, sheep: { x0: -48.6, x1: -41.3, z0: -29, z1: -17 }, chicken: { x0: -41.3, x1: -34, z0: -29, z1: -17 } };
   X.CART_HOME = { x: -18.5, z: -12.6 };
@@ -141,7 +146,13 @@
     S.poi.farm = { x: -22, z: -14.8 };
     reg("farm", -21.6, 1, -31, 11.5, S.poi.farm.x, S.poi.farm.z);
     label("farm", "🌾 المزرعة", -21.6, 4.2, -41.6, { act: "farm", max: 90, badge: "farm" });
-    for (let i = 0; i < 12; i++) { const p = X.plotPos(i); S.poi["plot:" + i] = { x: p.x, z: p.z + 2.7 }; reg("plot:" + i, p.x, 0.5, p.z, 2.0, p.x, p.z + 2.7); }
+    for (let i = 0; i < 48; i++) { const p = X.plotPos(i); S.poi["plot:" + i] = { x: p.x, z: p.z + 2.7 }; reg("plot:" + i, p.x, 0.5, p.z, 2.0, p.x, p.z + 2.7); }
+    // سياج الأراضي (بوابة من الجنوب) — الأرض الزراعية بتنرسم لما تنشرى
+    X.LANDS.forEach((L) => {
+      B.box(L.x, 0.05, L.z, 15.4, 0.04, 21.4, "#b5d98f"); const xa = L.x - 7.7, xb = L.x + 7.7, za = L.z - 10.7, zb = L.z + 10.7;
+      fenceLine(B, col, xa, za, xb, za, 2.2, 1.1); fenceLine(B, col, xa, za, xa, zb, 2.2, 1.1); fenceLine(B, col, xb, za, xb, zb, 2.2, 1.1); fenceLine(B, col, xa, zb, xb, zb, 2.2, 1.1, [L.x - 2.2, L.x + 2.2, zb]);
+      S.poi["land:" + L.id] = { x: L.x, z: L.z + 13.5 };
+    });
     windmill(c);
     // أشجار فواكه حول المزرعة (أطراف)
     [[-60, -12], [-60, -26], [-60, -38], [-10, -46], [-24, -47], [-50, -47]].forEach(([x, z]) => { B.cyl(x, 0, z, 0.3, 0.22, 2.0, "#7a5236", 6); [[0, 2.8, 0, 1.6], [-0.8, 2.4, 0.2, 1.1], [0.8, 2.5, -0.2, 1.2]].forEach(([dx, dy, dz, r]) => F.sphere(x + dx, dy, z + dz, r, r * 0.9, r, "#5fae5c", 7)); col(x, z, 0.6); });
