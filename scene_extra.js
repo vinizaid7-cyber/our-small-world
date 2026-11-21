@@ -215,7 +215,8 @@
     S.poi.dealer = { x: d.x + fx * 7.2, z: d.z + fz * 7.2 }; reg("dealer", d.x, 2.4, d.z, 6.4, S.poi.dealer.x, S.poi.dealer.z); label("dealer", "🚗 معرض السيارات", d.x, 9.4, d.z, { act: "dealer", max: 110 });
     // موقف القرية
     const A = OSW.veh ? OSW.veh.LOTS.A : { x: 11, z: 72 };
-    B.box(A.x - 0.2, 0.06, 83, 9, 0.05, 27, "#4a4d55"); for (let i = 0; i <= 6; i++) B.box(A.x - 0.2, 0.1, 70.1 + i * 4.2, 8, 0.03, 0.12, "#f4f4f4"); label("lotA", "🅿️ موقف", A.x + 1.5, 3, 96, { cls: "sm", max: 40 });
+    B.box(A.x - 0.2, 0.06, A.z + 15, 9, 0.05, 36, "#4a4d55"); for (let i = 0; i <= 6; i++) B.box(A.x - 0.2, 0.1, A.z - 2.9 + i * 5.9, 8, 0.03, 0.12, "#f4f4f4"); label("lotA", "🅿️ موقف", A.x + 1.5, 3, A.z + 33, { cls: "sm", max: 40 });
+    { const H = OSW.veh ? OSW.veh.LOTS.H : { x: 13, z: -44 }; B.box(H.x - 0.2, 0.06, H.z + 15, 9, 0.05, 36, "#4a4d55"); for (let i = 0; i <= 6; i++) B.box(H.x - 0.2, 0.1, H.z - 2.9 + i * 5.9, 8, 0.03, 0.12, "#f4f4f4"); label("lotH", "🅿️ موقف بيتنا", H.x + 1.5, 3, H.z + 33, { cls: "sm", max: 60 }); }
     // بوابة الطريق الطويل
     B.box(-5.6, 0, 100, 0.6, 5.0, 0.6, "#c0392b"); B.box(5.6, 0, 100, 0.6, 5.0, 0.6, "#c0392b"); B.box(0, 4.6, 100, 12.2, 0.9, 0.5, "#f4ead2"); B.box(0, 4.7, 100.3, 11.6, 0.7, 0.05, "#2b3a55");
     for (let i = 0; i < 8; i++) B.box(-5.2 + i * 1.5, 5.5, 100, 0.8, 0.3, 0.3, i % 2 ? "#fff" : "#c0392b");
@@ -248,7 +249,7 @@
     B.cyl(I.x, 0, I.z, 3.2, 3.2, 0.7, "#9aa7b8", 16); B.cyl(I.x, 0.6, I.z, 2.8, 2.8, 0.1, "#63b6ee", 16); B.cyl(I.x, 0.1, I.z, 0.35, 0.3, 2.6, "#c0c8d6", 8); B.sphere(I.x, 2.9, I.z, 0.9, 0.35, 0.9, "#c0c8d6", 10, 0, true); col(I.x, I.z, 3.4);
     label("isl", "🏝️ الجزيرة الثانية", I.x, 9, I.z + 12, { cls: "", max: 130 });
     // موقف الجزيرة
-    const L = V.LOTS.B; B.box(L.x + 0.2, 0.1, L.z + 10.5, 9, 0.05, 27, "#4a4d55"); for (let i = 0; i <= 6; i++) B.box(L.x + 0.2, 0.14, L.z - 2.1 + i * 4.2, 8, 0.03, 0.12, "#f4f4f4"); label("lotB", "🅿️ موقف", L.x - 1.5, 3, L.z + 24, { cls: "sm", max: 40 });
+    const L = V.LOTS.B; B.box(L.x + 0.2, 0.1, L.z + 15, 9, 0.05, 36, "#4a4d55"); for (let i = 0; i <= 6; i++) B.box(L.x + 0.2, 0.14, L.z - 2.9 + i * 5.9, 8, 0.03, 0.12, "#f4f4f4"); label("lotB", "🅿️ موقف", L.x - 1.5, 3, L.z + 33, { cls: "sm", max: 40 });
     // محلات الجزيرة
     X.buildBoutique(c); X.buildButcher({ B, SH, S, reg, label, col }); X.buildIslandLife(c); X.buildSchool(c);
     // نخيل وزينة

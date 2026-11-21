@@ -102,7 +102,8 @@
   function stepPets(dt) {
     Object.values(pets3).forEach((o) => {
       const K = PETK[o.kind]; let ox = 0, oz = 0, active = false, want = 0;
-      if (o.owner === "me") { if (mode === "out") { ox = me.x; oz = me.z; active = true; } }
+      if (o.mode === "stay" || o.mode === "home") { const hp = S.poi.home || { x: 0, z: -7 }, hx = o.mode === "stay" && o.hx != null ? o.hx : hp.x + 3, hz = o.mode === "stay" && o.hz != null ? o.hz : hp.z + 2, dh = hy(hx - o.x, hz - o.z); if (dh > 60) { o.x = hx; o.z = hz; o.tx = null; } else if (dh > 3.4) { o.chase = true; o.tx = hx; o.tz = hz; o.run = dh > 10; } else { if (o.chase) { o.chase = false; o.tx = null; o.wait = 1; } if (o.tx == null && o.wait <= 0) { const aa = Math.random() * 6.28, rr = 0.4 + Math.random() * 1.8; o.tx = hx + Math.cos(aa) * rr; o.tz = hz + Math.sin(aa) * rr; o.run = false; o.wait = 3 + Math.random() * 6; } } }
+      else if (o.owner === "me") { if (mode === "out") { ox = me.x; oz = me.z; active = true; } }
       else if (pa.vis && !pa.inside && !pa.sleep && (pa.space || null) === null) { ox = pa.x; oz = pa.z; active = true; }
       o.wait -= dt;
       if (active) {
@@ -515,6 +516,7 @@
   function drawInside(t) {
     const D = S.dyn; R.draw(curInt.mesh); if (D.furn) R.draw(D.furn);
     inNpcs.forEach((o) => OSW.drawChar(o.ch, o.x, o.z, o.ry, 0, 0, t, 1, null, 1));
+    if (curInt.id === "home") { let ii = 0; Object.values(pets3).forEach((o) => { if (o.mode !== "home") return; const sp = curInt.spawn, q = { x: sp.x - 3.5 + (ii % 5) * 1.7, z: sp.z + 1.4 + Math.floor(ii / 5) * 1.5, ry: o.ry, phase: o.phase + t * 0.2, v: 0, mv: 0, pitch: 0.05, kind: o.kind, vi: o.vi, sc: o.sc, ph0: o.ph0, id: o.id }; ii++; drawPet(q, t); }); }
     drawPeople(t);
     R.blend(true); inNpcs.forEach((o) => OSW.drawShadow(o.x, o.z, 0.6)); if ((pa.space || null) === curSpace() && pa.vis) OSW.drawShadow(pa.x, pa.z, 0.62); OSW.drawShadow(me.x, me.z, 0.62);
     if (tapMark && tapMark.life > 0) { const b = tapMark; M.trs(b.x, 0.05, b.z, 0, 0, 0, 0.8 + (1.6 - b.life) * 0.25, 1, 0.8 + (1.6 - b.life) * 0.25, m1); R.draw(meshes.ring, m1, [1, 0.9, 0.4], Math.max(0, Math.min(1, b.life)) * 0.6); }
@@ -623,7 +625,7 @@
     el.addEventListener("pointermove", (e) => {
       const p = ptr.get(e.pointerId); if (!p) return;
       const dx = e.clientX - p.x, dy = e.clientY - p.y;
-      if (ptr.size === 1) { moved += Math.abs(dx) + Math.abs(dy); if (moved > 9 && st.input && !cam.anim) { cam.yaw -= dx * 0.0062; cam.pitch = clamp(cam.pitch + dy * 0.004, 0.3, 1.2); el.classList.add("dragging"); } p.x = e.clientX; p.y = e.clientY; }
+      if (ptr.size === 1) { moved += Math.abs(dx) + Math.abs(dy); if (moved > 9 && st.input && !cam.anim && me.veh && OSW.veh.lookDrag(dx, dy)) { el.classList.add("dragging"); } else if (moved > 9 && st.input && !cam.anim) { cam.yaw -= dx * 0.0062; cam.pitch = clamp(cam.pitch + dy * 0.004, 0.3, 1.2); el.classList.add("dragging"); } p.x = e.clientX; p.y = e.clientY; }
       else if (ptr.size === 2) { p.x = e.clientX; p.y = e.clientY; const [a, b] = [...ptr.values()], d = hy(a.x - b.x, a.y - b.y); if (last && st.input) cam.dist = clamp(cam.dist * (last / d), 7, 36); last = d; }
     });
     const up = (e) => {
@@ -742,10 +744,13 @@
           let vi = 0; for (const ch of String(p.id)) vi += ch.charCodeAt(0);
           o = pets3[p.id] = { id: p.id, kind: p.kind, owner: p.owner, vi: vi % 4, x: (out ? base.x : hp_.x) - 1.5, z: (out ? base.z : hp_.z) - 1.5, ry: Math.random() * 6.28, phase: Math.random() * 6, v: 0, mv: 0, pitch: 0, wait: 1, tx: null, tz: null, ph0: Math.random() * 6, sc: p.kind === "dog" ? 1.15 : 1.0 };
         }
-        o.owner = p.owner;
+        o.owner = p.owner; o.mode = p.mode || "follow"; o.hx = p.hx; o.hz = p.hz; o.nm = p.label || "";
+        if (o.nm && !o.lab) { const oo = o; o.lab = mkLabel({ id: "petl_" + p.id, text: o.nm, x: 0, y: 0, z: 0, cls: "tag np", max: 28, dynamic: "petl" + p.id, follow: () => (mode === "out" && pets3[oo.id] ? [oo.x, 1.3, oo.z] : null) }); o.labT = o.nm; }
+        else if (o.lab && o.labT !== o.nm) { const t2 = o.lab.el.querySelector(".lt"); if (t2) t2.textContent = o.nm; o.labT = o.nm; o.lab.hidden = !o.nm; }
       });
-      Object.keys(pets3).forEach((k) => { if (!seen.has(k)) delete pets3[k]; });
+      Object.keys(pets3).forEach((k) => { if (!seen.has(k)) { for (let i = labs.length - 1; i >= 0; i--) if (labs[i].dynamic === "petl" + k) { labs[i].el.remove(); labs.splice(i, 1); } delete pets3[k]; } });
     },
+    petsPos: () => Object.values(pets3).map((o) => ({ id: o.id, x: o.x, z: o.z, name: o.nm ? o.nm.replace(/^\S+\s/, "") : "" })),
     setCarry(w, colors) { carry[w] = colors || []; },
     setBags(n) { bagState.n = n || 0; },
     setSpeedMul(m) { me.speedMul = m; },
@@ -788,10 +793,10 @@
       list.forEach((k) => {
         if (kidState[k.id]) return;
         let h = 0; for (const ch of String(k.id)) h += ch.charCodeAt(0);
-        const girl = k.g === "girl", baby = k.stage === "baby", sch = k.at === "school", roam = sch ? [0, 1216, 6.5] : [6, -4.5, baby ? 1.6 : 3.8];
-        const look = { gender: k.g, color: cols[h % cols.length], hair: hairs[h % hairs.length], hairStyle: girl ? "ponytail" : "short", scale: baby ? 0.42 : 0.66 };
+        const girl = k.g === "girl", baby = k.stage === "baby", teen = k.stage === "teen", sch = k.at === "school", roam = k.roam || (sch ? [0, 1216, 6.5] : [6, -4.5, baby ? 1.6 : 3.8]);
+        const look = { gender: k.g, color: cols[h % cols.length], hair: hairs[h % hairs.length], hairStyle: girl ? "ponytail" : "short", scale: baby ? 0.42 : teen ? 0.86 : 0.66 };
         if (!girl) look.pants = "#2f6fb5"; if (sch && !baby) look.outfit = "school";
-        W.addNpc({ id: "kid_" + k.id, name: (baby ? "👶 " : sch ? "🎒 " : "") + k.name, emoji: "🧒", look, pos: [roam[0] + (h % 5) * 0.4, roam[1]], face: 0, roam, speed: baby ? 1.0 : 1.7, act: "family", lines: ["🎈"] });
+        W.addNpc({ id: "kid_" + k.id, name: (baby ? "👶 " : sch ? "🎒 " : "") + k.name, emoji: "🧒", look, pos: [roam[0] + (h % 5) * 0.4, roam[1]], face: 0, roam, speed: baby ? 1.0 : 1.7, act: "family", lines: ["🎈"], roamKid: 1 });
         kidState[k.id] = { at: k.at, stage: k.stage, name: k.name, g: k.g };
       });
     },

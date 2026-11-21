@@ -9,7 +9,7 @@
   V.ISLE = { x: 0, z: 1180, r: 92 };            // الجزيرة الثانية
   V.ROAD = { x: 0, z0: 72, z1: 1092, w: 10 };   // الطريق الطويل (بين الجزيرتين)
   V.VIL = { x0: -112, x1: 112, z0: -62, z1: 98 };
-  V.LOTS = { A: { x: 11, z: 72, dz: 4.2, h: -PI / 2, cx: 11, cz: 82 }, B: { x: -8, z: 1102, dz: 4.2, h: PI / 2, cx: -8, cz: 1112 } };
+  V.LOTS = { A: { x: 11, z: 70, dz: 5.9, h: -PI / 2, cx: 11, cz: 84 }, B: { x: -8, z: 1102, dz: 5.9, h: PI / 2, cx: -8, cz: 1116 }, H: { x: 13, z: -44, dz: 5.9, h: -PI / 2, cx: 13, cz: -30 } }; // H = موقف جنب بيتنا
   V.onIsle = (x, z) => hy(x - V.ISLE.x, z - V.ISLE.z) < V.ISLE.r - 2;
   V.pedOk = (x, z) => V.onIsle(x, z) || (x >= V.VIL.x0 && x <= V.VIL.x1 && z >= V.VIL.z0 && z <= V.VIL.z1);
   V.carOk = (x, z) => V.pedOk(x, z) || (Math.abs(x - V.ROAD.x) < V.ROAD.w / 2 - 0.9 && z > V.VIL.z1 - 6 && z < V.ROAD.z1 + 8);
@@ -29,8 +29,12 @@
     pickup: { n: "بكم (بيك أب)", e: "🛻", price: 480, vmax: 26, acc: 8, hand: 1.3, brake: 17, cargo: 12, shape: { len: 5.0, hood: 1.2, trunk: 1.9, roof: 1.55, y1: 0.95, bed: 1 }, note: "الأكبر: صندوقه بيشيل 12 حيوان للملحمة!" },
     jeep: { n: "جيب الصحراء", e: "🚐", price: 620, vmax: 27, acc: 9, hand: 1.45, brake: 19, cargo: 8, shape: { len: 4.0, hood: 1.0, trunk: 0.8, roof: 1.75, y1: 1.05, lift: 0.18, boxy: 1, open: 1 }, note: "عالي وقوي · بيشيل 8 حيوانات" },
     classic: { n: "كلاسيك قديمة", e: "🚘", price: 700, vmax: 24, acc: 8, hand: 1.7, brake: 17, cargo: 6, shape: { len: 4.3, hood: 1.3, trunk: 1.1, roof: 1.55, y1: 0.95, round: 1, open: 1 }, note: "شكلها ساحر · طبون بيشيل 6 حيوانات" },
+    van: { n: "فان عائلي (6 مقاعد+)", e: "🚌", price: 520, vmax: 25, acc: 8, hand: 1.35, brake: 18, cargo: 8, seats: 8, rowsL: [3, 3], shape: { len: 4.6, hood: 1.0, trunk: 0.5, roof: 1.95, y1: 1.0, boxy: 1 }, note: "بتسع 8 أشخاص · مناسبة للعيلة الكبيرة" },
     sport: { n: "سبورت", e: "🏎️", price: 950, vmax: 42, acc: 15, hand: 1.25, brake: 24, cargo: 2, shape: { len: 4.3, hood: 1.5, trunk: 0.9, roof: 1.22, y1: 0.78, low: 1, open: 1 }, note: "الأسرع على الطريق · طبون صغير (2 حيوان)" },
   };
+  // مقاعد: كل سيارة (ما عدا السبورت) بتسع 6 أشخاص على الأقل، والبكم 4، والميني 4
+  const LAYOUT = { mini: [2], sedan: [2, 2], pickup: [2], jeep: [2, 2], classic: [2, 2], sport: [] };
+  Object.keys(V.CARS).forEach((k) => { const D = V.CARS[k], rows = D.rowsL || LAYOUT[k] || []; D.rows = rows; D.seats = D.seats || 2 + rows.reduce((n, r) => n + r, 0); D.shape.len0 = D.shape.len; D.shape.len += rows.length * 0.68; });
   V.COLORS = ["#e63946", "#ffd23f", "#4dabf7", "#2a9d8f", "#f4f1e8", "#2b2b35", "#ff8c42", "#9b5de5", "#7ac74f", "#ff7aa8"];
 
   /* ---------- مجسم السيارة (كابينة مفتوحة للسواقة من جوا) ---------- */
@@ -48,7 +52,15 @@
     } else b.box(0, 0.25, -hl + P.trunk / 2, W, y1 - 0.3, P.trunk, body), b.box(0, y1 - 0.05, -hl + P.trunk / 2, W - 0.1, 0.06, P.trunk, lt(body, 0.12));
     // طبلون + مقاعد + مقود
     b.box(0, y1 - 0.34, cf - 0.2, W - 0.15, 0.3, 0.4, dark); b.box(0, y1 - 0.1, cf - 0.14, W - 0.5, 0.05, 0.24, "#2a2b33");
-    [0.42, -0.42].forEach((sx) => { b.box(sx, 0.3, cb + 0.9, 0.56, 0.22, 0.6, "#5a4a42"); b.push(sx, 0.55, cb + 0.5, 0, -0.18); b.box(0, 0, 0, 0.56, 0.62, 0.14, "#5a4a42"); b.box(0, 0.5, 0, 0.3, 0.14, 0.12, "#6b5a52"); b.pop(); });
+    const ST = V.seats(kind), lo = lt(dark, 0.1);
+    ST.forEach((q) => { const z0 = q.z + 0.28; b.box(q.x, 0.3, z0, 0.5, 0.22, 0.56, "#5a4a42"); b.push(q.x, 0.55, z0 - 0.4, 0, -0.18); b.box(0, 0, 0, 0.5, 0.62, 0.14, "#5a4a42"); b.box(0, 0.5, 0, 0.26, 0.14, 0.12, "#6b5a52"); b.pop(); });
+    b.box(0, 0.25, ST[0].z + 0.28, 0.22, 0.24, 1.0, "#2a2b33"); b.box(0, 0.4, ST[0].z + 0.55, 0.06, 0.2, 0.06, "#555a64");             // كونسول + ناقل الحركة
+    ST.slice(0, 2).forEach((q) => { const z0 = q.z + 0.28; b.push(q.x * 1.45, y1 - 0.25, z0 - 0.4, 0, q.x > 0 ? -0.75 : 0.75); b.box(0, 0, 0, 0.03, 0.55, 0.03, "#25262d"); b.pop(); }); // أحزمة
+    [-1, 1].forEach((s2) => { b.box(s2 * (hw - 0.13), 0.55, cz, 0.05, 0.4, cl - 0.3, "#3a3b44"); b.box(s2 * (hw - 0.12), 0.78, cz, 0.04, 0.05, cl - 0.5, "#8a8c96"); }); // لوح الأبواب
+    ST.forEach((q) => b.box(q.x, 0.24, q.z + 0.1, 0.5, 0.02, 0.7, "#2f3a52"));                                                               // سجاد الأرضية
+    b.box(0, y1 - 0.22, cf - 0.2, 0.38, 0.22, 0.04, "#0d1b2a"); b.box(0, y1 - 0.22, cf - 0.22, 0.34, 0.18, 0.02, "#2fd3ff", 0.5); [-0.6, 0.62].forEach((x) => b.box(x, y1 - 0.2, cf - 0.19, 0.18, 0.05, 0.03, "#16171c")); // شاشة وفتحات تكييف
+    b.box(0, Math.max(P.roof, y1 + 0.78) - 0.35 + (P.open ? 0.0 : 0), cf - 0.65, 0.3, 0.1, 0.04, "#16171c");
+    if (!P.open) { b.box(0, Math.max(P.roof, y1 + 0.78) - 0.12, cz, 0.3, 0.03, 0.2, "#fff6d0", 0.6); }                                          // نور السقف
     b.push(0.42, y1 - 0.14, cf - 0.5, 0, -1.1); for (let i = 0; i < 10; i++) { const a = (i / 10) * PI * 2; b.box(Math.cos(a) * 0.13, 0, Math.sin(a) * 0.13, 0.035, 0.025, 0.035, "#1c1c22"); } b.box(0, 0, 0, 0.06, 0.03, 0.06, "#555a64"); b.pop();
     b.box(0.42, y1 - 0.18, cf - 0.3, 0.2, 0.07, 0.03, "#2fd3ff", 0.5);
     // أعمدة وسقف
@@ -73,8 +85,13 @@
     return (cache[key] = b.build(R.gl));
   }
   V.mesh = carMesh;
-  V.eye = (kind, role) => { const D = V.CARS[kind], P = D.shape, cf = P.len / 2 - P.hood, cb = -P.len / 2 + P.trunk; return { x: role === "p" ? -0.42 : 0.42, y: (P.lift || 0) + P.y1 + (P.low ? 0.3 : 0.42), z: cb + (cf - cb) * 0.4 }; };
-  V.seat = (kind, role) => { const D = V.CARS[kind], P = D.shape; return { x: role === "p" ? -0.42 : 0.42, y: (P.lift || 0) + 0.28, z: -P.len / 2 + P.trunk + 0.62 }; };
+  V.seats = (kind) => { // 0 سواق، 1 جنبه، 2.. ورا
+    const D = V.CARS[kind], P = D.shape, cf = P.len / 2 - P.hood, cl0 = P.len0 - P.hood - P.trunk, zf = cf - (cl0 - 0.9), y = (P.lift || 0) + 0.28, out = [{ x: 0.42, y, z: zf }, { x: -0.42, y, z: zf }];
+    D.rows.forEach((n, r) => (n === 3 ? [-0.6, 0, 0.6] : [0.42, -0.42]).forEach((x) => out.push({ x, y, z: zf - 0.68 * (r + 1) })));
+    return out;
+  };
+  V.eye = (kind, role) => { const D = V.CARS[kind], P = D.shape, s = V.seats(kind)[role === "p" ? 1 : 0]; return { x: s.x, y: (P.lift || 0) + P.y1 + (P.low ? 0.3 : 0.42), z: s.z - 0.02 }; };
+  V.seat = (kind, role) => { const s = V.seats(kind)[role === "p" ? 1 : 0]; return { x: s.x, y: s.y, z: s.z - 0.28 }; };
 
   /* ---------- حالة السيارات المملوكة ومواقفها ---------- */
   const G = () => OSW.game, W = () => OSW.world, ctx = () => W()._int;
@@ -104,21 +121,21 @@
     if (role === "d") { me.x = s.x; me.z = s.z; me.ry = s.h; V.me = { id: car.id, car: car.car, color: car.color, role: "d", h: s.h, v: 0, view: "in", name: V.CARS[car.car].n }; }
     else { me.x = pa.x; me.z = pa.z; me.ry = pa.ry; V.me = { id: car.id, car: car.car, color: car.color, role: "p", h: pa.ry, v: 0, view: "in", name: V.CARS[car.car].n }; }
     me.veh = { id: car.id, car: car.car, color: car.color, role }; me.vx = me.vz = 0; me.target = null; me.act = null;
-    c.cancelAuto(); OSW.audio && OSW.audio.sfx("door"); hud(true); c.cam.follow = false; c.setInput(true);
+    c.cancelAuto(); OSW.audio && OSW.audio.sfx("door"); hud(true); OSW.game.sync3d(); if (OSW.audio && !OSW.audio.enabled) OSW.ui.toast("🔊 فعّل الصوت 🔇 فوق عشان تسمع الأولاد بالسيارة"); c.cam.follow = false; c.setInput(true);
   };
   V.exit = (force) => {
     const m = V.me; if (!m) return; const c = ctx(), me = c.me, car = V.owned().find((x) => x.id === m.id);
     if (m.role === "p") return leave(me, m, null);
     if (Math.abs(m.v) > 1.5 && !force) return OSW.ui.toast("🛑 وقّف السيارة أول");
-    const near = ["A", "B"].map((k) => ({ k, d: hy(me.x - V.LOTS[k].cx, me.z - V.LOTS[k].cz) })).sort((a, b) => a.d - b.d)[0];
-    if (near.d > 26 && !force) return OSW.ui.toast("🅿️ نزّلوا جنب الموقف (عند المعرض أو عند محلات الجزيرة)");
+    const near = ["A", "B", "H"].map((k) => ({ k, d: hy(me.x - V.LOTS[k].cx, me.z - V.LOTS[k].cz) })).sort((a, b) => a.d - b.d)[0];
+    if (near.d > 28 && !force) return OSW.ui.toast("🅿️ نزّلوا جنب موقف (جنب البيت، المعرض، أو الجزيرة)");
     if (car) { if ((car.at || "A") !== near.k) OSW.game.do("cpark", { id: car.id, at: near.k }); }
     leave(me, m, near.k);
   };
   function leave(me, m, lot) {
     const h = m.h; me.veh = null; V.me = null; me.vx = me.vz = 0;
     me.x += Math.cos(h) * 2.4; me.z -= Math.sin(h) * 2.4; // نزول من جهة السواق
-    if (lot) { const L = V.LOTS[lot]; me.x = L.cx + (lot === "A" ? -4.5 : 4.5); me.z = L.cz + 2; }
+    if (lot) { const L = V.LOTS[lot]; me.x = L.cx + (lot === "A" || lot === "H" ? -4.5 : 4.5); me.z = L.cz + 2; }
     ctx().collide(me, 0.45); ctx().cam.fp = false; ctx().cam.follow = true; ctx().cam.dist = 20; ctx().cam.pitch = 0.5; ctx().cam.yaw = 0; hud(false); OSW.audio && OSW.audio.sfx("door"); OSW.game.sync3d();
   }
 
@@ -149,12 +166,13 @@
     if (m.view === "in") {
       const e = V.eye(m.car, m.role), s = Math.sin(m.h), co = Math.cos(m.h);
       cam.fp = true; cam.tx = me.x + e.x * co + e.z * s; cam.tz = me.z - e.x * s + e.z * co; cam.ty = e.y;
-      cam.dist = 0.02; cam.pitch = 0.1; cam.yaw = cam.yaw + angDiff(cam.yaw, m.h + PI) * Math.min(1, dt * 14);
+      cam.dist = 0.02; cam.pitch = (cam.pitch + ((m.lookP || 0.1) - cam.pitch) * Math.min(1, dt * 8)); cam.yaw = cam.yaw + angDiff(cam.yaw, m.h + PI + (m.look || 0)) * Math.min(1, dt * 12);
     } else {
       cam.fp = false; const k = 1 - Math.exp(-dt * 6); cam.tx += (me.x - cam.tx) * k; cam.tz += (me.z - cam.tz) * k; cam.ty += (1.0 - cam.ty) * k;
       cam.dist += (8.5 + Math.abs(m.v) * 0.12 - cam.dist) * k; cam.pitch += (0.3 - cam.pitch) * k; cam.yaw += angDiff(cam.yaw, m.h + PI) * Math.min(1, dt * 3.2);
     }
   };
+  V.lookDrag = (dx, dy) => { const m = V.me; if (!m || m.view !== "in") return false; m.look = clamp((m.look || 0) - dx * 0.0062, -PI * 1.05, PI * 1.05); m.lookP = clamp((m.lookP == null ? 0.1 : m.lookP) + dy * 0.003, -0.5, 0.7); return true; };
   V.fov = (base) => (V.me ? base + clamp(Math.abs(V.me.v) / 60, 0, 0.18) + (V.me.view === "in" ? 0.18 : 0) : base);
 
   /* ---------- الرسم ---------- */
@@ -173,6 +191,7 @@
         const o = who === "me" ? me : pa, S = V.seat(a.car, role), s = Math.sin(a.h), co = Math.cos(a.h);
         if (!o.ch) return; OSW.drawChar(o.ch, a.x + S.x * co + S.z * s, a.z - S.x * s + S.z * co, a.h, 0, 0, t, 1, null, 0.74, S.y - 0.1);
       });
+      if (OSW.fam) OSW.fam.drawRiders(a, t);
       { const co2 = V.owned().find((x) => x.id === (a.drv === "me" && V.me ? V.me.id : pa.veh && pa.veh.id)); if (co2) bed(co2, a.x, a.z, a.h); }
     });
   };
@@ -184,9 +203,9 @@
     let h = document.getElementById("carHud");
     if (!h) {
       h = document.createElement("div"); h.id = "carHud"; h.hidden = true;
-      h.innerHTML = `<div class="ch-speed"><b id="chSpd">0</b><small>كم/س</small></div><div class="ch-name" id="chName"></div><div class="ch-btns"><button data-ch="view" aria-label="تغيير المنظر">👁️</button><button data-ch="exit" aria-label="نزول">🚪 انزل</button></div>`;
+      h.innerHTML = `<div class="ch-speed"><b id="chSpd">0</b><small>كم/س</small></div><div class="ch-name" id="chName"></div><div class="ch-bubble" id="carBubble"></div><div class="ch-btns"><button data-ch="back" aria-label="شوف الأولاد">🔙 الأولاد</button><button data-ch="kids" aria-label="الأولاد بالسيارة">🧒</button><button data-ch="view" aria-label="تغيير المنظر">👁️</button><button data-ch="exit" aria-label="نزول">🚪 انزل</button></div>`;
       document.body.appendChild(h); V.hudEl = h; V.spd = h.querySelector("#chSpd");
-      h.addEventListener("click", (e) => { const b = e.target.closest("[data-ch]"); if (!b) return; if (b.dataset.ch === "view" && V.me) { V.me.view = V.me.view === "in" ? "out" : "in"; OSW.audio && OSW.audio.sfx("pop"); } else V.exit(); });
+      h.addEventListener("click", (e) => { const b = e.target.closest("[data-ch]"); if (!b) return; if (b.dataset.ch === "back" && V.me) { V.me.view = "in"; V.me.look = Math.abs(V.me.look || 0) > 1.5 ? 0 : PI; V.me.lookP = V.me.look ? 0.35 : 0.1; OSW.audio && OSW.audio.sfx("pop"); } else if (b.dataset.ch === "kids") { OSW.places.open("riders"); } else if (b.dataset.ch === "view" && V.me) { V.me.view = V.me.view === "in" ? "out" : "in"; OSW.audio && OSW.audio.sfx("pop"); } else V.exit(); });
     }
     document.documentElement.classList.toggle("driving", on); h.hidden = !on; if (on) h.querySelector("#chName").textContent = (V.CARS[V.me.car].e) + " " + V.CARS[V.me.car].n + (V.me.role === "p" ? " (راكب)" : "") + (() => { const c2 = V.owned().find((x) => x.id === V.me.id); return c2 && c2.cargo && c2.cargo.length ? " · 🐾 " + c2.cargo.length : ""; })();
     ["btnSprint", "zoomctl", "guide"].forEach((id) => { const el = document.getElementById(id); if (el) el.style.visibility = on ? "hidden" : ""; });

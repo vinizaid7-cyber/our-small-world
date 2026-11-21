@@ -296,7 +296,7 @@
     busyNav = true; W.setInputEnabled(false); $("#hud").hidden = true; $("#zoomctl").hidden = true; $("#guide").hidden = true; $("#joy").hidden = true; $("#btnSprint").hidden = true; $("#btnFurn").hidden = true; W.pause(true);
     ui.room.open(id); busyNav = false;
   }
-  function furnTap(id) { if (placing) return; G.ui.finst = id; W.selectFurn(id); OSW.audio.sfx("pop"); P.open("furnitem"); const prev = ui.onModalClose; ui.onModalClose = () => { prev && prev(); W.selectFurn(null); W.setInputEnabled(true); }; }
+  function furnTap(id) { if (placing) return; { const fi = G.state().furn[id]; if (fi && fi.item === "fridge") return goPlace("fridge"); } G.ui.finst = id; W.selectFurn(id); OSW.audio.sfx("pop"); P.open("furnitem"); const prev = ui.onModalClose; ui.onModalClose = () => { prev && prev(); W.selectFurn(null); W.setInputEnabled(true); }; }
   function startPlacing(item, moveId, rot) {
     placing = { item, move: moveId || null, rot: rot || 0 }; const F = OSW.FURN[item];
     $("#placeBar").hidden = false; $("#placeTxt").textContent = `${F.e} ${F.n}: اضغط عالأرض لتضعها`; W.setInputEnabled(true);
