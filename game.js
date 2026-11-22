@@ -285,6 +285,7 @@
     W.setSpeedMul(G.speedMul());
     if (W.setAnimals) { const av = G.animalsView(); W.setAnimals(av.map((a) => ({ id: a.id, kind: a.kind, size: a.size, fed: a.fed }))); W.setAnimalCarry("me", G.animalCarry(db.uid).map((a) => a.kind)); if (db.partner) W.setAnimalCarry("partner", G.animalCarry(db.partner.id).map((a) => a.kind)); }
     if (W.setKids) W.setKids(OSW.fam ? OSW.fam.kids3d() : G.kidsView().map((k) => ({ id: k.id, name: k.name, g: k.g, stage: k.stage, at: k.at })));
+    if (W.setKidsIn && OSW.fam && OSW.fam.kidsIn) W.setKidsIn(OSW.fam.kidsIn());
     if (!s.need[db.uid] && !G._ni) { G._ni = true; db.addEntry({ house: "game", title: "needinit", data: {} }).then(() => G.sync3d()).catch(() => { G._ni = false; }); }
     if (W.setPets) W.setPets(OSW.fam ? OSW.fam.pets3d() : s.pets.map((p) => ({ id: p.id, kind: p.kind, owner: p.owner === db.uid ? "me" : "partner" })));
     { const nv = G.needOf(db.uid), lo = Math.min(nv.food, nv.drink), fe = document.getElementById("foodNum"), de = document.getElementById("drinkNum"), np = document.getElementById("needPill");

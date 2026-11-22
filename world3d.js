@@ -521,10 +521,43 @@
     if (me.ch && !me.veh) { OSW.drawChar(me.ch, me.x, me.z, me.ry, me.phase, me.mv, t, 1, null, 1, 0, carry.me.length ? { carry: true } : showLink ? { hold: sideMe >= 0 ? 1 : -1 } : null); drawCarried(me, carry.me, bagState.n); drawAnimalsCarried(me, acarry.me); }
     if (showLink) { const mx = (me.x + pa.x) / 2, mz = (me.z + pa.z) / 2, len = Math.max(0.4, hy(dxp, dzp) - 0.9); M.trs(mx, 1.0, mz, Math.atan2(dxp, dzp), 0, 0, 1, 1, len, m1); R.draw(meshes.link, m1); }
   }
+  /* ---------- الأولاد جوا البيت: صالون بالنهار، وبالليل (أو بأمرك) نايمين بغرفتهم ---------- */
+  let kidsIn = [], kidIn3 = {}, kidsInSig = ""; const kidInCache = {};
+  const KCOLS = ["#ff7aa8", "#4dabf7", "#7ac74f", "#ffb347", "#b565b0", "#e5484d"], KHAIRS = ["#2a1d12", "#6b4423", "#1b1b1b", "#a0522d"];
+  function kidChar(k) {
+    const key = k.id + k.stage + k.g; if (kidInCache[key]) return kidInCache[key];
+    let h = 0; for (const ch of String(k.id)) h += ch.charCodeAt(0); const girl = k.g === "girl";
+    return (kidInCache[key] = OSW.makeChar({ gender: k.g, color: KCOLS[h % KCOLS.length], hair: KHAIRS[h % KHAIRS.length], hairStyle: girl ? "ponytail" : "short", pants: girl ? undefined : "#2f6fb5", scale: 1 }));
+  }
+  function drawKidsIn(t) {
+    kidIn3 = {}; if (!kidsIn.length) return;
+    const H = OSW.HOME, kr = H.byId.kidsroom, lv = H.byId.living; if (!kr || !lv) return;
+    const beds = furn.list.filter((f) => (f.item === "bed1" || f.item === "bed2") && f.x > kr.x0 && f.x < kr.x1 && f.z > kr.z0 && f.z < kr.z1).sort((a, b) => a.x - b.x);
+    let si = 0, wi = 0;
+    kidsIn.forEach((k) => {
+      const sc = k.stage === "baby" ? 0.42 : k.stage === "teen" ? 0.86 : 0.66; let p;
+      if (k.sleeping) {
+        const b = beds[si];
+        if (b) { const ry = (b.rot || 0) * PI / 2; p = { x: b.x + Math.sin(ry) * 0.45, z: b.z + Math.cos(ry) * 0.45, ry, y0: 0.74 + 0.27 * sc, lie: true }; }
+        else p = { x: kr.cx - 3.5 + si * 1.8, z: kr.cz + 2.4, ry: 0, y0: 0.03 + 0.27 * sc, lie: true };
+        si++;
+      } else {
+        const a = wi++ * 2.1 + 1, ph = t * 0.25 + a, pz = t * 0.19 + a * 1.3;
+        p = { x: lv.cx + Math.sin(ph) * 3.8, z: lv.cz - 2.6 + Math.cos(pz) * 0.9, y0: 0, mv: 0.7, ry: Math.atan2(Math.cos(ph) * 0.95, -Math.sin(pz) * 0.17) };
+      }
+      OSW.drawChar(kidChar(k), p.x, p.z, p.ry, t * 5 + wi, p.mv || 0, t, 1, null, sc, p.y0, p.lie ? { lie: true } : null);
+      kidIn3[k.id] = { x: p.x, z: p.z, y: p.lie ? 1.2 : 0.66 * 1.9 + 0.2 };
+    });
+  }
+  function refreshKidLabels() {
+    for (let i = labs.length - 1; i >= 0; i--) if (labs[i].kin) { labs[i].el.remove(); labs.splice(i, 1); }
+    if (!(mode === "in" && curInt && curInt.id === "home")) return;
+    kidsIn.forEach((k) => { const l = mkLabel({ id: "kin_" + k.id, text: (k.sleeping ? "💤 " : "") + k.name, cls: "tag np", max: 36, scope: "in", dynamic: "int", x: 0, y: 0, z: 0, follow: () => (kidIn3[k.id] ? [kidIn3[k.id].x, kidIn3[k.id].y, kidIn3[k.id].z] : null) }); if (l) l.kin = 1; });
+  }
   function drawInside(t) {
     const D = S.dyn; R.draw(curInt.mesh); if (D.furn) R.draw(D.furn);
     inNpcs.forEach((o) => OSW.drawChar(o.ch, o.x, o.z, o.ry, 0, 0, t, 1, null, 1));
-    if (curInt.id === "home") { let ii = 0; Object.values(pets3).forEach((o) => { if (o.mode !== "home") return; const sp = curInt.spawn, q = { x: sp.x - 3.5 + (ii % 5) * 1.7, z: sp.z + 1.4 + Math.floor(ii / 5) * 1.5, ry: o.ry, phase: o.phase + t * 0.2, v: 0, mv: 0, pitch: 0.05, kind: o.kind, vi: o.vi, sc: o.sc, ph0: o.ph0, id: o.id }; ii++; drawPet(q, t); }); }
+    if (curInt.id === "home") { let ii = 0; Object.values(pets3).forEach((o) => { if (o.mode !== "home") return; const sp = curInt.spawn, q = { x: sp.x - 3.5 + (ii % 5) * 1.7, z: sp.z + 1.4 + Math.floor(ii / 5) * 1.5, ry: o.ry, phase: o.phase + t * 0.2, v: 0, mv: 0, pitch: 0.05, kind: o.kind, vi: o.vi, sc: o.sc, ph0: o.ph0, id: o.id }; ii++; drawPet(q, t); }); drawKidsIn(t); }
     drawPeople(t);
     R.blend(true); inNpcs.forEach((o) => OSW.drawShadow(o.x, o.z, 0.6)); if ((pa.space || null) === curSpace() && pa.vis) OSW.drawShadow(pa.x, pa.z, 0.62); OSW.drawShadow(me.x, me.z, 0.62);
     if (tapMark && tapMark.life > 0) { const b = tapMark; M.trs(b.x, 0.05, b.z, 0, 0, 0, 0.8 + (1.6 - b.life) * 0.25, 1, 0.8 + (1.6 - b.life) * 0.25, m1); R.draw(meshes.ring, m1, [1, 0.9, 0.4], Math.max(0, Math.min(1, b.life)) * 0.6); }
@@ -602,12 +635,13 @@
     acts.forEach((a) => { const t = R.hitSphere(ray, a.x, a.y, a.z, a.r); if (t > 0 && t < bt) { bt = t; best = a.act; } });
     if (mode === "out") {
       OSW.NPCS.forEach((d) => { const o = npc[d.id]; const t = o && R.hitSphere(ray, o.x, 1.0 * o.sc, o.z, 1.35 * o.sc); if (t > 0 && t < bt) { bt = t; best = d.act || "npc:" + d.id; } });
-      if (!me.veh) OSW.veh.owned().forEach((c) => { const s = OSW.veh.slot(c), t = R.hitSphere(ray, s.x, 0.9, s.z, 2.3); if (t > 0 && t < bt) { bt = t; best = "car:" + c.id; } });
+      if (!me.veh) OSW.veh.owned().forEach((c) => { const s = OSW.veh.slot(c), t = R.hitSphere(ray, s.x, 0.9, s.z, 2.3); if (t > 0 && t - 6 < bt) { bt = t - 6; best = "car:" + c.id; } });
       Object.values(animals).forEach((a) => { const t = R.hitSphere(ray, a.x, 0.7, a.z, 0.9 + a.size * 0.5); if (t > 0 && t < bt) { bt = t; best = "pens"; } });
       { const t = R.hitSphere(ray, pet.x, 0.5, pet.z, 1.0); if (t > 0 && t < bt) { bt = t; best = "pet"; } }
       Object.values(pets3).forEach((o) => { const t = R.hitSphere(ray, o.x, 0.4, o.z, 0.8); if (t > 0 && t < bt) { bt = t; best = "mypet:" + o.id; } });
     } else inNpcs.forEach((o) => { const t = R.hitSphere(ray, o.x, 1.0, o.z, 1.4); if (t > 0 && t < bt) { bt = t; best = o.act || "npc:" + o.id; } });
     if (pa.vis && !pa.inside && (pa.space || null) === curSpace()) { const t = R.hitSphere(ray, pa.x, 1.0, pa.z, 1.4); if (t > 0 && t < bt) { bt = t; best = "partner"; } }
+    if (mode === "in" && curInt && curInt.id === "home") Object.keys(kidIn3).forEach((id) => { const o = kidIn3[id], t = R.hitSphere(ray, o.x, 0.9, o.z, 1.1); if (t > 0 && t < bt) { bt = t; best = "family"; } });
     if (best) return { act: best };
     const g = R.hitGround(ray); return g ? { ground: g } : null;
   }
@@ -790,7 +824,7 @@
       const I = OSW.INT.get(id); cancelAuto(); curInt = I; mode = "in"; me.x = I.spawn.x; me.z = I.spawn.z; me.vx = me.vz = 0; me.ry = PI; cam.tx = me.x; cam.tz = me.z; cam.ty = 1.2; cam.yaw = 0; cam.pitch = I.camPitch; cam.dist = I.camDist; cam.follow = true; cam.anim = null; me.follow = false;
       I.labels.forEach((d) => mkLabel(Object.assign({ dynamic: "int" }, d)));
       inNpcs.length = 0; I.npcs.forEach((n) => { const def = OSW.NPC_BY[n.ref]; const o = { id: n.id, def, x: n.x, z: n.z, ry: n.face || 0, ch: OSW.makeChar(lookKey(def.look)), act: n.act }; inNpcs.push(o); mkLabel({ id: "in_" + n.id, text: def.name, cls: "tag np", max: 34, scope: "in", dynamic: "int", x: 0, y: 0, z: 0, follow: () => [o.x, 2.7, o.z] }); });
-      document.documentElement.classList.add("inside"); if (id === "home") applyFurn();
+      document.documentElement.classList.add("inside"); if (id === "home") { applyFurn(); refreshKidLabels(); }
     },
     leave() {
       for (let i = labs.length - 1; i >= 0; i--) if (labs[i].dynamic === "int") { labs[i].el.remove(); labs.splice(i, 1); }
@@ -804,6 +838,7 @@
     resetTime() { st.timeOffset = 0; sessionStorage.removeItem("osw_toff"); return updateSky(); },
     setPartnerSpace(sp) { pa.space = sp || null; },
     addNpc(def) { if (!npc[def.id]) { OSW.NPCS.push(def); OSW.NPC_BY[def.id] = def; createNpc(def); } return npc[def.id]; },
+    setKidsIn(list) { const sig = (list || []).map((k) => k.id + k.stage + (k.sleeping ? "s" : "i")).join(","), ch = sig !== kidsInSig; kidsInSig = sig; kidsIn = list || []; if (ch && mode === "in" && curInt && curInt.id === "home") refreshKidLabels(); },
     setKids(list) {
       const want = {}; list.forEach((k) => (want[k.id] = k));
       Object.keys(kidState).forEach((id) => { const k = want[id], c = kidState[id]; if (!k || c.at !== k.at || c.stage !== k.stage || c.name !== k.name || c.g !== k.g) { W.removeNpc("kid_" + id); delete kidState[id]; } });

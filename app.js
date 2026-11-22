@@ -286,7 +286,7 @@
     await W.walkToPOI(OSW.INT.enterAct[id]); $("#curtain").classList.add("on"); await sleep(330);
     W.enter(id); G.sync3d(); db.track("in:" + id); $("#btnFurn").hidden = id !== "home";
     await sleep(80); $("#curtain").classList.remove("on"); W.setInputEnabled(true); busyNav = false;
-    if (id === "home") guideSay("بيتكم من جوّا! 🏡 خمس غرف: النوم (فيه رف الصور والأغاني)، الذكريات، المطبخ، الصالون، الشرفة. اضغط 🛋️ للأثاث 😴", 6500);
+    if (id === "home") guideSay("بيتكم من جوّا! 🏡 غرف: النوم، الذكريات، المطبخ، الصالون، الشرفة، الرسم، الأزياء، وغرفة الأولاد 🧸 (آخر الشرق). اضغط 🛋️ للأثاث 😴", 6500);
   }
   async function exitInterior() {
     if (busyNav || W.mode !== "in") return; busyNav = true; W.setInputEnabled(false); cancelPlacing(); OSW.audio.sfx("door");

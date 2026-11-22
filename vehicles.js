@@ -102,28 +102,39 @@
   V.slot = (car) => {
     const at = V.atOf(car); if (at === "free") return { x: car.fx, z: car.fz, h: car.fh };
     const list = V.owned().filter((c) => V.atOf(c) === at), i = Math.max(0, list.findIndex((c) => c.id === car.id)), L = V.LOTS[at];
-    return { x: L.x + i * (L.dx || 0), z: L.z + i * L.dz, h: L.h };
+    const cap = L.cap || 1e9, row = Math.floor(i / cap), j = i % cap; return { x: L.x + j * (L.dx || 0) + row * (L.rowdx || 0), z: L.z + j * L.dz, h: L.h };
   };
-  V.sendHome = () => { const me = V.me, n = V.owned().filter((c) => V.atOf(c) !== "H" && !(me && me.id === c.id)); n.forEach((c) => OSW.game.do("cpark", { id: c.id, at: "H" })); return n.length; };
+  V.sendHome = () => { const me = V.me, n = V.owned().filter((c) => V.atOf(c) !== "H" && !(me && me.id === c.id)); n.reduce((p, c) => p.then(() => OSW.game.do("cpark", { id: c.id, at: "H" })).catch(() => {}), Promise.resolve()); return n.length; };
+  // السيارات اللي على الجزيرة الثانية أو الطريق (برا القرية)
+  V.away = () => { const bz = busyIds(); return V.owned().filter((car) => { if (bz.has(car.id)) return false; const a = V.atOf(car); return a === "B" || (a === "free" && !(car.fx >= V.VIL.x0 && car.fx <= V.VIL.x1 && car.fz >= V.VIL.z0 && car.fz <= V.VIL.z1)); }); };
+  // زر الاستدعاء: بيرجّع كل سيارات الجزيرة الثانية للجزيرة الأولى (أقرب موقف إلك: معرض السيارات أو كراج البيت)
+  V.summon = async () => {
+    const away = V.away(); if (!away.length) return 0;
+    const me = ctx().me, dA = hy(me.x - V.LOTS.A.cx, me.z - V.LOTS.A.cz), dH = hy(me.x - V.LOTS.H.cx, me.z - V.LOTS.H.cz), inA = V.owned().filter((c) => V.atOf(c) === "A").length;
+    const at = dA < dH && inA + away.length <= 4 ? "A" : "H";
+    for (const car of away) { try { await OSW.game.do("cpark", { id: car.id, at }); } catch (e) { /* كمّل على الباقي */ } }
+    V.summonedTo = at; return away.length;
+  };
   const busyIds = () => { const c = ctx(), s = new Set(); if (V.me) s.add(V.me.id); if (c.pa.veh && c.pa.veh.id) s.add(c.pa.veh.id); return s; };
 
   /* ---------- الدخول والنزول ---------- */
+  const appr = (car, s) => { const L = V.LOTS[V.atOf(car)]; return L && L.approach ? [L.approach.x, L.approach.z] : [s.x + Math.cos(s.h) * 2.8, s.z - Math.sin(s.h) * 2.8]; };
   V.tap = (id) => {
     const car = V.owned().find((c) => c.id === id), c = ctx(), me = c.me; if (!car || V.me) return;
     const pa = c.pa, hand = OSW.game.animalCarry(OSW.ui.db.uid), crates = OSW.game.carryOf(OSW.ui.db.uid);
     if (crates.length && !hand.length && !(pa.veh && pa.veh.id === id) && OSW.logi) {
-      const s1 = V.slot(car); if (hy(me.x - s1.x, me.z - s1.z) > 6) return W().goTo(s1.x + Math.cos(s1.h) * 2.8, s1.z - Math.sin(s1.h) * 2.8, "car:" + id);
+      const s1 = V.slot(car); if (hy(me.x - s1.x, me.z - s1.z) > 6) return W().goTo(...appr(car, s1), "car:" + id);
       if (OSW.logi.room(car) > 0) { OSW.game.do("cload", { id }); OSW.audio && OSW.audio.sfx("pop"); return OSW.ui.toast("📦 حطّيت الكراتين بـ" + V.CARS[car.car].n + "! (" + Math.min(crates.length, OSW.logi.room(car)) + ")", "", 2200); }
       return OSW.ui.toast("🚫 السيارة ممتلئة بالكراتين!");
     }
     if (hand.length && !(pa.veh && pa.veh.id === id)) {
-      const s0 = V.slot(car); if (hy(me.x - s0.x, me.z - s0.z) > 6) return W().goTo(s0.x + Math.cos(s0.h) * 2.8, s0.z - Math.sin(s0.h) * 2.8, "car:" + id);
+      const s0 = V.slot(car); if (hy(me.x - s0.x, me.z - s0.z) > 6) return W().goTo(...appr(car, s0), "car:" + id);
       const room = V.CARS[car.car].cargo - (car.cargo || []).length;
       if (room > 0) { OSW.game.do("aload", { id }); OSW.audio && OSW.audio.sfx("pop"); return OSW.ui.toast("🧳 حمّلتوا الحيوانات بـ" + (V.CARS[car.car].shape.bed ? "صندوق البكم" : "الطبون") + "! (" + Math.min(hand.length, room) + ")"); }
       OSW.ui.toast("📦 السيارة ممتلية!");
     }
     if (pa.veh && pa.veh.role === "d" && pa.veh.id === id) { if (hy(me.x - pa.x, me.z - pa.z) > 12) return OSW.ui.toast("🚗 قرّب من السيارة أول"); return V.board(car, "p"); }
-    const s = V.slot(car); if (hy(me.x - s.x, me.z - s.z) > 5.5) return W().goTo(s.x + Math.cos(s.h) * 2.8, s.z - Math.sin(s.h) * 2.8, "car:" + id);
+    const s = V.slot(car); if (hy(me.x - s.x, me.z - s.z) > 5.5) return W().goTo(...appr(car, s), "car:" + id);
     V.board(car, "d");
   };
   V.board = (car, role) => {

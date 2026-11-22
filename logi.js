@@ -15,7 +15,7 @@
   /* ===== مواقف جديدة للسيارات ===== */
   if (V() && V().LOTS) {
     V().LOTS.G = { x: -31.8, z: -26.5, dz: -5.2, h: PI, cx: -31.8, cz: -31.5, rad: 16, out: { x: -30.0, z: -29.6 } };       // موقف المخزن عالطريق شرق الهنقر
-    V().LOTS.S = { x: -16.4, z: 19.6, dz: 3.0, h: -PI / 2, cx: -16.4, cz: 21.1, rad: 12, out: { x: -9.6, z: 21.6 } };       // مرآب سعدون
+    V().LOTS.S = { x: -16.4, z: 19.6, dz: 3.0, h: PI / 2, cx: -16.4, cz: 21.1, rad: 12, out: { x: -9.6, z: 21.6 }, cap: 2, rowdx: 6.4, approach: { x: -12.4, z: 21.1 } };       // مرآب سعدون
   }
 
   /* ===== أحداث اللعبة (بتنحسب بالـ fold) ===== */
@@ -157,10 +157,10 @@
     };
     O.garageS = () => {
       const cars = lotCars("S"), C = G().CROPS, day = G().today();
-      const rows = cars.map((c) => { const n = (c.crates || []).length; return irow("🚚", carName(c), n ? `${crateIcons(c.crates)} · ${n} كراتين` : "فاضية", n ? `<button class="btn sm gold" data-act="g-lg-sell" data-id="${c.id}">💰 بيع (${worth(c.crates, "s1")}🪙)</button>` : ""); }).join("");
+      const rows = cars.map((c) => { const n = (c.crates || []).length; return irow("🚚", carName(c), n ? `${crateIcons(c.crates)} · ${n} كراتين` : "فاضية", `<button class="btn sm berry" data-act="g-lg-drive" data-id="${c.id}">🚗 اطلع فيها</button>` + (n ? `<button class="btn sm gold" data-act="g-lg-sell" data-id="${c.id}">💰 بيع (${worth(c.crates, "s1")}🪙)</button>` : "")); }).join("");
       const board = Object.keys(C).map((k) => `<span class="tag">${C[k].e} ${G().priceOf(k, day)}🪙 ${G().trend(k, day)}</span>`).join(" ");
       ui().openModal(`<h3>🚚 مرآب سعدون</h3>${coinBar()}
-        <p class="hint">ركّوا السيارة المحمّلة جوا المرآب (انزلوا منها هون)، وبعدين بيعوا الحمولة كاملة بسعر اليوم 💰</p>
+        <p class="hint">ركّوا السيارة جوا المرآب (انزلوا منها هون). لما تبدكم تطلعوها اضغطوا «🚗 اطلع فيها» أو اضغطوا على السيارة نفسها. وإذا كانت محمّلة بيعوا الحمولة بسعر اليوم 💰</p>
         <div class="items" style="margin:8px 0">${rows || '<div class="empty">ما في سيارة بالمرآب. ركّ سيارتك هون 🚗</div>'}</div>
         <b>📈 أسعار اليوم</b><div class="chips" style="gap:6px;margin-top:6px">${board}</div>`);
     };
@@ -173,6 +173,11 @@
         const hand = G().carryOf(db().uid); if (hand.length >= G().carryMax()) return toast("🤲 إيدك ممتلئة! حمّل السيارة أول", "", 2600);
         await G().do("unstash", { crop: d.k, n: +d.n || 1 }); sfx("pop"); toast("📦 أخذت كراتين من المخزن", "", 1600); P().open("xbarn");
       });
+      case "g-lg-drive": {
+        const car = V().owned().find((c) => c.id === d.id); if (!car) return toast("🚗 السيارة مش موجودة");
+        if (V().me) return toast("🚗 أنت أصلاً بسيارة، انزل منها أول");
+        ui().closeModal(); return V().board(car, "d");
+      }
       case "g-lg-stash": return busy(async () => { await G().do("stash", {}); sfx("coin"); P().open("xbarn"); });
       case "g-lg-unload": return busy(async () => { await G().do("cunload", { id: d.id }); sfx("coin"); toast("⬇️ انحطّت الكراتين بالمخزن", "gold"); P().open("xbarn"); });
       case "g-lg-sell": return busy(async () => {
