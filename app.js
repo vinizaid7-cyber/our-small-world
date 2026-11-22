@@ -3,7 +3,7 @@
   const OSW = window.OSW;
   const { $, $$, esc, rand, sleep, tpl } = OSW;
   const app = (OSW.app = {});
-  let db, ui, W, P, G, busyNav = false, ready = false;
+  let db, ui, W, P, G, busyNav = false, ready = false, introDone = false, busySince = 0;
 
   /* ---------- الشخصية (شكلي وشكل الشريك) ---------- */
   app.lookOf = (uid) => {
@@ -76,7 +76,7 @@
   /* ---------- دخول القرية ---------- */
   async function enterVillage() {
     $("#auth").hidden = true; $("#hud").hidden = false; $("#zoomctl").hidden = false; $("#guide").hidden = false; $("#joy").hidden = false; $("#btnSprint").hidden = false;
-    ready = true; G.init(db, ui); OSW.chat.init(db, ui, W); if (OSW.events) OSW.events.start(db, ui, W); if (OSW.law) OSW.law.start(db, ui, W);
+    ready = true; G.init(db, ui); OSW.chat.init(db, ui, W); if (OSW.events) OSW.events.start(db, ui, W); if (OSW.law) OSW.law.start(db, ui, W); if (OSW.extras) { try { OSW.extras.start(db, ui, W); } catch (e) { console.error(e); } }
     app.refreshAvatars(); syncAll(); P.checkAchievements();
     db.on("change", onChange); db.on("presence", updatePresence); db.on("pos", onPos);
     W.onMove = (p) => db.sendPos(p);
@@ -85,7 +85,7 @@
     updatePresence();
     W.setInputEnabled(false); W.spawnMe(0, 40); W.goTo(0, 9);
     OSW.audio.resumeIfEnabled();
-    await W.intro(); W.setInputEnabled(true);
+    await W.intro(); W.setInputEnabled(true); introDone = true;
     const per = W.period(W.updateSky().hour);
     let line = tpl(rand(OSW.GREET[per]), { name: db.me.name });
     const un = totalUnread(), pend = G.tasks().filter((t) => !t.done && !t.soft);
@@ -230,7 +230,7 @@
   function barnAct() {
     const c = G.carryOf(db.uid);
     if (c.length) return G.do("stash", {}).then(() => { OSW.audio.sfx("coin"); ui.toast("🏚️ حطّيت الصناديق بالمخزن", "", 2000); }).catch((e) => ui.toast("⚠️ " + esc(e.message)));
-    return goPlace("farm");
+    return goPlace("xbarn");
   }
   app.plotAct = plotAct;
   async function foundHidden(id) {
@@ -378,5 +378,19 @@
     l.classList.add("gone"); setTimeout(() => l.remove(), 800); route(status);
   }
   OSW.app.state = () => ({ ready, busyNav });
+  /* حارس الحركة: أي قائمة تتسكّر والاعب لسا واقف، بنرجّع الحركة لحالها */
+  function inputGuard() {
+    try {
+      if (!ready || !introDone || !W || !ui) return;
+      if (busyNav) { busySince = busySince || Date.now(); if (Date.now() - busySince > 30000) { busyNav = false; busySince = 0; $("#curtain").classList.remove("on"); } return; }
+      busySince = 0;
+      const dr = document.getElementById("drawRoom");
+      if (!$("#modal").hidden || !$("#sheet").hidden || ui.state.room || $("#curtain").classList.contains("on") || (dr && !dr.hidden)) return;
+      if (!W.inputOn) W.setInputEnabled(true);
+      if (W.paused && OSW.R && OSW.R.gl && !OSW.R.gl.isContextLost()) W.pause(false);
+    } catch (e) { /* ما نوقف اللعبة */ }
+  }
+  setInterval(inputGuard, 350);
+  document.addEventListener("DOMContentLoaded", () => { if (OSW.ui) OSW.ui.afterModalClose = () => setTimeout(inputGuard, 0); });
   document.addEventListener("DOMContentLoaded", boot);
 })();

@@ -475,3 +475,35 @@ html.driving #hud .hb-hide,html.driving #btnFurn{display:none}
 
 #voiceBadge{position:fixed;top:58px;left:50%;transform:translateX(-50%);background:rgba(30,30,40,.82);color:#fff;padding:6px 14px;border-radius:16px;font-size:.85rem;z-index:40;pointer-events:none;max-width:90vw;text-align:center}
 .rbtn.on{background:#2a9d8f!important;color:#fff}
+
+/* ===== الإصدار الثامن: مناسبات، ألبوم، طقس ===== */
+#occBanner{font-weight:700;cursor:pointer;background:linear-gradient(90deg,#fff3c8,#ffe0ec);width:max-content;max-width:100%}
+#zoomctl button{position:relative}
+#xBadge{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;border-radius:9px;background:#e8305f;color:#fff;font:700 11px/18px sans-serif;text-align:center;font-style:normal;padding:0 4px}
+.xgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.xph{background:var(--panel2);border-radius:12px;padding:4px;display:flex;flex-direction:column;gap:3px;text-align:center}
+.xthumb{aspect-ratio:4/3;border-radius:9px;background:#e6defa center/cover no-repeat}
+.xph small{font-size:11px;color:var(--ink2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.xbig{width:100%;border-radius:14px;display:block;min-height:120px;background:#e6defa;object-fit:contain;text-align:center;line-height:120px}
+#xconf{position:fixed;inset:0;pointer-events:none;z-index:96}
+#wxFlash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:97}
+html[data-wx^="rain"] body::after{content:"";position:fixed;inset:0;background:rgba(45,60,90,.16);pointer-events:none;z-index:5}
+html[data-wx="rain-storm"] body::after{background:rgba(30,40,70,.3)}
+html.inside body::after{display:none}
+@media (max-width:520px){.hud-btns{flex-wrap:wrap;max-width:100%}.rbtn{width:36px;height:36px;font-size:16px}.hud-top{flex-wrap:wrap}}
+
+/* ===== المقود والدواسات ===== */
+.ch-wheel{position:absolute;left:12px;bottom:calc(24px + var(--sab));width:120px;height:120px;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none}
+.ch-wheel-in{position:absolute;inset:0;border-radius:50%;border:13px solid #2b2d38;box-shadow:0 4px 14px rgba(0,0,0,.4),inset 0 0 0 3px #4a4d5c;background:rgba(40,42,56,.18)}
+.w-sp{position:absolute;left:50%;top:50%;width:44%;height:11px;margin-top:-5px;background:#2b2d38;transform-origin:0 50%;border-radius:6px}
+.w-sp.a{transform:rotate(0deg)}.w-sp.b{transform:rotate(120deg)}.w-sp.c{transform:rotate(240deg)}
+.w-hub{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:#3b3e4d;border:3px solid #6a6e82}
+.w-mark{position:absolute;left:50%;top:-11px;width:10px;height:22px;margin-left:-5px;border-radius:4px;background:#ff5d5d}
+.ch-pedals{position:absolute;bottom:calc(24px + var(--sab));left:136px;display:flex;gap:8px;pointer-events:none}
+.ch-pedals button{pointer-events:auto;touch-action:none;width:60px;height:88px;border-radius:16px;font-size:24px;font-weight:700;background:rgba(255,255,255,.9);box-shadow:0 3px 10px rgba(0,0,0,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.ch-pedals button small{font-size:10px;color:#444}
+#chGas{background:#c9f3c2}#chBrake{background:#ffd0d0}
+.ch-pedals button.on{transform:scale(.94);filter:brightness(.88)}
+#carHud.passenger .ch-wheel,#carHud.passenger .ch-pedals{display:none}
+html.driving #joy{display:none}
+@media (max-width:420px){.ch-wheel{width:108px;height:108px}.ch-pedals{left:124px}.ch-pedals button{width:54px;height:80px}}

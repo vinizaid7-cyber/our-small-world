@@ -23,6 +23,7 @@
   };
   P.refresh = () => {
     if (!P.current || $("#modal").hidden) return;
+    if (P.noRefresh && P.noRefresh[P.current]) return; // نوافذ فيها كتابة أو صور: ما بنعيد رسمها كل شوي
     const ae = document.activeElement;
     if (ae && ae.closest("#modal") && /TEXTAREA|INPUT/.test(ae.tagName) && ae.value) return; // لا نمسح كتابة المستخدم
     const sc = $("#modalCard").scrollTop; const cb = ui.onModalClose;

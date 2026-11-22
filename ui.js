@@ -23,7 +23,7 @@
   ui.openSheet = (html) => { $("#sheetCard").innerHTML = `<button class="xbtn" data-act="close-sheet" aria-label="إغلاق">✕</button>` + html; $("#sheet").hidden = false; };
   ui.closeSheet = () => { $("#sheet").hidden = true; $("#sheetCard").innerHTML = ""; ui.state.typing = false; if (ui.state.pendingRender) { ui.state.pendingRender = false; ui.room.render(); } };
   ui.openModal = (html) => { $("#modalCard").innerHTML = `<button class="xbtn" data-act="close-modal" aria-label="إغلاق">✕</button>` + html; $("#modal").hidden = false; };
-  ui.closeModal = () => { $("#modal").hidden = true; $("#modalCard").innerHTML = ""; if (ui.onModalClose) { const f = ui.onModalClose; ui.onModalClose = null; f(); } };
+  ui.closeModal = () => { $("#modal").hidden = true; $("#modalCard").innerHTML = ""; if (ui.onModalClose) { const f = ui.onModalClose; ui.onModalClose = null; try { f(); } catch (e) { console.error(e); } } if (ui.afterModalClose) ui.afterModalClose(); };
   ui.prof = (uid) => db.profiles.find((p) => p.id === uid) || { name: "؟", color: "#999" };
   ui.who = (uid) => { const p = ui.prof(uid); return `<span class="who"><i style="background:${esc(p.color)}"></i>${esc(p.name)}</span>`; };
   ui.partnerName = () => (db.partner ? db.partner.name : "حبيبك");

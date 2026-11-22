@@ -183,8 +183,16 @@
   const fx = { cv: null, c: null, parts: [], type: "none", w: 0, h: 0 };
   function fxType() {
     const m = new URLSearchParams(location.search).get("weather") || st.wmode;
-    if (m === "clear") return "none"; if (m === "rain" || m === "snow") return m;
-    if (st.season === "winter") return "snow"; if (st.season === "autumn") return "leaves"; if (st.season === "spring") return "petals";
+    if (m === "clear") return "none"; if (m === "rain" || m === "snow") { st.storm = false; return m; }
+    return autoWx();
+  }
+  // طقس تلقائي: نفس الطقس عند الاثنين (مبني على الوقت مش على عشوائية الجهاز)
+  function hash01(n) { let x = n | 0; x = Math.imul(x ^ (x >>> 16), 0x45d9f3b); x = Math.imul(x ^ (x >>> 16), 0x45d9f3b); x ^= x >>> 16; return (x >>> 0) / 4294967296; }
+  function autoWx() {
+    const b = Math.floor((Date.now() + 3 * 3600000) / (3 * 3600000)), r = hash01(b * 7919 + 13), s = st.season; st.storm = false;
+    if (s === "winter") { if (r < 0.28) { st.storm = r < 0.07; return "rain"; } return r < 0.4 ? "snow" : "none"; }
+    if (s === "autumn") { if (r < 0.2) { st.storm = r < 0.04; return "rain"; } return "leaves"; }
+    if (s === "spring") return r < 0.16 ? "rain" : "petals";
     return "none";
   }
   function spawn(type, init) {
@@ -196,7 +204,7 @@
   function fxFrame() {
     const { c, w, h } = fx; c.clearRect(0, 0, w, h);
     const want = fxType(); if (want !== fx.type) { fx.type = want; fx.parts = []; }
-    const N = ({ rain: 120, snow: 80, leaves: 22, petals: 26, none: 0 })[fx.type] * (matchMedia("(prefers-reduced-motion: reduce)").matches ? 0.3 : 1);
+    const N = ({ rain: st.storm ? 220 : 120, snow: 80, leaves: 22, petals: 26, none: 0 })[fx.type] * (matchMedia("(prefers-reduced-motion: reduce)").matches ? 0.3 : 1);
     while (fx.parts.length < N) fx.parts.push(spawn(fx.type, true)); fx.parts.length = Math.min(fx.parts.length, Math.ceil(N));
     fx.parts.forEach((p, i) => {
       p.a += 0.03;
@@ -346,7 +354,7 @@
   }
   function stepMe(dt) {
     let dx = 0, dz = 0, speed = 5.4, manual = false;
-    const ix = joy.x + keys.r - keys.l, iy = joy.y + keys.d - keys.u, mag = hy(ix, iy);
+    const vi = OSW.veh.me ? OSW.veh.input : null, ix = joy.x + keys.r - keys.l + (vi ? vi.x : 0), iy = joy.y + keys.d - keys.u + (vi ? vi.y : 0), mag = hy(ix, iy);
     if (me.veh) { OSW.veh.step(dt, st.input ? ix : 0, st.input ? iy : 0); holding = false; sendMe(true, 1); return; }
     if (st.input && mag > 0.14) {
       manual = true; const m = Math.min(1, mag), fx_ = -Math.sin(cam.yaw), fz_ = -Math.cos(cam.yaw), rx = Math.cos(cam.yaw), rz = -Math.sin(cam.yaw);
@@ -544,7 +552,7 @@
     if (st.night > 0.5) for (let i = 0; i < 22; i++) { const a = t * 0.3 + i * 1.7; M.trs(-40 + ((i * 37) % 80) + Math.cos(a) * 2, 0.9 + Math.sin(a * 1.4) * 0.5, -20 + ((i * 53) % 70) + Math.sin(a) * 2, 0, 0, 0, 1, 1, 1, m1); R.draw(meshes.fly, m1); }
     // عربة المزرعة (وبتتحرك لما الاثنين يسحبوها)
     drawCart(t);
-    OSW.veh.drawAll(t); drawIsle(t);
+    OSW.veh.drawAll(t); drawIsle(t); if (OSW.logi) OSW.logi.draw(t);
     // شخصيات
     OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc, o.dance ? Math.abs(Math.sin(t * 5 + o.phase)) * 0.16 : 0); });
     Object.values(animals).forEach((a) => drawAnimal(a, t)); Object.values(pets3).forEach((o) => drawPet(o, t));
@@ -584,6 +592,7 @@
     if (pa.vis && !pa.sleep && !pa.inside && hy(me.x - pa.x, me.z - pa.z) < 4.2) { together += dt; if (together > 45 && W.onTogether) { together = 0; W.onTogether(); } } else together = Math.max(0, together - dt * 0.5);
     if (tapMark && tapMark.life > 0) tapMark.life -= dt;
     camStep(dt); drawScene(); updateLabels(); fxFrame();
+    if (W._snapCb) { const cb = W._snapCb; W._snapCb = null; cb(); }
   }
 
   /* ---------- مدخلات اللمس والماوس ---------- */
@@ -686,6 +695,14 @@
     onReady(f) { (W._after = W._after || []).push(f); },
     resize() { R.resize(); },
     pause(v) { st.paused = !!v; },
+    // لقطة من العالم (بتنلتقط بنفس الإطار عشان الصورة ما تطلع فاضية)
+    snapshot() { return new Promise((res) => { W._snapCb = () => { try {
+      const gl = R.canvas, k = Math.min(1, 800 / gl.width), w = Math.round(gl.width * k), h = Math.round(gl.height * k), cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+      const c = cv.getContext("2d"), n = st.night, mx = (a, b) => Math.round(a + (b - a) * n), g = c.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, `rgb(${mx(110, 16)},${mx(180, 18)},${mx(240, 55)})`); g.addColorStop(1, `rgb(${mx(220, 40)},${mx(238, 40)},${mx(255, 95)})`);
+      c.fillStyle = g; c.fillRect(0, 0, w, h); c.drawImage(gl, 0, 0, w, h); if (fx.cv) c.drawImage(fx.cv, 0, 0, w, h);
+      c.font = "bold " + Math.round(h * 0.035) + "px sans-serif"; c.fillStyle = "rgba(255,255,255,.85)"; c.shadowColor = "rgba(0,0,0,.6)"; c.shadowBlur = 4; c.textAlign = "left"; c.fillText("Our Small World", 12, h - 12);
+      res(cv.toDataURL("image/jpeg", 0.72)); } catch (e) { res(null); } }; }); },
     setInputEnabled(v) { st.input = v; if (!v) { joy.x = joy.y = 0; keys.l = keys.r = keys.u = keys.d = 0; } },
     updateSky, period,
     setHour(h) { st.hourOverride = h; return updateSky(); },
@@ -809,6 +826,6 @@
     setWedding(on) { S.rebuildWedding(!!on); },
     focusFor() { return []; },
   });
-  Object.defineProperties(W, { night: { get: () => st.night }, season: { get: () => st.season }, weather: { get: () => st.wmode }, holding: { get: () => holding }, mode: { get: () => mode }, interior: { get: () => (curInt ? curInt.id : null) }, timeOffset: { get: () => st.timeOffset } });
+  Object.defineProperties(W, { inputOn: { get: () => st.input }, paused: { get: () => st.paused }, storm: { get: () => !!st.storm }, wxType: { get: () => fx.type }, night: { get: () => st.night }, season: { get: () => st.season }, weather: { get: () => st.wmode }, holding: { get: () => holding }, mode: { get: () => mode }, interior: { get: () => (curInt ? curInt.id : null) }, timeOffset: { get: () => st.timeOffset } });
   OSW.POI = S.poi;
 })();

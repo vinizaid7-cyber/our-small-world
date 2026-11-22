@@ -13,6 +13,9 @@
     strawberry: { n: "فراولة", e: "🍓", g: 40, seed: 8, sell: 20, c: "#ff4d6d" }, corn: { n: "ذرة", e: "🌽", g: 60, seed: 10, sell: 26, c: "#ffd23f" },
     lemon: { n: "ليمون", e: "🍋", g: 75, seed: 12, sell: 33, c: "#f5e663" }, watermelon: { n: "بطيخ", e: "🍉", g: 90, seed: 16, sell: 44, c: "#2e9e5b" },
     grapes: { n: "عنب", e: "🍇", g: 120, seed: 20, sell: 56, c: "#7b3fa0" },
+    potato: { n: "بطاطا", e: "🥔", g: 30, seed: 5, sell: 13, c: "#c8a165" }, onion: { n: "بصل", e: "🧅", g: 35, seed: 6, sell: 15, c: "#cf8bb0" },
+    eggplant: { n: "باذنجان", e: "🍆", g: 50, seed: 9, sell: 22, c: "#5b3a8a" }, pepper: { n: "فلفل", e: "🌶️", g: 55, seed: 10, sell: 25, c: "#d62828" },
+    broccoli: { n: "بروكلي", e: "🥦", g: 70, seed: 12, sell: 30, c: "#2f8f3a" }, pumpkin: { n: "قرع", e: "🎃", g: 100, seed: 18, sell: 48, c: "#f58a1f" },
   });
   const F = (n, e, price, food, drink, joy, cat) => ({ n, e, price, food, drink, joy, cat });
   const FOOD = (G.FOOD = {
@@ -70,7 +73,7 @@
   G.priceOf = (crop, day) => Math.max(1, Math.round(CROPS[crop].sell * (0.85 + 0.35 * rnd01(crop + ":" + day))));
   G.trend = (crop, day) => { const a = G.priceOf(crop, day), b = G.priceOf(crop, day - 1); return a > b ? "▲" : a < b ? "▼" : "•"; };
   const WANDERERS = ["abukhaled", "umahmad", "samer", "khalasuad", "abuali", "fadi"];
-  const ORDER_CROPS = ["wheat", "cucumber", "tomato", "carrot", "strawberry", "corn", "lemon", "watermelon", "grapes"];
+  const ORDER_CROPS = ["wheat", "cucumber", "tomato", "carrot", "strawberry", "corn", "lemon", "watermelon", "grapes", "potato", "onion", "eggplant", "pepper", "broccoli", "pumpkin"];
   G.ordersOf = (day) => [0, 1, 2, 3, 4].map((i) => {
     const npc = WANDERERS[hash("n" + day + i) % WANDERERS.length], crop = ORDER_CROPS[hash("c" + day + i) % ORDER_CROPS.length], qty = 2 + (hash("q" + day + i) % 3);
     return { idx: i, day, npc, crop, qty, reward: Math.round(CROPS[crop].sell * qty * 1.5) + 3 };
@@ -224,7 +227,7 @@
       } else if (ty === "together") {
         S.tog[day] = (S.tog[day] || 0) + 1; if (S.tog[day] <= 10) S.coins += 3;
       } else if (OSW.fam) {
-        if (!OSW.fam.fold(ty, e, d, t, a, day, S, { add, mark }) && OSW.lands) OSW.lands.fold(ty, e, d, t, a, day, S, { add, mark });
+        if (!OSW.fam.fold(ty, e, d, t, a, day, S, { add, mark }) && !(OSW.lands && OSW.lands.fold(ty, e, d, t, a, day, S, { add, mark })) && OSW.extras) OSW.extras.fold(ty, e, d, t, a, day, S, { add, mark });
       }
     });
     return S;
@@ -541,6 +544,8 @@
   /* ---------- نقرات ---------- */
   const rnd = (a) => a[Math.floor(Math.random() * a.length)];
   G.click = (a, el) => {
+    if (a.indexOf("g-lg-") === 0 && OSW.logi) return OSW.logi.click(a, el);
+    if (a.indexOf("g-x-") === 0 && OSW.extras) return OSW.extras.click(a, el);
     if (a.indexOf("g-fam") === 0 && OSW.fam) return OSW.fam.click(a, el);
     const P = OSW.places, st = G.ui, v = () => G.view(), busy = async (f) => { try { await f(); } catch (e) { toast("⚠️ " + esc(e.message)); } };
     switch (a) {
