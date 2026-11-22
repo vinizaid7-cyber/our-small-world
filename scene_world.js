@@ -201,6 +201,7 @@
     const anchors = [];
     Object.keys(POS).forEach((k) => anchors.push([POS[k].x, POS[k].z, k === "lake" ? 17 : k === "farm" ? 3 : 8.4]));
     anchors.push([X.BUTCHER.x, X.BUTCHER.z, 9], [X.SQUARE.x, X.SQUARE.z, 12]);
+    if (OSW.logi && OSW.logi.anchors) OSW.logi.anchors.forEach((a) => anchors.push(a));
     const inRect = (x, z, a, b, c2, d) => x > a && x < b && z > c2 && z < d;
     const okSpot = (x, z, r) => !(x < S.bounds.x0 + 2 || x > S.bounds.x1 - 2 || z < S.bounds.z0 + 1 || z > S.bounds.z1 - 1) && !anchors.some((a) => hy(x - a[0], z - a[1]) < a[2] + r) && hy(x, z) > 14.5 && !nearPath(x, z, 3.4) && !inRect(x, z, -64, -8, -50, -6) && !inRect(x, z, -4, 10, -52, -34) && !inRect(x, z, 58, 92, -20, 14) && !inRect(x, z, -76, 76, 31, 75) && !inRect(x, z, -34, 40, 70, 102) && !inRect(x, z, 70, 78, 31, 60) && !inRect(x, z, -78, -70, 31, 60) && !OSW.EX.LANDS.some((L) => inRect(x, z, L.x - 10, L.x + 10, L.z - 13, L.z + 15));
     const kinds = ["oak", "pine", "cypress", "olive", "birch", "round"];

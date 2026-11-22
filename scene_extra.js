@@ -270,12 +270,12 @@
     // موقف الجزيرة
     const L = V.LOTS.B; B.box(L.x + 0.2, 0.1, L.z + 15, 9, 0.05, 36, "#4a4d55"); for (let i = 0; i <= 6; i++) B.box(L.x + 0.2, 0.14, L.z - 2.9 + i * 5.9, 8, 0.03, 0.12, "#f4f4f4"); label("lotB", "🅿️ موقف", L.x - 1.5, 3, L.z + 33, { cls: "sm", max: 40 });
     // محلات الجزيرة
-    X.buildBoutique(c); X.buildButcher({ B, SH, S, reg, label, col }); X.buildIslandLife(c); X.buildSchool(c);
+    X.buildBoutique(c); X.buildButcher({ B, SH, S, reg, label, col }); X.buildIslandLife(c); X.buildSchool(c); if (OSW.logi && OSW.logi.buildIsland) OSW.logi.buildIsland(c);
     // نخيل وزينة
     const palm = (x, z, s) => { const lean = rnd() * 0.5 - 0.25; B.push(x, 0, z, rnd() * 6.28); B.push(0, 0, 0, 0, lean); B.cyl(0, 0, 0, 0.3 * s, 0.2 * s, 4.2 * s, "#9a7650", 6); for (let i = 0; i < 4; i++) B.box(0, (0.8 + i * 0.9) * s, 0, 0.5 * s, 0.07, 0.5 * s, "#7a5a3a"); B.pop(); F.push(x + Math.sin(lean) * 0, 4.1 * s, z, 0); for (let i = 0; i < 7; i++) { F.push(0, 0, 0, (i / 7) * PI * 2); F.push(0, 0, 0, 0, 0.6 + (i % 2) * 0.25); F.box(0, 0, 1.2 * s, 0.7 * s, 0.05, 2.6 * s, i % 2 ? "#4fa860" : "#3f9a52"); F.pop(); F.pop(); } F.sphere(0, -0.1, 0, 0.35, 0.3, 0.35, "#7a5a3a", 5); F.pop(); B.pop(); col(x, z, 0.5); S._sh(x, z, 1.8); };
-    for (let t = 0, n = 0; t < 4000 && n < 70; t++) {
+    for (let t = 0, n = 0; t < 9000 && n < 130; t++) {
       const a = rnd() * PI * 2, r = 20 + rnd() * (I.r - 24), x = I.x + Math.sin(a) * r, z = I.z + Math.cos(a) * r;
-      if (Math.abs(x) < 8 && z < I.z) continue; if (hy(x + 30, z - 1148) < 9 || hy(x - 30, z - 1148) < 9 || (x > -14 && x < 6 && z > 1096 && z < 1130)) continue; if (z < 1100 && Math.abs(x) < 14) continue; if (Math.abs(x) < 24 && z > 1198 && z < 1250) continue;
+      if (Math.abs(x) < 8 && z < I.z) continue; if (hy(x + 30, z - 1148) < 9 || hy(x - 30, z - 1148) < 9 || (x > -14 && x < 6 && z > 1096 && z < 1130)) continue; if (z < 1100 && Math.abs(x) < 14) continue; if (OSW.logi && OSW.logi.islandBlocked && OSW.logi.islandBlocked(x, z)) continue; if (Math.abs(x) < 24 && z > 1198 && z < 1250) continue;
       n++; palm(x, z, 0.9 + rnd() * 0.5);
     }
     // مظلات وكراسي شاطئ
@@ -335,7 +335,7 @@
     // لوحة ندى (حامل رسم)
     B.box(-20.6, 0, 1203.6, 0.1, 1.8, 0.1, "#8d6e63"); B.box(-19.4, 0, 1203.6, 0.1, 1.8, 0.1, "#8d6e63"); B.box(-20, 0.9, 1203.5, 1.5, 1.1, 0.08, "#fffdf6"); B.box(-20.3, 1.2, 1203.45, 0.5, 0.4, 0.03, "#ff8c42"); B.box(-19.7, 1.0, 1203.45, 0.6, 0.5, 0.03, "#4dabf7");
     // مرسى الصيد بالجزيرة
-    S.poi.fishingB = { x: 0, z: 1263 }; reg("fishingB", 0, 1, 1266, 3.4, 0, 1263); label("fishingB", "🎣 صيد السمك", 0, 3.4, 1266, { act: "fishingB", max: 70 });
+    const PZ = OSW.veh.ISLE.z + OSW.veh.ISLE.r + 9; S.poi.fishingB = { x: 0, z: PZ }; reg("fishingB", 0, 1, PZ + 3, 3.4, 0, PZ); label("fishingB", "🎣 صيد السمك", 0, 3.4, PZ + 3, { act: "fishingB", max: 70 });
     // بوابة كافيه صغيرة: طاولات
     [[-12, 1125], [12, 1128]].forEach(([x, z]) => { B.cyl(x, 0, z, 0.6, 0.6, 0.08, "#fff", 8); B.cyl(x, 0, z, 0.08, 0.08, 1.0, "#555", 5); B.cyl(x, 1.0, z, 0.8, 0.8, 0.06, "#fff", 8); [[1.0, 0], [-1.0, 0]].forEach(([dx, dz]) => B.cyl(x + dx, 0, z + dz, 0.3, 0.3, 0.5, "#e63946", 6)); B.cyl(x, 1.6, z, 1.6, 0, 0.8, "#ffd23f", 8); B.cyl(x, 0, z, 0.05, 0.05, 1.8, "#eee", 4); });
   };

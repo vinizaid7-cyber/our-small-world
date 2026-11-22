@@ -78,7 +78,8 @@
     const npc = WANDERERS[hash("n" + day + i) % WANDERERS.length], crop = ORDER_CROPS[hash("c" + day + i) % ORDER_CROPS.length], qty = 2 + (hash("q" + day + i) % 3);
     return { idx: i, day, npc, crop, qty, reward: Math.round(CROPS[crop].sell * qty * 1.5) + 3 };
   });
-  const cost = (price, qty, buys) => Math.ceil(price * qty * (buys >= 30 ? 0.9 : 1));
+  G.SHOP_MUL = { s2: 0.85, fm: 0.85, fu: 0.9, eat: 0.9, gs: 1 }; G.shopId = null;
+  const cost = (price, qty, buys) => Math.ceil(price * qty * (buys >= 30 ? 0.9 : 1) * (G.SHOP_MUL[G.shopId] || 1));
   const KID_COST = 200, KID_CAP = 4, KID_GROW = 5 * 86400000, SCHOOL_MS = 300000, KID_REWARD = 12, XP_G = 3, GRADES = ["حضانة", "الصف الأول", "الصف الثاني", "الصف الثالث", "الصف الرابع", "الصف الخامس", "الصف السادس"];
   const growMs = (p) => CROPS[p.crop].g * 60000 * (p.fert ? 0.75 : 1) * (p.sm || 1);
   const capOf = (S, k) => AN[k].cap + CAPUP[k] * ((S.up && S.up.pens) || 0);
@@ -104,7 +105,7 @@
       const mark = () => { (S.acts[day] = S.acts[day] || {})[a + ":" + ty] = 1; };
       if (ty === "buy") {
         const it = ITEM[d.id]; if (!it || it.crop || !(d.qty >= 1 && d.qty <= 99)) return; if (it.cloth && ((S.inv[d.id] || 0) >= 1 || d.qty !== 1)) return;
-        const c = cost(it.price, d.qty, S.buys); if (S.coins < c) return;
+        const prevShop = G.shopId; G.shopId = d.shop || null; const c = cost(it.price, d.qty, S.buys); G.shopId = prevShop; if (S.coins < c) return;
         S.coins -= c; add(d.id, d.qty); S.buys += d.qty; mark(); if (it.cloth) S.lastCloth = { a, t };
         const wk = Math.floor(day / 7); S.till[wk] = (S.till[wk] || 0) + c * 0.3;
         if (S.till[wk] >= SALARY && !S.tillPaid[wk]) { S.tillPaid[wk] = 1; S.coins += 10; }
@@ -285,7 +286,6 @@
     W.setSpeedMul(G.speedMul());
     if (W.setAnimals) { const av = G.animalsView(); W.setAnimals(av.map((a) => ({ id: a.id, kind: a.kind, size: a.size, fed: a.fed }))); W.setAnimalCarry("me", G.animalCarry(db.uid).map((a) => a.kind)); if (db.partner) W.setAnimalCarry("partner", G.animalCarry(db.partner.id).map((a) => a.kind)); }
     if (W.setKids) W.setKids(OSW.fam ? OSW.fam.kids3d() : G.kidsView().map((k) => ({ id: k.id, name: k.name, g: k.g, stage: k.stage, at: k.at })));
-    if (W.setKidsIn && OSW.fam && OSW.fam.kidsIn) W.setKidsIn(OSW.fam.kidsIn());
     if (!s.need[db.uid] && !G._ni) { G._ni = true; db.addEntry({ house: "game", title: "needinit", data: {} }).then(() => G.sync3d()).catch(() => { G._ni = false; }); }
     if (W.setPets) W.setPets(OSW.fam ? OSW.fam.pets3d() : s.pets.map((p) => ({ id: p.id, kind: p.kind, owner: p.owner === db.uid ? "me" : "partner" })));
     { const nv = G.needOf(db.uid), lo = Math.min(nv.food, nv.drink), fe = document.getElementById("foodNum"), de = document.getElementById("drinkNum"), np = document.getElementById("needPill");
@@ -560,7 +560,7 @@
       case "g-wcat": G.ui.wcat = el.dataset.k; return P.refresh();
       case "g-tab": st.tab = el.dataset.k; return P.refresh();
       case "g-wtab": st.wtab = el.dataset.k; return P.refresh();
-      case "g-buy": { const it = ITEM[el.dataset.id], q = +el.dataset.q, c = cost(it.price, q, G.state().buys); if (needCoins(c)) return; return busy(async () => { await G.do("buy", { id: el.dataset.id, qty: q }); OSW.audio.sfx("coin"); toast(`${it.e} اشتريت ${it.cloth ? "(الكيس بإيدك 🛍️)" : "×" + q}`); }); }
+      case "g-buy": { const it = ITEM[el.dataset.id], q = +el.dataset.q, c = cost(it.price, q, G.state().buys); if (needCoins(c)) return; return busy(async () => { await G.do("buy", { id: el.dataset.id, qty: q, shop: G.shopId || undefined }); OSW.audio.sfx("coin"); toast(`${it.e} اشتريت ${it.cloth ? "(الكيس بإيدك 🛍️)" : "×" + q}`); }); }
       case "g-sell": return busy(async () => { await G.do("sell", { id: el.dataset.id, qty: +el.dataset.q }); OSW.audio.sfx("coin"); toast("🪙 انباعت!"); });
       case "g-sellcrate": return busy(async () => { await G.do("sellcrate", {}); OSW.audio.sfx("coin"); ui.hearts("🪙", 8); });
       case "g-gift": { const g = GIFTS[el.dataset.id]; if (needCoins(g.price)) return; if (!db.partner) return toast("لسا شريكك ما دخل القرية"); const note = ((document.getElementById("giftNote") || {}).value || "").trim(); return busy(async () => { await G.do("gift", { id: el.dataset.id, note }); OSW.audio.sfx("heart"); ui.hearts(g.e, 14); toast(`${g.e} سعدون راح يوصّل الهدية 💌`, "love"); }); }

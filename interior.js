@@ -2,7 +2,7 @@
 (function () {
   const OSW = window.OSW, R = OSW.R, Builder = OSW.Builder, PI = Math.PI, dk = OSW.col.dk, lt = OSW.col.lt;
   /* البيت: شبكة 3×2 — فوق: النوم | الذكريات | المطبخ — تحت: الصالون (عريض) | الشرفة */
-  const HOME = (OSW.HOME = { ox: 411, oz: 0, cols: 5, rows: 2, rw: 11, rd: 9, wh: 1.15, wt: 0.3, door: 3.2 });
+  const HOME = (OSW.HOME = { ox: 405.5, oz: 0, cols: 4, rows: 2, rw: 11, rd: 9, wh: 1.15, wt: 0.3, door: 3.2 });
   const X0 = HOME.ox - (HOME.cols * HOME.rw) / 2, X1 = X0 + HOME.cols * HOME.rw, Z0 = HOME.oz - (HOME.rows * HOME.rd) / 2, Z1 = Z0 + HOME.rows * HOME.rd;
   const gx = (c) => X0 + c * HOME.rw, gz = (r) => Z0 + r * HOME.rd;
   const DEF = [
@@ -13,18 +13,15 @@
     { id: "balcony", n: "الشرفة", e: "🌿", c0: 2, c1: 3, r0: 1, r1: 2, wall: "#d2eec9", floor: "#9fc592", tile: "#afd2a2" },
     { id: "draw", n: "غرفة تحدي الرسم", e: "🎨", c0: 3, c1: 4, r0: 0, r1: 1, wall: "#ffe1b8", floor: "#f0c78f", tile: "#f7d6a5" },
     { id: "dressing", n: "غرفة الأزياء", e: "👗", c0: 3, c1: 4, r0: 1, r1: 2, wall: "#f3d6f5", floor: "#c9a6d6", tile: "#d8b8e3" },
-    { id: "kidsroom", n: "غرفة الأولاد", e: "🧸", c0: 4, c1: 5, r0: 0, r1: 1, wall: "#cfe8ff", floor: "#9cc7ee", tile: "#b3d6f5" },
-    { id: "playroom", n: "غرفة اللعب", e: "🎈", c0: 4, c1: 5, r0: 1, r1: 2, wall: "#d9f5d0", floor: "#a8d89a", tile: "#bde6b0" },
   ];
   const rooms = (HOME.rooms = DEF.map((d) => { const x0 = gx(d.c0), x1 = gx(d.c1), z0 = gz(d.r0), z1 = gz(d.r1); return { id: d.id, name: d.n, emoji: d.e, wall: d.wall, floor: d.floor, tile: d.tile, x0, x1, z0, z1, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, keep: [] }; }));
   HOME.byId = Object.fromEntries(rooms.map((r) => [r.id, r]));
   HOME.bounds = { x0: X0, x1: X1, z0: Z0, z1: Z1 };
-  const living = HOME.byId.living, bedroom = HOME.byId.bedroom, kitchen = HOME.byId.kitchen, kidsroom = HOME.byId.kidsroom, playroom = HOME.byId.playroom;
+  const living = HOME.byId.living, bedroom = HOME.byId.bedroom, kitchen = HOME.byId.kitchen;
   HOME.exitDoor = { x: gx(1), z: Z1 };
   const doors = (HOME.doors = []);
   const dv = (x, z) => doors.push({ x, z, v: true }), dh = (x, z) => doors.push({ x, z, v: false });
   dv(gx(1), gz(0) + HOME.rd / 2); dv(gx(2), gz(0) + HOME.rd / 2); dv(gx(2), gz(1) + HOME.rd / 2); dv(gx(3), gz(0) + HOME.rd / 2); dv(gx(3), gz(1) + HOME.rd / 2); dh(gx(3) + HOME.rw / 2, gz(1));
-  dv(gx(4), gz(0) + HOME.rd / 2); dv(gx(4), gz(1) + HOME.rd / 2); dh(gx(4) + HOME.rw / 2, gz(1));
   dh(gx(0) + HOME.rw / 2, gz(1)); dh(gx(1) + HOME.rw / 2, gz(1)); dh(gx(2) + HOME.rw / 2, gz(1));
   doors.push({ x: HOME.exitDoor.x, z: HOME.exitDoor.z, v: false, exit: true });
   HOME.roomAt = (x, z) => rooms.find((r) => x >= r.x0 && x < r.x1 && z >= r.z0 && z < r.z1);
@@ -45,19 +42,6 @@
     { id: "def:ct", item: "ctable", x: living.cx, z: living.cz - 0.4, rot: 0 },
     { id: "def:plant", item: "plantL", x: living.x1 - 1.4, z: living.z0 + 1.3, rot: 0 },
     { id: "def:dt", item: "dtable", x: kitchen.cx - 0.8, z: kitchen.cz + 1.3, rot: 0 },
-    // غرفة الأولاد: 4 تخوت + لعب
-    { id: "def:kb1", item: "bed1", x: kidsroom.cx - 4.0, z: kidsroom.z0 + 2.1, rot: 0 },
-    { id: "def:kb2", item: "bed1", x: kidsroom.cx - 1.3, z: kidsroom.z0 + 2.1, rot: 0 },
-    { id: "def:kb3", item: "bed1", x: kidsroom.cx + 1.4, z: kidsroom.z0 + 2.1, rot: 0 },
-    { id: "def:kb4", item: "bed1", x: kidsroom.cx + 4.1, z: kidsroom.z0 + 2.1, rot: 0 },
-    { id: "def:krug", item: "rugR", x: kidsroom.cx, z: kidsroom.cz + 1.6, rot: 0 },
-    { id: "def:kted", item: "teddy", x: kidsroom.cx - 3.6, z: kidsroom.cz + 2.8, rot: 0 },
-    { id: "def:kballoon", item: "balloons", x: kidsroom.cx + 3.8, z: kidsroom.cz + 2.9, rot: 0 },
-    // غرفة اللعب
-    { id: "def:prug", item: "rugS", x: playroom.cx, z: playroom.cz, rot: 0 },
-    { id: "def:pbag1", item: "beanbag", x: playroom.cx - 3.6, z: playroom.cz + 1.6, rot: 0 },
-    { id: "def:pbag2", item: "beanbag", x: playroom.cx + 3.6, z: playroom.cz + 1.6, rot: 0 },
-    { id: "def:pshelf", item: "bookshelf", x: playroom.cx, z: playroom.z0 + 1.0, rot: 0 },
   ];
 
   const INT = (OSW.INT = { cache: {}, defs: {} });
@@ -105,8 +89,7 @@
     wallLine(B, boxes, gx(1), gz(0), gx(1), gz(1), [gz(0) + HOME.rd / 2]);
     wallLine(B, boxes, gx(2), gz(0), gx(2), gz(2), [gz(0) + HOME.rd / 2, gz(1) + HOME.rd / 2]);
     wallLine(B, boxes, gx(3), gz(0), gx(3), gz(2), [gz(0) + HOME.rd / 2, gz(1) + HOME.rd / 2]);
-    wallLine(B, boxes, gx(4), gz(0), gx(4), gz(2), [gz(0) + HOME.rd / 2, gz(1) + HOME.rd / 2]);
-    wallLine(B, boxes, X0, gz(1), X1, gz(1), [gx(0) + HOME.rw / 2, gx(1) + HOME.rw / 2, gx(2) + HOME.rw / 2, gx(3) + HOME.rw / 2, gx(4) + HOME.rw / 2]);
+    wallLine(B, boxes, X0, gz(1), X1, gz(1), [gx(0) + HOME.rw / 2, gx(1) + HOME.rw / 2, gx(2) + HOME.rw / 2, gx(3) + HOME.rw / 2]);
     B.box(eg.x - hg - 0.1, 0, eg.z, 0.3, 2.6, 0.5, "#8d6e63"); B.box(eg.x + hg + 0.1, 0, eg.z, 0.3, 2.6, 0.5, "#8d6e63"); B.box(eg.x, 2.4, eg.z, HOME.door + 0.7, 0.35, 0.5, "#8d6e63"); B.box(eg.x, 0.02, eg.z - 1.1, 2.4, 0.03, 1.0, "#c0584c");
     B.sphere(eg.x, 2.75, eg.z, 0.2, 0.2, 0.2, "#ffe7a0", 6, 1);
     act("exit", eg.x, 1.2, eg.z - 0.3, 2.4, eg.x, eg.z - 2.0);
@@ -210,7 +193,7 @@
     B.disc(dsr.cx - 1.2, 0.02, dsr.cz + 1.2, 2.0, "#e9d0f0", 20);
     keepAt(dsr, dsr.cx + 1.4, dsr.z0, dsr.x1, dsr.z0 + 3.0); keepAt(dsr, dsr.x0, wz - 1.0, dsr.cx - 1.9, dsr.z1); keepAt(dsr, dsr.cx - 0.3, dsr.cz - 1.0, dsr.cx + 0.8, dsr.cz + 1.6);
 
-    return { id: "home", mesh: B.build(R.gl), boxes, acts, labels, poi, bounds: HOME.bounds, spawn: { x: eg.x, z: eg.z - 3.0 }, exitAt: "home", env: "warm", camDist: 29, camPitch: 1.22, npcs: [] };
+    return { id: "home", mesh: B.build(R.gl), boxes, acts, labels, poi, bounds: HOME.bounds, spawn: { x: eg.x, z: eg.z - 3.0 }, exitAt: "home", env: "warm", camDist: 25, camPitch: 1.22, npcs: [] };
   }
 
   const SH = { ox: 500, oz: 0, hw: 10, hd: 8 };

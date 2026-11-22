@@ -129,13 +129,7 @@
 
   // يرسم شخصية: x,z,ry,phase(حركة الأرجل),moving(0..1)
   OSW.drawChar = (ch, x, z, ry, phase, moving, t, alpha, tint, scale, y0, pose) => {
-    scale = scale || 1;
-    if (pose && pose.lie) { // نايم على ظهره (راسه لجهة -z المحلية)
-      M.trs(x, y0 || 0, z, ry, -PI / 2, 0, scale, scale, scale, sc1); R.draw(ch.body, sc1, tint, alpha);
-      const lm = (mesh, px, py, ang) => { M.trs(px, py, 0, 0, ang, 0, 1, 1, 1, sc2); M.mul(sc1, sc2, sc3); R.draw(mesh, sc3, tint, alpha); };
-      lm(ch.legL, -0.17, 0.62, 0); lm(ch.legR, 0.17, 0.62, 0); lm(ch.armL, -0.4, 1.24, 0.05); lm(ch.armR, 0.4, 1.24, -0.05); return;
-    }
-    const bob = (moving > 0.05 ? Math.abs(Math.sin(phase)) * 0.07 * moving : Math.sin(t * 2.2) * 0.012) * scale + (y0 || 0);
+    scale = scale || 1; const bob = (moving > 0.05 ? Math.abs(Math.sin(phase)) * 0.07 * moving : Math.sin(t * 2.2) * 0.012) * scale + (y0 || 0);
     M.trs(x, bob, z, ry, 0, 0, scale, scale, scale, sc1);
     R.draw(ch.body, sc1, tint, alpha);
     const sw = Math.sin(phase) * 0.85 * moving, idle = Math.sin(t * 2.2) * 0.04;
@@ -157,7 +151,7 @@
       lines: ["بوظة فستق وفراولة! جربوا الجديدة 🍦", "الجو حر… البوظة أحلى شي ☀️", "بوظتي بتذوّب القلب قبل ما تذوّب بإيدكم 😄", "بتعرفوا؟ أول مرة أشوف سيارات تيجي هون! 🚗"] },
     { id: "ahmadlife", name: "أحمد المنقذ", emoji: "🏊", isle: 1, look: { gender: "boy", color: "#e63946", pants: "#f4f1e8", hair: "#222", hairStyle: "short" }, pos: [50, 1231], face: 0.74, stay: true,
       lines: ["أنا بحرس الشاطئ، اسبحوا بأمان 🌊", "ممنوع السباحة بعد المغرب… بس ما في سباحة أصلاً 😅", "لو شفتوا حوت قولولي! 🐋", "المنظر من فوق البرج خرافي 😎"] },
-    { id: "salem", name: "سالم الصياد", emoji: "🎣", isle: 1, look: { gender: "boy", color: "#5b7a8c", pants: "#3a3a3a", hair: "#999", hairStyle: "cap", cap: "#d4a73a", mustache: true }, pos: [-1.8, 1266], face: 0, stay: true,
+    { id: "salem", name: "سالم الصياد", emoji: "🎣", isle: 1, look: { gender: "boy", color: "#5b7a8c", pants: "#3a3a3a", hair: "#999", hairStyle: "cap", cap: "#d4a73a", mustache: true }, pos: [-1.8, 1319], face: 3.14, stay: true,
       lines: ["الصيد صبر يا ولدي… استنوا العوامة 🎣", "اليوم طلعلي ذهبية! بس فلتت 😭", "السمك أطيب لما حدا بيصطاده بإيده 🐟", "فيه صنارة جاهزة عالمرسى، جربوا!"] },
     { id: "reem", name: "ريم", emoji: "🏐", isle: 1, look: { gender: "girl", color: "#ffb347", hair: "#3b2a20", hairStyle: "ponytail", skin: "#f2c9a0" }, pos: [-45, 1195.2], face: 0, stay: true, scale: 0.82,
       lines: ["بنلعب طائرة! تعالوا العبوا معنا 🏐", "حمزة دايماً بيخسر 😂", "أنا بطلة الشاطئ! 🏆", "الكرة عالية… خدوها!"] },

@@ -14,6 +14,7 @@
 
   /* ---------- الفتح ---------- */
   P.open = (id) => {
+    if (OSW.game) OSW.game.shopId = null;
     P.current = id;
     const f = { fountain, plaza, home, tree, garden, lighthouse, gate, ach }[id] || (OSW.game && OSW.game.openers[id]);
     if (!f) return;

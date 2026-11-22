@@ -249,6 +249,7 @@
     if (k === "partner") return toggleWalk();
     if (k === "plot") return plotAct(+v);
     if (k === "land" && OSW.lands) return OSW.lands.open(v);
+    if (k === "lshed" && OSW.logi) return OSW.logi.shedAct(v);
     if (k === "exit") return exitInterior();
     if (act === "wedding") return goPlace("wedding");
     if (k === "console") return openConsole(v);
@@ -286,7 +287,7 @@
     await W.walkToPOI(OSW.INT.enterAct[id]); $("#curtain").classList.add("on"); await sleep(330);
     W.enter(id); G.sync3d(); db.track("in:" + id); $("#btnFurn").hidden = id !== "home";
     await sleep(80); $("#curtain").classList.remove("on"); W.setInputEnabled(true); busyNav = false;
-    if (id === "home") guideSay("بيتكم من جوّا! 🏡 غرف: النوم، الذكريات، المطبخ، الصالون، الشرفة، الرسم، الأزياء، وغرفة الأولاد 🧸 (آخر الشرق). اضغط 🛋️ للأثاث 😴", 6500);
+    if (id === "home") guideSay("بيتكم من جوّا! 🏡 خمس غرف: النوم (فيه رف الصور والأغاني)، الذكريات، المطبخ، الصالون، الشرفة. اضغط 🛋️ للأثاث 😴", 6500);
   }
   async function exitInterior() {
     if (busyNav || W.mode !== "in") return; busyNav = true; W.setInputEnabled(false); cancelPlacing(); OSW.audio.sfx("door");
@@ -391,6 +392,6 @@
     } catch (e) { /* ما نوقف اللعبة */ }
   }
   setInterval(inputGuard, 350);
-  document.addEventListener("DOMContentLoaded", () => { if (OSW.ui) OSW.ui.afterModalClose = () => setTimeout(inputGuard, 0); });
+  document.addEventListener("DOMContentLoaded", () => { if (OSW.ui) OSW.ui.afterModalClose = () => { if (OSW.game) OSW.game.shopId = null; setTimeout(inputGuard, 0); }; });
   document.addEventListener("DOMContentLoaded", boot);
 })();

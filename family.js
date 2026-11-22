@@ -61,8 +61,8 @@
     park: A("نزهة بالساحة والنافورة", "⛲", 0, 3, 16, [0, 1170, 5]),
     ice: A("بوظة عند أبو جميل", "🍦", 8, 3, 25, [14, 1175, 3]),
     vb: A("كرة طائرة على الشاطئ", "🏐", 0, 4, 22, [-45, 1200, 5]),
-    sand: A("قلعة رمل", "🏰", 0, 4, 24, [-30, 1240, 3.5]),
-    fish: A("صيد سمك على المرسى", "🎣", 0, 5, 20, [0, 1262, 3]),
+    sand: A("قلعة رمل", "🏰", 0, 4, 24, [-30, 1160, 4]),
+    fish: A("صيد سمك على المرسى", "🎣", 0, 5, 20, [0, 1275, 3]),
     guard: A("زيارة المنقذ والبحر", "🛟", 0, 3, 18, [48, 1230, 3]),
     juice: A("عصير ببار الشاطئ", "🍹", 6, 3, 20, [40, 1192, 3]),
     picnic: A("بيكنيك عائلي (بياخد وجبة من الثلاجة)", "🧺", 0, 6, 42, [-14, 1160, 4], { dish: 1 }),
@@ -74,7 +74,7 @@
     market: { n: "يروح عالسوق", e: "🛒", cd: 40 * MIN, note: "+10🪙" },
     tidy: { n: "يرتّب البيت", e: "🧹", cd: 25 * MIN, note: "+3🪙 وبيفرّح إخوانه" },
   });
-  const CMDS = (F.CMDS = { free: ["🎈", "يلعب براحته"], follow: ["🚶", "يمشي وراي"], car: ["🚗", "معنا بالسيارة"], home: ["🏡", "يقعد ببيت"], sleep: ["😴", "ينام بغرفته"], stay: ["📍", "يوقف هون"] });
+  const CMDS = (F.CMDS = { free: ["🎈", "يلعب براحته"], follow: ["🚶", "يمشي وراي"], car: ["🚗", "معنا بالسيارة"], home: ["🏡", "يقعد ببيت"], stay: ["📍", "يوقف هون"] });
 
   /* ---------- حالة الأولاد ---------- */
   const KD = (k, t) => {
@@ -149,14 +149,11 @@
 
   /* ---------- عرض الأولاد والحيوانات للعالم ثلاثي الأبعاد ---------- */
   F.kidsView = () => {
-    const now = Date.now(), night = !!(W() && (W().night || 0) > 0.6);
+    const now = Date.now();
     return G.state().kids.map((k) => {
       const age = now - k.born, stage = age < BABY_END ? "baby" : age < TEEN ? "child" : "teen", m = snap(k, now), acting = k.act && now < k.act.until;
-      const loc = acting ? "act:" + k.act.id : k.at, cmd = k.cmd || "free";
-      // بالليل (أو لما تقوله ينام) بينام بغرفة الأولاد، و«يقعد ببيت» بيدخل البيت
-      const sleeping = loc === "home" && (cmd === "sleep" || (night && (cmd === "free" || cmd === "home"))), indoors = loc === "home" && (sleeping || cmd === "home");
       return Object.assign({}, k, { stage, ageDays: Math.floor(age / DAY), grade: Math.min(6, Math.floor((k.xp || 0) / 3)), growLeft: stage === "baby" ? BABY_END - age : stage === "child" ? TEEN - age : 0,
-        schoolLeft: k.at === "school" ? Math.max(0, 300000 - (now - k.since)) : 0, rewardedToday: k.lastReward === G.today(), food: m.food, joy: m.joy, loc, actLeft: acting ? k.act.until - now : 0, cmd, sleeping, indoors });
+        schoolLeft: k.at === "school" ? Math.max(0, 300000 - (now - k.since)) : 0, rewardedToday: k.lastReward === G.today(), food: m.food, joy: m.joy, loc: acting ? "act:" + k.act.id : k.at, actLeft: acting ? k.act.until - now : 0, cmd: k.cmd || "free" });
     });
   };
   G.kidsView = F.kidsView;
@@ -166,8 +163,7 @@
     const seats = (v.CARS[v.me.car].seats || 2) - 2; if (seats <= 0) return [];
     return F.kidsView().filter((k) => k.cmd === "car" && k.loc === "home").slice(0, seats);
   };
-  F.kidsIn = () => F.kidsView().filter((k) => k.indoors).map((k) => ({ id: k.id, name: k.name, g: k.g, stage: k.stage, sleeping: k.sleeping }));
-  F.kids3d = () => { const ride = F.riders().map((k) => k.id); return F.kidsView().filter((k) => ride.indexOf(k.id) < 0 && !k.indoors).map((k) => ({ id: k.id, name: k.name, g: k.g, stage: k.stage, at: k.loc, roam: roamOf(k) })); };
+  F.kids3d = () => { const ride = F.riders().map((k) => k.id); return F.kidsView().filter((k) => ride.indexOf(k.id) < 0).map((k) => ({ id: k.id, name: k.name, g: k.g, stage: k.stage, at: k.loc, roam: roamOf(k) })); };
   F.pets3d = () => {
     const s = G.state(), uid = db().uid;
     return s.pets.map((p) => ({ id: p.id, kind: p.kind, owner: p.owner === uid ? "me" : "partner", mode: p.mode || "follow", hx: p.hx, hz: p.hz, label: p.name ? G.PETS[p.kind].e + " " + p.name : "" }));
@@ -204,7 +200,7 @@
       <div class="seg" style="margin-bottom:8px"><button class="${kg === "boy" ? "on" : ""}" data-act="g-kidg" data-g="boy">👦 ولد</button><button class="${kg === "girl" ? "on" : ""}" data-act="g-kidg" data-g="girl">👧 بنت</button></div>
       <button class="btn berry" style="width:100%" data-act="g-kidborn" ${s.coins < 200 ? "disabled" : ""}>👶 جيب الطفل (200🪙)</button>` : `<p class="hint">عيلتكم كاملة 💞 (${cap} أولاد)</p>`;
     ui().openModal(`<h3>👨‍👩‍👧 عيلتنا</h3>${coinBar()}<div class="items" style="margin:8px 0">${rows || '<div class="empty">لسا ما عندكم أولاد 🍼</div>'}</div>${form}
-      <div class="sep"></div><div class="row" style="flex-wrap:wrap;gap:6px"><button class="btn alt sm" data-act="g-fam-open" data-k="acts">🎈 فعاليات الجزيرة</button><button class="btn alt sm" data-act="g-fam-open" data-k="fridge">🧊 الثلاجة</button><button class="btn alt sm" data-act="g-fam-open" data-k="mypets">🐾 حيواناتنا</button><button class="btn alt sm" data-act="g-fam-shop">🛍️ مستلزمات الأولاد</button><button class="btn alt sm" data-act="g-gotoschool">🏫 المدرسة</button><button class="btn alt sm" data-act="g-fam-cars">🚗 سياراتنا</button><button class="btn alt sm" data-act="g-fam-lhome">🏠 كراج البيت (رجّع السيارات)</button><button class="btn alt sm" data-act="g-fam-summon">🚙 استدعي سيارات الجزيرة الثانية</button><button class="btn alt sm" data-act="g-fam-sleepall">😴 نيّم الأولاد</button><button class="btn alt sm" data-act="g-fam-wakeall">☀️ صحّي الأولاد</button></div>`);
+      <div class="sep"></div><div class="row" style="flex-wrap:wrap;gap:6px"><button class="btn alt sm" data-act="g-fam-open" data-k="acts">🎈 فعاليات الجزيرة</button><button class="btn alt sm" data-act="g-fam-open" data-k="fridge">🧊 الثلاجة</button><button class="btn alt sm" data-act="g-fam-open" data-k="mypets">🐾 حيواناتنا</button><button class="btn alt sm" data-act="g-fam-shop">🛍️ مستلزمات الأولاد</button><button class="btn alt sm" data-act="g-gotoschool">🏫 المدرسة</button><button class="btn alt sm" data-act="g-fam-cars">🚗 سياراتنا</button><button class="btn alt sm" data-act="g-fam-lhome">🏠 كراج البيت (رجّع السيارات)</button></div>`);
   };
 
   G.openers.kid = () => {
@@ -224,7 +220,7 @@
     ui().openModal(`<h3>${kidEm(k)} ${esc(k.name)}</h3><p class="hint">${stageTxt(k)}${k.loc === "school" ? " · 🏫 بالمدرسة" : ""}</p>
       ${meter("🍽️ الشبع", k.food, "#f4a261")}${meter("😊 الفرحة", k.joy, "#ff7aa8")}
       <b>🎛️ شو يسوي؟</b><div class="seg" style="margin:6px 0;flex-wrap:wrap">${cmds}</div>
-      <p class="hint">«يقعد ببيت» بيدخل البيت، «ينام بغرفته» بينيّمه بغرفة الأولاد (وبالليل بينام لحاله إذا كان «يلعب براحته» أو «يقعد ببيت»)، «يوقف هون» بيوقفه مكانك، «معنا بالسيارة» بيركب ورا 🚗. ادخلوا البيت وشوفوه 🛏️</p>
+      <p class="hint">«يوقف هون» بيوقفه مكانك الحالي، «معنا بالسيارة» بيركب ورا لما تسوق 🚗 (بتقدر تلف الكاميرا وتشوفه)</p>
       <div class="sep"></div><b>🍽️ أكّله من الثلاجة</b><div style="margin:6px 0;display:flex;flex-wrap:wrap;gap:6px">${eat}</div>
       <div class="sep"></div><b>🎾 لعب</b><div style="margin:6px 0;display:flex;flex-wrap:wrap;gap:6px">${play}</div>
       <div class="sep"></div><b>🧸 مستلزمات</b> ${owned ? `<small>عنده: ${owned}</small>` : ""}<div style="margin:6px 0;display:flex;flex-wrap:wrap;gap:6px">${kitems}</div>${chores}${back("family")}`);
@@ -255,8 +251,8 @@
     const kbtn = ks.map((k) => { const on = sel[k.id] !== false, busy = k.loc !== "home"; return `<button class="${on && !busy ? "on" : ""}" data-act="g-fam-seltog" data-id="${k.id}" ${busy ? "disabled" : ""}>${kidEm(k)} ${esc(k.name)}${busy ? " ⏳" : ""}</button>`; }).join("");
     const hasDish = Object.keys(s.fridge || {}).some((x) => DISHES[x]);
     const rows = Object.keys(ACTS).map((i) => {
-      const a = ACTS[i], pick = ks.filter((k) => sel[k.id] !== false && k.loc === "home"), cd = pick.length && pick.every((k) => ((k.actAt || {})[i] || 0) > now - 20 * MIN), dis = !isle || !pick.length || cd || s.coins < a.cost || (a.dish && !hasDish);
-      return irow(a.e, a.n, `${a.cost ? a.cost + "🪙 · " : "مجاناً · "}${a.min} دقايق · 😊+${a.joy + gearBonus(s)}${a.dish && !hasDish ? " · ❗بدها وجبة بالثلاجة" : ""}${cd ? " · ⏳ لعبوها قبل شوي (كل 20 دقيقة)" : ""}`, `<button class="btn sm gold" data-act="g-fam-act" data-act2="${i}" ${dis ? "disabled" : ""}>ابدأ</button>`);
+      const a = ACTS[i], dis = !isle || s.coins < a.cost || (a.dish && !hasDish);
+      return irow(a.e, a.n, `${a.cost ? a.cost + "🪙 · " : "مجاناً · "}${a.min} دقايق · 😊+${a.joy + gearBonus(s)}${a.dish && !hasDish ? " · ❗بدها وجبة بالثلاجة" : ""}`, `<button class="btn sm gold" data-act="g-fam-act" data-act2="${i}" ${dis ? "disabled" : ""}>ابدأ</button>`);
     }).join("");
     ui().openModal(`<h3>🎈 فعاليات الجزيرة الثانية</h3>${coinBar()}
       ${isle ? '<div class="chk" style="margin:6px 0">🏝️ أنتوا بالجزيرة، اختاروا الأولاد والفعالية</div>' : '<div class="chk" style="margin:6px 0">🚗 الفعاليات بالجزيرة الثانية: روحوا بالسيارة (الطريق الطويل) وافتحوا هالصفحة هناك</div>'}
@@ -309,19 +305,9 @@
       case "g-fam-act": {
         if (!onIsle()) return toast("🏝️ لازم تكونوا بالجزيرة الثانية (بالسيارة)");
         const sel = st.actSel || {}, ids = F.kidsView().filter((k) => k.stage !== "baby" && k.loc === "home" && sel[k.id] !== false).map((k) => k.id);
-        if (!ids.length) return toast("اختاروا ولد واحد على الأقل (والأولاد لازم يكونوا بالبيت مش بالمدرسة ولا بفعالية) 🧒");
-        const AC = ACTS[d.act2], nowT = Date.now(), fresh = F.kidsView().filter((k) => ids.indexOf(k.id) > -1 && !(((k.actAt || {})[d.act2] || 0) > nowT - 20 * MIN)).map((k) => k.id);
-        if (!fresh.length) return toast("⏳ هالفعالية لعبوها قبل شوي، جرّبوا فعالية ثانية أو استنوا شوي");
-        if (G.state().coins < AC.cost) return toast("🪙 ما معكم مصاري كفاية للفعالية");
-        if (AC.dish && !Object.keys(G.state().fridge || {}).some((x) => DISHES[x])) return toast("🧺 البيكنيك بدو وجبة مطبوخة بالثلاجة");
-        return busy(async () => { await G.do("kid_act", { ids: fresh, act: d.act2 }); sfx("fanfare"); hearts(ACTS[d.act2].e, 12); toast(`${ACTS[d.act2].e} الأولاد راحوا ${ACTS[d.act2].n}!`, "love"); });
+        if (!ids.length) return toast("اختاروا ولد واحد على الأقل 🧒");
+        return busy(async () => { await G.do("kid_act", { ids, act: d.act2 }); sfx("fanfare"); hearts(ACTS[d.act2].e, 12); toast(`${ACTS[d.act2].e} الأولاد راحوا ${ACTS[d.act2].n}!`, "love"); });
       }
-      case "g-fam-summon": return busy(async () => { const n = await F.summon(); sfx(n ? "door" : "pop"); });
-      case "g-fam-sleepall": case "g-fam-wakeall": return busy(async () => {
-        const on = a === "g-fam-sleepall", ks = F.kidsView().filter((k) => k.loc === "home"); if (!ks.length) return toast("ما في أولاد بالبيت هلأ 🏡");
-        for (const k of ks) await G.do("kid_cmd", { id: k.id, cmd: on ? "sleep" : "free", x: 0, z: 0 });
-        sfx("pop"); toast(on ? "😴 الأولاد راحوا ينامون بغرفتهم" : "☀️ الأولاد صحيوا وطلعوا يلعبوا"); G.sync3d();
-      });
       case "g-fam-petname": return busy(async () => { const v = ((document.getElementById("pn_" + d.id) || {}).value || "").trim(); await G.do("pet_name", { id: d.id, name: v }); sfx("heart"); toast("🐾 انحفظ الاسم"); });
       case "g-fam-petcmd": return busy(async () => { const m = me(); await G.do("pet_cmd", { id: d.id, mode: d.mode, x: m.x, z: m.z }); sfx("pop"); toast(d.mode === "stay" ? "📍 وقّفته هون" : d.mode === "home" ? "🏡 رجع عالبيت" : "🚶 بيمشي وراك"); });
     }
@@ -336,7 +322,6 @@
   F.tick = () => {
     const w = W(); if (!w || !w.S || !w.S.ready || !db() || !db().me) return;
     const kv = F.kidsView(), now = Date.now(), me = w.getMe(), v = V();
-    { const sig = kv.map((k) => k.id + (k.indoors ? (k.sleeping ? "s" : "i") : "o")).join(","); if (F._sig !== undefined && sig !== F._sig) { F._sig = sig; try { G.sync3d(); } catch (e) { /* */ } } else F._sig = sig; }
     if (v && v.me) {
       if (now - lastBub > 3500 + Math.random() * 3500) {
         lastBub = now; const r = F.riders();
@@ -369,12 +354,6 @@
     });
   };
 
-  F.summon = async () => {
-    const v = V(); if (!v) return 0; if (v.me) { toast("🚗 انزل من السيارة أول"); return 0; }
-    const n = await v.summon();
-    toast(n ? `🚙 ${n} ${n === 1 ? "سيارة رجعت" : "سيارات رجعوا"} من الجزيرة الثانية لـ${v.summonedTo === "A" ? "موقف معرض السيارات" : "كراج البيت"}` : "كل سياراتكم بالجزيرة الأولى ✅", n ? "gold" : "");
-    try { G.sync3d(); } catch (e) { /* */ } return n;
-  };
   /* ---------- أزرار وتركيب ---------- */
   function init() {
     setInterval(() => { try { F.tick(); } catch (e) { /* ما نوقف اللعبة */ } }, 700);
@@ -385,8 +364,6 @@
       bx.insertBefore(mk("btnFridge", "🧊", "الثلاجة والأكل", () => OSW.app.goPlace("fridge")), bx.firstChild);
       bx.insertBefore(mk("btnFam", "👨‍👩‍👧", "العيلة", () => OSW.app.goPlace("family")), bx.firstChild);
       const act = mk("btnActs", "🎈", "فعاليات", () => OSW.app.goPlace("acts")); act.hidden = true; bx.insertBefore(act, bx.firstChild);
-      const sum = mk("btnSummon", "🚙", "استدعي سيارات الجزيرة الثانية", () => F.summon()); sum.hidden = true; sum.title = "استدعي كل السيارات اللي بالجزيرة الثانية للجزيرة الأولى"; bx.insertBefore(sum, bx.firstChild);
-      setInterval(() => { try { const w = W(), vv = V(); sum.hidden = !(w && w.S && w.S.ready && w.mode === "out" && vv && !vv.me && vv.away().length); } catch (e) { /* */ } }, 1500);
       setInterval(() => { try { const w = W(); act.hidden = !(w && w.S && w.S.ready && w.mode === "out" && onIsle() && !(V() && V().me)); } catch (e) { /* */ } }, 1500);
     }
   }
