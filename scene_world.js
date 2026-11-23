@@ -195,7 +195,7 @@
 
     /* بيوت أهل القرية: صفين وشوارع منظمة */
     OSW.VILLAGERS.forEach((v) => X.buildVillager({ B, SH, col, label }, v));
-    X.buildFarm({ B, F, SH, S, reg, label, col, rnd }); if (OSW.logi) OSW.logi.build({ B, F, SH, S, reg, label, col, rnd }); X.buildPier({ B, S, reg, label }); X.buildDealer({ B, SH, S, reg, label, col }); X.buildRoadAndIsland({ B, F, SH, S, reg, label, col, rnd, P });
+    X.buildFarm({ B, F, SH, S, reg, label, col, rnd }); if (OSW.logi) OSW.logi.build({ B, F, SH, S, reg, label, col, rnd }); if (OSW.agri && OSW.agri.build) OSW.agri.build({ B, F, SH, S, reg, label, col, rnd }); X.buildPier({ B, S, reg, label }); X.buildDealer({ B, SH, S, reg, label, col }); X.buildRoadAndIsland({ B, F, SH, S, reg, label, col, rnd, P }); if (OSW.city && OSW.city.buildStops) OSW.city.buildStops({ B, F, SH, S, reg, label, col, rnd });
 
     /* زينة: أشجار متنوعة وشجيرات وزهور وأحجار */
     const anchors = [];

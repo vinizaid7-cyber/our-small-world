@@ -76,6 +76,32 @@
     const A = e * i - f * h, B = f * g - d * i, C = d * h - e * g, det = a * A + b * B + c * C || 1;
     return [A / det, (c * h - b * i) / det, (b * f - c * e) / det, B / det, (a * i - c * g) / det, (c * d - a * f) / det, C / det, (b * g - a * h) / det, (a * e - b * d) / det];
   }
+  /* ---------- تقسيم المجسمات الكبيرة لمناطق (للأداء على التلفونات الضعيفة) ---------- */
+  const CHUNK_MIN = 24000, CHUNK_CELL = 64, CHUNK_BIG = 80;
+  function splitChunks(gl, a) {
+    const n = a.length / 10, cells = new Map(), big = [];
+    for (let i = 0; i + 2 < n; i += 3) {
+      const o0 = i * 10, o1 = o0 + 10, o2 = o0 + 20;
+      const x0 = a[o0], x1 = a[o1], x2 = a[o2], z0 = a[o0 + 2], z1 = a[o1 + 2], z2 = a[o2 + 2];
+      const ext = Math.max(Math.abs(x0 - x1), Math.abs(x0 - x2), Math.abs(x1 - x2), Math.abs(z0 - z1), Math.abs(z0 - z2), Math.abs(z1 - z2));
+      let list;
+      if (ext > CHUNK_BIG) list = big;
+      else { const k = Math.floor(((x0 + x1 + x2) / 3) / CHUNK_CELL) * 4096 + Math.floor(((z0 + z1 + z2) / 3) / CHUNK_CELL); list = cells.get(k); if (!list) cells.set(k, (list = [])); }
+      list.push(i);
+    }
+    const groups = [...cells.values()]; if (big.length) groups.push(big);
+    if (groups.length < 2) return null;
+    return groups.map((tris) => {
+      const arr = new Float32Array(tris.length * 30); let mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+      for (let t = 0; t < tris.length; t++) {
+        const src = tris[t] * 10; for (let k = 0; k < 30; k++) arr[t * 30 + k] = a[src + k];
+        for (let v = 0; v < 3; v++) { const b = t * 30 + v * 10; for (let c = 0; c < 3; c++) { const x = arr[b + c]; if (x < mn[c]) mn[c] = x; if (x > mx[c]) mx[c] = x; } }
+      }
+      const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW);
+      return { buf, n: tris.length * 3, mn: [mn[0] - 2, mn[1] - 2, mn[2] - 2], mx: [mx[0] + 2, mx[1] + 2, mx[2] + 2] };  // هامش صغير لحركة الأوراق
+    });
+  }
+
   class Builder {
     constructor() { this.a = []; this.st = []; this.m = M.ident(); this.nm = [1, 0, 0, 0, 1, 0, 0, 0, 1]; }
     push(x = 0, y = 0, z = 0, ry = 0, rx = 0, rz = 0, sx = 1, sy, sz) {
@@ -147,9 +173,12 @@
       return this;
     }
     build(gl) {
+      const n = this.a.length / 10;
+      // المجسمات الضخمة (مثل عالم القرية كله) بنقسّمها لمناطق صغيرة، وبنرسم بس اللي قدام الكاميرا
+      if (n >= CHUNK_MIN) { const ch = splitChunks(gl, this.a); if (ch) return { buf: null, n, gl, chunks: ch }; }
       const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.a), gl.STATIC_DRAW);
-      return { buf, n: this.a.length / 10, gl };
+      return { buf, n, gl };
     }
   }
   OSW.Builder = Builder;
@@ -216,7 +245,7 @@ void main(){
   R.begin = (eye, target, fov, env) => {
     const gl = R.gl, u = R.u;
     const proj = M.perspective(fov, R.aspect, R.near || 0.8, 520), view = M.lookAt(eye, target);
-    M.mul(proj, view, R.vp); M.invert(R.vp, R.ivp); R.eye = eye;
+    M.mul(proj, view, R.vp); M.invert(R.vp, R.ivp); R.eye = eye; updatePlanes(); R._fogF = env.fogF + 2; R._noCull = false; R.culled = 0;
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT); gl.uniform1f(u.uShadow, 0);
     gl.uniformMatrix4fv(u.uVP, false, R.vp); gl.uniform3fv(u.uSunDir, env.sunDir); gl.uniform3fv(u.uSunCol, env.sunCol);
     gl.uniform3fv(u.uAmbTop, env.ambTop); gl.uniform3fv(u.uAmbBot, env.ambBot); gl.uniform3fv(u.uCam, eye);
@@ -226,6 +255,7 @@ void main(){
   // مرحلة الظلال المسقطة (مسطّحة على الأرض مع ستنسل لمنع التغميق المضاعف)
   R.shadow = (on, dir, alpha) => {
     const gl = R.gl, u = R.u;
+    R._noCull = !!on;
     if (on) { gl.uniform1f(u.uShadow, 1); gl.uniform3fv(u.uShDir, dir); gl.uniform1f(u.uShA, alpha); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.enable(gl.STENCIL_TEST); gl.clearStencil(0); gl.clear(gl.STENCIL_BUFFER_BIT); gl.stencilFunc(gl.NOTEQUAL, 1, 255); gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE); }
     else { gl.uniform1f(u.uShadow, 0); gl.disable(gl.STENCIL_TEST); gl.disable(gl.BLEND); gl.depthMask(true); }
   };
@@ -234,15 +264,42 @@ void main(){
   R.draw = (mesh, model, tint, alpha, sway) => {
     if (!mesh || !mesh.n) return;
     const gl = R.gl, u = R.u;
-    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.buf);
-    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 40, 12);
-    gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 40, 24); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 40, 36);
     gl.uniformMatrix4fv(u.uModel, false, model || M.ident(mdl));
     const t = tint || [1, 1, 1]; gl.uniform4f(u.uTint, t[0], t[1], t[2], 1);
     gl.uniform1f(u.uAlpha, alpha == null ? 1 : alpha); gl.uniform1f(u.uSway, sway || 0);
-    gl.drawArrays(gl.TRIANGLES, 0, mesh.n); R.drawn++;
+    if (mesh.chunks) {
+      // مناطق: بنتخطّى اللي برا الشاشة أو بعيد لدرجة الضباب (ما بتبيّن). الظلال والمجسمات المتحرّكة بتنرسم كلها.
+      const cull = !model && !R._noCull, ch = mesh.chunks;
+      for (let i = 0; i < ch.length; i++) { const c = ch[i]; if (cull && !R.chunkVisible(c)) { R.culled++; continue; } drawBuf(gl, c.buf, c.n); }
+      return;
+    }
+    drawBuf(gl, mesh.buf, mesh.n);
   };
-  R.free = (mesh) => { if (mesh && mesh.buf) mesh.gl.deleteBuffer(mesh.buf); };
+  function drawBuf(gl, buf, n) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 40, 12);
+    gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 40, 24); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 40, 36);
+    gl.drawArrays(gl.TRIANGLES, 0, n); R.drawn++;
+  }
+  // مستويات رؤية الكاميرا (من مصفوفة الإسقاط×المنظر) + مسافة الضباب
+  R.planes = new Float32Array(24); R.culled = 0; R._fogF = 1e9; R._noCull = false;
+  function updatePlanes() {
+    const m = R.vp, p = R.planes; let k = 0;
+    for (let r = 0; r < 3; r++) for (const sg of [1, -1]) {
+      let a = m[3] + sg * m[r], b = m[7] + sg * m[4 + r], c = m[11] + sg * m[8 + r], d = m[15] + sg * m[12 + r];
+      const l = Math.hypot(a, b, c) || 1; p[k++] = a / l; p[k++] = b / l; p[k++] = c / l; p[k++] = d / l;
+    }
+  }
+  R.chunkVisible = (c) => {
+    const p = R.planes, mn = c.mn, mx = c.mx;
+    for (let i = 0; i < 24; i += 4) {
+      const nx = p[i], ny = p[i + 1], nz = p[i + 2];
+      if (nx * (nx > 0 ? mx[0] : mn[0]) + ny * (ny > 0 ? mx[1] : mn[1]) + nz * (nz > 0 ? mx[2] : mn[2]) + p[i + 3] < 0) return false;   // كله خلف مستوى
+    }
+    const e = R.eye, dx = Math.max(mn[0] - e[0], 0, e[0] - mx[0]), dy = Math.max(mn[1] - e[1], 0, e[1] - mx[1]), dz = Math.max(mn[2] - e[2], 0, e[2] - mx[2]);
+    return dx * dx + dy * dy + dz * dz < R._fogF * R._fogF;                                                                                  // أبعد من الضباب = مش ظاهر
+  };
+  R.free = (mesh) => { if (!mesh) return; if (mesh.chunks) mesh.chunks.forEach((c) => mesh.gl.deleteBuffer(c.buf)); else if (mesh.buf) mesh.gl.deleteBuffer(mesh.buf); };
   // شعاع من نقطة على الشاشة (إحداثيات CSS)
   R.ray = (px, py) => {
     const nx = (px / innerWidth) * 2 - 1, ny = 1 - (py / innerHeight) * 2;

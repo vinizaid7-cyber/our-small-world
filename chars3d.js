@@ -45,7 +45,6 @@
       if (stl === "varsity") { body.box(0, 0.62, 0.19, 0.04, 0.7, 0.02, "#fff"); body.box(-0.15, 0.95, 0.19, 0.14, 0.14, 0.02, "#fff"); body.box(0, 0.38, 0, 0.66, 0.08, 0.4, "#f4f4f6"); }
       if (stl === "puffer") { for (let i = 0; i < 4; i++) body.box(0, 0.3 + i * 0.2, 0, 0.7, 0.04, 0.44, dk(topC, 0.25)); body.cyl(0, 1.12, 0, 0.27, 0.27, 0.18, dk(topC, 0.1), 10); body.box(0, 0.65, 0.22, 0.04, 0.7, 0.02, "#eee"); }
       if (stl === "poncho") { body.cyl(0, 0.2, 0, 0.62, 0.34, 0.6, topC, 12); [0.3, 0.45].forEach((y, i) => body.cyl(0, y, 0, 0.55 - i * 0.12, 0.56 - i * 0.12, 0.05, i ? "#ffd23f" : "#2a9d8f", 12)); body.cyl(0, 0.78, 0, 0.36, 0.3, 0.3, topC, 10); }
-      if (stl === "school") { body.box(0, 0.5, 0.19, 0.5, 0.48, 0.03, pantsC); body.box(0, 0.85, 0.2, 0.06, 0.36, 0.02, "#c0392b"); body.box(0, 1.08, 0.18, 0.2, 0.06, 0.04, "#fff"); }
       if (stl === "chef") { body.box(-0.1, 0.6, 0.19, 0.04, 0.6, 0.02, "#cfd4da"); body.box(0.1, 0.6, 0.19, 0.04, 0.6, 0.02, "#cfd4da"); for (let i = 0; i < 4; i++) { body.sphere(-0.1, 0.4 + i * 0.16, 0.2, 0.025, 0.025, 0.02, "#aab", 4); body.sphere(0.1, 0.4 + i * 0.16, 0.2, 0.025, 0.025, 0.02, "#aab", 4); } body.cyl(0, 1.16, 0, 0.2, 0.2, 0.1, "#d62839", 8); }
       if (stl === "doctor") { body.box(0, 0.28, 0, 0.66, 0.78, 0.4, "#ffffff"); body.box(0, 0.9, 0.2, 0.2, 0.4, 0.02, pantsC); [-1, 1].forEach((sd) => body.box(sd * 0.1, 0.96, 0.21, 0.1, 0.3, 0.02, "#e9eef2")); body.cyl(0, 1.12, 0.02, 0.2, 0.2, 0.05, "#2b2b2b", 10); body.sphere(0.0, 0.84, 0.22, 0.06, 0.06, 0.03, "#8d99a6", 5); body.box(0.2, 0.55, 0.21, 0.12, 0.1, 0.02, "#ddd"); }
       if (stl === "pilot") { body.box(0, 0.6, 0.19, 0.04, 0.7, 0.02, "#d4af37"); [-1, 1].forEach((sd) => { body.box(sd * 0.28, 1.22, 0, 0.18, 0.05, 0.22, "#d4af37"); body.box(sd * 0.28, 1.16, 0, 0.18, 0.04, 0.22, "#d4af37"); }); body.box(0, 0.88, 0.2, 0.07, 0.4, 0.02, "#111"); body.box(-0.2, 0.9, 0.2, 0.12, 0.08, 0.02, "#d4af37"); }
@@ -56,6 +55,7 @@
       if (stl === "ninja") { body.box(0, 0.42, 0, 0.66, 0.1, 0.4, "#d62839"); body.box(0, 0.7, 0.19, 0.5, 0.05, 0.02, "#34343f"); body.box(0.36, 0.36, 0.0, 0.1, 0.4, 0.1, "#d62839"); }
       if (stl === "hero") { body.box(0, 0.42, 0, 0.66, 0.1, 0.4, "#ffd23f"); body.box(0, 0.82, 0.19, 0.26, 0.26, 0.03, "#ffd23f", 0.3); body.box(0, 0.86, 0.21, 0.1, 0.18, 0.02, "#d62839"); body.box(0, 0.3, 0, 0.62, 0.16, 0.38, "#d62839"); }
       if (stl === "rain") { body.sphere(0, 1.28, -0.2, 0.28, 0.22, 0.22, topC, 7); body.cyl(0, 0.3, 0, 0.42, 0.34, 0.45, topC, 10); }
+      if (OSW.OUTFITX && OSW.OUTFITX[stl]) OSW.OUTFITX[stl](body, { topC, pantsC, skin, look });
     }
     if (look.apron) body.box(0, 0.6, 0.19, 0.5, 0.6, 0.04, look.apron);
     if (look.sash) body.box(0, 0.86, 0.19, 0.64, 0.1, 0.04, look.sash);
@@ -74,6 +74,7 @@
       body.sphere(-0.115, 1.66, 0.3, 0.045, 0.055, 0.03, "#2a2030", 5); body.sphere(0.115, 1.66, 0.3, 0.045, 0.055, 0.03, "#2a2030", 5); body.box(0, 1.5, 0.335, 0.1, 0.022, 0.02, "#7a3b3b"); }
     else if (hs === "keffiyeh") { body.sphere(0, 1.7, -0.02, 0.37, 0.3, 0.36, "#f6f3ea", 10, 0, true); body.cyl(0, 1.86, 0, 0.35, 0.35, 0.07, "#1b1b1b", 12); body.box(0, 1.45, -0.28, 0.6, 0.5, 0.1, "#f6f3ea"); }
     else if (hs === "cap") { body.sphere(0, 1.68, -0.03, 0.35, 0.3, 0.34, look.cap || "#2f8f5b", 9, 0, true); body.box(0, 1.8, 0.3, 0.42, 0.05, 0.2, look.cap || "#2f8f5b"); }
+    else if (OSW.HAIRX && OSW.HAIRX[hs]) OSW.HAIRX[hs](body, hairC, skin, look);
     if (stl === "ninja") { body.sphere(0, 1.68, -0.03, 0.36, 0.34, 0.35, "#1c1c24", 10, 0, true); body.box(0, 1.52, 0.04, 0.66, 0.34, 0.6, "#1c1c24"); body.box(0, 1.8, 0.0, 0.7, 0.07, 0.66, "#d62839"); body.box(0, 1.74, 0.31, 0.52, 0.04, 0.04, "#1c1c24"); }
     if (stl === "onesie") { const an = outf.animal, hc = an === "panda" ? "#f4f4f4" : topC; body.sphere(0, 1.7, -0.03, 0.37, 0.33, 0.36, hc, 10, 0, true); body.box(0, 1.84, 0.12, 0.5, 0.08, 0.2, hc);
       if (an === "panda") [-1, 1].forEach((sd) => body.sphere(sd * 0.27, 1.98, -0.02, 0.1, 0.1, 0.08, "#2b2b2b", 6));
@@ -112,10 +113,11 @@
       else if (k === "wings") { [-1, 1].forEach((sd) => { body.sphere(sd * 0.42, 1.0, -0.3, 0.07, 0.42, 0.24, "#ffffff", 6, 0.25); body.sphere(sd * 0.6, 0.86, -0.34, 0.06, 0.32, 0.2, "#f2f5ff", 6, 0.2); body.sphere(sd * 0.74, 0.7, -0.36, 0.05, 0.22, 0.14, "#e8eeff", 5, 0.2); }); }
       else if (k === "fairy") { [-1, 1].forEach((sd) => { body.sphere(sd * 0.5, 1.15, -0.3, 0.06, 0.4, 0.3, "#ff8fd8", 6, 0.35); body.sphere(sd * 0.46, 0.7, -0.3, 0.05, 0.26, 0.2, "#b78cff", 6, 0.35); body.sphere(sd * 0.5, 1.15, -0.33, 0.04, 0.16, 0.12, "#fff3a0", 5, 0.4); }); }
       else if (k === "tie") { body.box(0, 0.8, 0.2, 0.08, 0.5, 0.02, "#2a9d8f"); }
+      else if (OSW.ACCX && OSW.ACCX[k]) OSW.ACCX[k](body, look);
     });
 
     // الأطراف (نقطة الدوران بالأعلى)
-    const leg = (b, x) => { b.box(0, -0.62, 0, 0.2, 0.55, 0.2, pantsC); b.box(0, -0.66, 0.05, 0.23, 0.12, 0.32, look.shoe || SHOE[stl] || "#3b2f2f"); };
+    const leg = (b, x) => { b.box(0, -0.62, 0, 0.2, 0.55, 0.2, pantsC); const sk = (look.acc || []).find((k) => OSW.SHOEX && OSW.SHOEX[k]); if (sk) OSW.SHOEX[sk](b, look); else b.box(0, -0.66, 0.05, 0.23, 0.12, 0.32, look.shoe || SHOE[stl] || "#3b2f2f"); };
     leg(legL, 0); leg(legR, 0);
     const arm = (b, cane) => { b.box(0, -0.5, 0, 0.16, 0.5, 0.16, sleeveC); b.sphere(0, -0.56, 0, 0.09, 0.09, 0.09, skin, 6); if (cane) { b.cyl(0.04, -1.5, 0.1, 0.03, 0.03, 1.55, "#7a5236", 5); b.sphere(0.04, 0.05, 0.1, 0.06, 0.05, 0.06, "#7a5236", 5); } };
     arm(armL, false); arm(armR, !!look.cane);
@@ -129,11 +131,16 @@
 
   // يرسم شخصية: x,z,ry,phase(حركة الأرجل),moving(0..1)
   OSW.drawChar = (ch, x, z, ry, phase, moving, t, alpha, tint, scale, y0, pose) => {
-    scale = scale || 1; const bob = (moving > 0.05 ? Math.abs(Math.sin(phase)) * 0.07 * moving : Math.sin(t * 2.2) * 0.012) * scale + (y0 || 0);
+    scale = scale || 1; const sit = !!(pose && pose.sit), chair = sit && pose.drive === undefined; const bob = (moving > 0.05 ? Math.abs(Math.sin(phase)) * 0.07 * moving : Math.sin(t * 2.2) * 0.012) * scale + (y0 || 0) - (chair ? 0.36 * scale : 0);
     M.trs(x, bob, z, ry, 0, 0, scale, scale, scale, sc1);
     R.draw(ch.body, sc1, tint, alpha);
     const sw = Math.sin(phase) * 0.85 * moving, idle = Math.sin(t * 2.2) * 0.04;
     const limb = (mesh, px, py, ang, rz) => { M.trs(px, py, 0, 0, ang, rz || 0, 1, 1, 1, sc2); M.mul(sc1, sc2, sc3); R.draw(mesh, sc3, tint, alpha); };
+    if (sit && !chair) {                                                        // جلسة داخل المركبة: الرجلين لقدام والإيدين على المقود (للسواق) أو على الحضن (للراكب)
+      limb(ch.legL, -0.17, 0.62, -1.38); limb(ch.legR, 0.17, 0.62, -1.38);
+      const a = pose.drive ? -1.0 : -0.5; limb(ch.armL, -0.4, 1.24, a); limb(ch.armR, 0.4, 1.24, a); return;
+    }
+    if (chair) { limb(ch.legL, -0.17, 0.62, -1.45); limb(ch.legR, 0.17, 0.62, -1.45); limb(ch.armL, -0.4, 1.24, -0.85); limb(ch.armR, 0.4, 1.24, -0.85); return; }   // جلسة على كرسي (مطعم/مقهى بالمدينة)
     limb(ch.legL, -0.17, 0.62, sw); limb(ch.legR, 0.17, 0.62, -sw);
     if (pose && pose.carry) { limb(ch.armL, -0.4, 1.24, -1.25); limb(ch.armR, 0.4, 1.24, -1.25); return; }
     let aL = -sw * 0.9 + idle, aR = ch.cane ? 0 : sw * 0.9 - idle, zL = 0, zR = 0;

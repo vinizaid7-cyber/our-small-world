@@ -10,7 +10,7 @@
   const pa = { x: -4, z: -7, ry: 0.5, phase: 0, mv: 0, ch: null, name: "", tx: -4, tz: -7, vis: false, sleep: false, inside: null, ghost: 0 };
   const cam = { yaw: 0, pitch: 0.5, dist: 26, tx: 0, ty: 1.4, tz: 36, follow: true, anim: null, saved: null };
   const keys = { l: 0, r: 0, u: 0, d: 0, sprint: 0 }, joy = { x: 0, y: 0, on: false };
-  let ctx = {}, labelsEl, tapMark = null, together = 0, holding = false;
+  let ctx = {}, labelsEl, tapMark = null, together = 0, holding = false, joyEl = null, actEl = null, actAt = 0, actCur = null;
   const meshes = {};
   const carry = { me: [], partner: [] }, bagState = { n: 0 }, cartS = { colors: [], prev: [], lastT: 0, anim: null, home: { x: -18.5, z: -12.6 } }, crateCache = {};
   let mode = "out", curInt = null, floorHandler = null, selFurn = null, crowd = null;
@@ -325,7 +325,7 @@
   }
   function remote(p) {
     if ((p.s || null) !== (pa.space || null)) { pa.space = p.s || null; pa.x = p.x; pa.z = p.z; }
-    pa.veh = p.v || null; pa.hold = !!p.h; pa.tx = p.x; pa.tz = p.z; pa.ry = p.ry != null ? p.ry : pa.ry; pa.vis = true; pa.sleep = false; pa.remoteMv = p.mv ? 1 : 0; pa.lastMsg = performance.now();
+    pa.veh = p.v || null; pa.sit = !!p.sit; pa.hold = !!p.h; pa.tx = p.x; pa.tz = p.z; pa.ry = p.ry != null ? p.ry : pa.ry; pa.vis = true; pa.sleep = false; pa.remoteMv = p.mv ? 1 : 0; pa.lastMsg = performance.now();
   }
 
   /* ---------- الحركة والتصادم ---------- */
@@ -349,11 +349,12 @@
   function sendMe(moving, sp) {
     const now = performance.now();
     if (W.onMove && now - me.lastSent > 160 && (moving || hy(me.x - me.sentX, me.z - me.sentZ) > 0.01 || now - me.lastSent > 2500)) {
-      me.lastSent = now; me.sentX = me.x; me.sentZ = me.z; W.onMove({ x: +me.x.toFixed(2), z: +me.z.toFixed(2), ry: +me.ry.toFixed(2), mv: moving || sp > 0.3 ? 1 : 0, h: holding ? 1 : 0, s: curInt ? curInt.id : null, v: OSW.veh.pack() });
+      me.lastSent = now; me.sentX = me.x; me.sentZ = me.z; W.onMove({ x: +me.x.toFixed(2), z: +me.z.toFixed(2), ry: +me.ry.toFixed(2), mv: moving || sp > 0.3 ? 1 : 0, h: holding ? 1 : 0, sit: me.sit ? 1 : 0, s: curInt ? curInt.id : null, v: OSW.veh.pack() });
     }
   }
   function stepMe(dt) {
     let dx = 0, dz = 0, speed = 5.4, manual = false;
+    if (joy.on && (!st.input || (joyEl && (joyEl.hidden || joyEl.style.visibility === "hidden")))) { if (W._resetInputs) W._resetInputs(); }   // العصا انخفت والإصبع عليها: ما نكمّل مشي
     const vi = OSW.veh.me ? OSW.veh.input : null, ix = joy.x + keys.r - keys.l + (vi ? vi.x : 0), iy = joy.y + keys.d - keys.u + (vi ? vi.y : 0), mag = hy(ix, iy);
     if (me.veh) { OSW.veh.step(dt, st.input ? ix : 0, st.input ? iy : 0); holding = false; sendMe(true, 1); return; }
     if (st.input && mag > 0.14) {
@@ -427,7 +428,6 @@
   function initNpcs() { OSW.NPCS.forEach(createNpc); }
   const SPOTS = () => [[0, 58], [-12, 46], [12, 46], [-44, 12], [30, 36], [-30, 36], [0, 7.5], [6, 6], [-6, 6.5], [8, -3], [-8, -4], [0, -6], [-24, 15.8], [24, 15.8], [15, 3.4], [-15, 5.2], [0, 22], [-28, 8], [28, 8]];
   const ISLE_SPOTS = [[0, 1170], [-14, 1160], [14, 1160], [-22, 1135], [22, 1135], [0, 1140], [-40, 1180], [40, 1180], [0, 1200], [-25, 1215], [25, 1215], [-18, 1118], [16, 1122], [-30, 1160], [30, 1170], [0, 1225]];
-  const kidState = {};
   function pickDest(o) {
     if (o.def.roam) { const r = o.def.roam, a = Math.random() * 6.283, rr = Math.sqrt(Math.random()) * r[2]; return [r[0] + Math.cos(a) * rr, r[1] + Math.sin(a) * rr]; }
     if (o.def.isle) { const p = ISLE_SPOTS[(Math.random() * ISLE_SPOTS.length) | 0]; return [p[0] + (Math.random() - 0.5) * 3, p[1] + (Math.random() - 0.5) * 3]; }
@@ -496,7 +496,7 @@
       const F = OSW.FURN[f.item]; if (!F) return;
       const r = OSW.furnRect(f.item, f.x, f.z, f.rot), rad = Math.max(r.w, r.d) / 2 + 0.3;
       if (selFurn === f.id) B.cyl(f.x, 0.02, f.z, rad, rad, 0.01, "#ffe066", 18, 0.9);
-      B.push(f.x, 0, f.z, f.rot * PI / 2); F.build(B); B.pop();
+      B.push(f.x, 0, f.z, f.rot * PI / 2); F.build(f.tint && OSW.tintBuilder ? OSW.tintBuilder(B, f.tint) : B); B.pop();
       if (!F.flat) furn.boxes.push({ x0: r.x0, x1: r.x1, z0: r.z0, z1: r.z1 });
       furn.acts.push({ act: "furn:" + f.id, x: f.x, y: F.flat ? 0.1 : 0.7, z: f.z, r: F.flat ? 0.9 : rad });
     });
@@ -517,8 +517,8 @@
     const same = (pa.space || null) === curSpace();
     const dxp = pa.x - me.x, dzp = pa.z - me.z, sideMe = Math.cos(me.ry) * dxp - Math.sin(me.ry) * dzp, sideP = Math.cos(pa.ry) * -dxp - Math.sin(pa.ry) * -dzp;
     const showLink = same && pa.vis && !pa.inside && !pa.sleep && (holding || (pa.hold && hy(dxp, dzp) < 4));
-    if (pa.ch && pa.vis && !pa.inside && same && !pa.veh) { OSW.drawChar(pa.ch, pa.x, pa.z, pa.ry, pa.phase, pa.mv, t, pa.sleep ? 0.55 : 1, null, 1, 0, carry.partner.length ? { carry: true } : showLink ? { hold: sideP >= 0 ? 1 : -1 } : null); drawCarried(pa, carry.partner, null); drawAnimalsCarried(pa, acarry.partner); }
-    if (me.ch && !me.veh) { OSW.drawChar(me.ch, me.x, me.z, me.ry, me.phase, me.mv, t, 1, null, 1, 0, carry.me.length ? { carry: true } : showLink ? { hold: sideMe >= 0 ? 1 : -1 } : null); drawCarried(me, carry.me, bagState.n); drawAnimalsCarried(me, acarry.me); }
+    if (pa.ch && pa.vis && !pa.inside && same && !pa.veh) { OSW.drawChar(pa.ch, pa.x, pa.z, pa.ry, pa.phase, pa.mv, t, pa.sleep ? 0.55 : 1, null, 1, 0, pa.sit && mode === "in" ? { sit: true } : carry.partner.length ? { carry: true } : showLink ? { hold: sideP >= 0 ? 1 : -1 } : null); drawCarried(pa, carry.partner, null); drawAnimalsCarried(pa, acarry.partner); }
+    if (me.ch && !me.veh) { OSW.drawChar(me.ch, me.x, me.z, me.ry, me.phase, me.mv, t, 1, null, 1, 0, me.sit ? { sit: true } : carry.me.length ? { carry: true } : showLink ? { hold: sideMe >= 0 ? 1 : -1 } : null); drawCarried(me, carry.me, bagState.n); drawAnimalsCarried(me, acarry.me); }
     if (showLink) { const mx = (me.x + pa.x) / 2, mz = (me.z + pa.z) / 2, len = Math.max(0.4, hy(dxp, dzp) - 0.9); M.trs(mx, 1.0, mz, Math.atan2(dxp, dzp), 0, 0, 1, 1, len, m1); R.draw(meshes.link, m1); }
   }
   function drawInside(t) {
@@ -552,7 +552,7 @@
     if (st.night > 0.5) for (let i = 0; i < 22; i++) { const a = t * 0.3 + i * 1.7; M.trs(-40 + ((i * 37) % 80) + Math.cos(a) * 2, 0.9 + Math.sin(a * 1.4) * 0.5, -20 + ((i * 53) % 70) + Math.sin(a) * 2, 0, 0, 0, 1, 1, 1, m1); R.draw(meshes.fly, m1); }
     // عربة المزرعة (وبتتحرك لما الاثنين يسحبوها)
     drawCart(t);
-    OSW.veh.drawAll(t); drawIsle(t); if (OSW.logi) OSW.logi.draw(t);
+    OSW.veh.drawAll(t); drawIsle(t); if (OSW.logi) OSW.logi.draw(t); if (OSW.agri && OSW.agri.draw) OSW.agri.draw(t); if (OSW.city) OSW.city.draw(t);
     // شخصيات
     OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc, o.dance ? Math.abs(Math.sin(t * 5 + o.phase)) * 0.16 : 0); });
     Object.values(animals).forEach((a) => drawAnimal(a, t)); Object.values(pets3).forEach((o) => drawPet(o, t));
@@ -591,7 +591,8 @@
     // مشي سوا: وقت قريب من بعض
     if (pa.vis && !pa.sleep && !pa.inside && hy(me.x - pa.x, me.z - pa.z) < 4.2) { together += dt; if (together > 45 && W.onTogether) { together = 0; W.onTogether(); } } else together = Math.max(0, together - dt * 0.5);
     if (tapMark && tapMark.life > 0) tapMark.life -= dt;
-    camStep(dt); drawScene(); updateLabels(); fxFrame();
+    if (OSW.city && OSW.city.tick) OSW.city.tick(dt, mode, curInt);
+    camStep(dt); drawScene(); updateLabels(); updateActBtn(performance.now()); fxFrame();
     if (W._snapCb) { const cb = W._snapCb; W._snapCb = null; cb(); }
   }
 
@@ -623,6 +624,21 @@
     if (!poi && act.startsWith("hidden:")) { const h = OSW.HIDDEN.find((x) => x.id === act.slice(7)); if (h) poi = { x: (h.x - 1300) / 21 + 1.2, z: (h.y - 940) / 21 + 1.2 }; }
     if (poi) goTo(poi.x, poi.z, act); else W.onAct(act);
   }
+  // أقرب شي تقدر تتفاعل معه (بنفس قائمة اللمس): بيستعمل لزر التفاعل
+  function nearestAct() {
+    if (me.veh || !st.input) return null; let best = null, bd = 4.2;
+    const acts = mode === "in" ? curInt.acts.concat(furn.acts) : S.acts;
+    for (let i = 0; i < acts.length; i++) { const a = acts[i], d = hy(a.x - me.x, a.z - me.z) - (a.r || 0) * 0.5; if (d < bd) { bd = d; best = a; } }
+    if (mode === "out") {
+      for (let i = 0; i < OSW.NPCS.length; i++) { const d0 = OSW.NPCS[i], o = npc[d0.id]; if (!o) continue; const d = hy(o.x - me.x, o.z - me.z) - 0.5; if (d < bd) { bd = d; best = { act: d0.act || "npc:" + d0.id }; } }
+      const cars = OSW.veh.owned(); for (let i = 0; i < cars.length; i++) { const s = OSW.veh.slot(cars[i]), d = hy(s.x - me.x, s.z - me.z) - 2.0; if (d < bd) { bd = d; best = { act: "car:" + cars[i].id }; } }
+    }
+    return best;
+  }
+  function updateActBtn(now) {
+    if (!actEl || now - actAt < 250) return; actAt = now; const a = nearestAct(), show = !!a && !!joyEl && !joyEl.hidden && !document.documentElement.classList.contains("driving");
+    if (actEl.hidden === show) actEl.hidden = !show;
+  }
   function bindInput() {
     const el = $("#world"), ptr = new Map();
     let moved = 0, t0 = 0, last = 0;
@@ -639,7 +655,7 @@
     });
     const up = (e) => {
       if (!ptr.has(e.pointerId)) return; const was = ptr.size; ptr.delete(e.pointerId); el.classList.remove("dragging"); last = 0;
-      if (was === 1 && moved <= 9 && performance.now() - t0 < 600 && st.input) {
+      if (was === 1 && moved <= 9 && performance.now() - t0 < 600 && st.input && !me.veh) {
         if (floorHandler) { const g0 = R.hitGround(R.ray(e.clientX, e.clientY)); if (g0) floorHandler(g0[0], g0[1]); return; }
         const r = pick(e.clientX, e.clientY); if (!r) return;
         if (r.act) tapAct(r.act);
@@ -654,13 +670,34 @@
     addEventListener("keydown", (e) => { if (e.key === "Shift") keys.sprint = 1; if (typing() || !st.input) return; const k = kmap[e.key]; if (k) { keys[k] = 1; e.preventDefault(); } });
     addEventListener("keyup", (e) => { if (e.key === "Shift") keys.sprint = 0; const k = kmap[e.key]; if (k) keys[k] = 0; });
     addEventListener("blur", () => { keys.l = keys.r = keys.u = keys.d = 0; });
-    // عصا الحركة
-    const jb = $("#joy"), jk = $("#joyKnob"); let jid = null;
-    const jset = (e) => { const r = jb.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2; let dx = e.clientX - cx, dy = e.clientY - cy; const m = hy(dx, dy), max = r.width / 2 - 8; if (m > max) { dx = (dx / m) * max; dy = (dy / m) * max; } joy.x = dx / max; joy.y = dy / max; jk.style.transform = `translate(${dx}px,${dy}px)`; };
-    jb.addEventListener("pointerdown", (e) => { jid = e.pointerId; try { jb.setPointerCapture(jid); } catch (_) {} joy.on = true; jset(e); e.preventDefault(); });
-    jb.addEventListener("pointermove", (e) => { if (e.pointerId === jid) jset(e); });
-    const jend = (e) => { if (e.pointerId !== jid) return; jid = null; joy.x = joy.y = 0; joy.on = false; jk.style.transform = ""; };
-    jb.addEventListener("pointerup", jend); jb.addEventListener("pointercancel", jend);
+    // عصا الحركة: منطقة ميتة صغيرة + مغناطيس للاتجاهات الثمانية (حركة مستقيمة دقيقة) + بتتصفّر لحالها لو الإصبع انرفع بأي طريقة
+    const jb = $("#joy"), jk = $("#joyKnob"); let jid = null; joyEl = jb;
+    const SNAP = PI / 4, ZONE = 0.27;
+    const jset = (e) => {
+      const r = jb.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, dx = e.clientX - cx, dy = e.clientY - cy, m = hy(dx, dy), max = r.width / 2 - 8;
+      const kx = m > max ? (dx / m) * max : dx, ky = m > max ? (dy / m) * max : dy; jk.style.transform = `translate(${kx}px,${ky}px)`;
+      const n = Math.min(1, m / max); if (n < 0.1) { joy.x = joy.y = 0; return; }
+      let a = Math.atan2(ky, kx); const k = Math.round(a / SNAP); if (Math.abs(a - k * SNAP) < ZONE) a = k * SNAP;      // قريب من اتجاه من الثمانية؟ ثبّته عليه
+      const sp = 0.22 + 0.78 * Math.min(1, (n - 0.1) / 0.72); joy.x = Math.cos(a) * sp; joy.y = Math.sin(a) * sp;
+    };
+    const jend = (e) => { if (e && e.pointerId !== jid) return; jid = null; joy.x = joy.y = 0; joy.on = false; jk.style.transform = ""; };
+    jb.addEventListener("pointerdown", (e) => { if (jid != null) return; jid = e.pointerId; try { jb.setPointerCapture(jid); } catch (_) {} joy.on = true; jset(e); e.preventDefault(); });
+    jb.addEventListener("pointermove", (e) => { if (e.pointerId === jid) { jset(e); e.preventDefault(); } });
+    ["pointerup", "pointercancel", "lostpointercapture"].forEach((ev) => jb.addEventListener(ev, jend));
+    jb.addEventListener("contextmenu", (e) => e.preventDefault());
+    // تصفير شامل: التطبيق راح بالخلفية، الشاشة انقفلت، اللمس انلغى، أو آخر إصبع انرفع
+    const resetInputs = () => { jend(null); keys.l = keys.r = keys.u = keys.d = 0; keys.sprint = 0; if (OSW.veh && OSW.veh.resetWheel) OSW.veh.resetWheel(); };
+    W._resetInputs = resetInputs;
+    addEventListener("blur", resetInputs); addEventListener("pagehide", resetInputs);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) { resetInputs(); W.setSprint(false); } });
+    const noTouches = (e) => { if (e.touches && e.touches.length === 0 && jid != null) jend(null); };
+    document.addEventListener("touchend", noTouches, { passive: true }); document.addEventListener("touchcancel", noTouches, { passive: true });
+    // منع تكبير الصفحة بالإصبعين/الضغط المزدوج أثناء اللعب (iOS بيتجاهل user-scalable)
+    ["gesturestart", "gesturechange", "gestureend"].forEach((ev) => document.addEventListener(ev, (e) => e.preventDefault(), { passive: false }));
+    // زر التفاعل: بيظهر لما يكون قريب منك شي تتفاعل معه (مكان/شخصية/سيارة) وبيعمل نفس لمسة الشاشة
+    const ab = document.createElement("button"); ab.id = "btnAct"; ab.className = "actbtn"; ab.hidden = true; ab.setAttribute("aria-label", "تفاعل"); ab.innerHTML = "<span>✋</span><small>تفاعل</small>"; document.body.appendChild(ab); actEl = ab;
+    ab.addEventListener("pointerdown", (e) => e.preventDefault());
+    ab.addEventListener("click", () => { const a = nearestAct(); if (a) tapAct(a.act); });
     addEventListener("resize", () => { if (R.gl) R.resize(); const c = fx.cv; if (c) { fx.w = c.width = innerWidth; fx.h = c.height = innerHeight; } });
   }
 
@@ -703,12 +740,12 @@
       c.fillStyle = g; c.fillRect(0, 0, w, h); c.drawImage(gl, 0, 0, w, h); if (fx.cv) c.drawImage(fx.cv, 0, 0, w, h);
       c.font = "bold " + Math.round(h * 0.035) + "px sans-serif"; c.fillStyle = "rgba(255,255,255,.85)"; c.shadowColor = "rgba(0,0,0,.6)"; c.shadowBlur = 4; c.textAlign = "left"; c.fillText("Our Small World", 12, h - 12);
       res(cv.toDataURL("image/jpeg", 0.72)); } catch (e) { res(null); } }; }); },
-    setInputEnabled(v) { st.input = v; if (!v) { joy.x = joy.y = 0; keys.l = keys.r = keys.u = keys.d = 0; } },
+    setInputEnabled(v) { st.input = v; if (!v) { joy.x = joy.y = 0; keys.l = keys.r = keys.u = keys.d = 0; if (W._resetInputs) W._resetInputs(); } },
     updateSky, period,
     setHour(h) { st.hourOverride = h; return updateSky(); },
     setWeather(m) { st.wmode = m; localStorage.setItem("osw_weather", m); }, 
     poi: (a) => S.poi[/^[a-z]+:/.test(a) || S.poi[a] ? a : "house:" + a],
-    get _int() { return { me, pa, cam, S, keys, joy, collide, cancelAuto, goTo, meshes, acarry, setInput: (v) => { st.input = v; } }; },
+    get _int() { return { me, pa, cam, S, keys, joy, collide, cancelAuto, goTo, meshes, acarry, curInt: () => curInt, setInput: (v) => { st.input = v; } }; },
     setLook, remote,
     spawnMe(x, z) { me.x = x; me.z = z; cam.tx = x; cam.tz = z; },
     placeMe(x, z) { me.x = x; me.z = z; },
@@ -745,6 +782,8 @@
     },
     partnerDist() { return pa.vis && (pa.space || null) === curSpace() ? hy(me.x - pa.x, me.z - pa.z) : 1e9; },
     getMe: () => ({ x: me.x, z: me.z }),
+    addLabel(def) { return mkLabel(def); },
+    dropLabels(tag) { for (let i = labs.length - 1; i >= 0; i--) if (labs[i].dynamic === tag) { labs[i].el.remove(); labs.splice(i, 1); } },
     setPlayerLabelsHidden(v) { labs.forEach((l) => { if (l.dynamic === "me" || l.dynamic === "partner") l.hidden = v; }); },
     setAnimals(list) {
       const seen = new Set(); const PN = OSW.EX.PENS;
@@ -769,6 +808,7 @@
     },
     petsPos: () => Object.values(pets3).map((o) => ({ id: o.id, x: o.x, z: o.z, name: o.nm ? o.nm.replace(/^\S+\s/, "") : "" })),
     setLandLabels(list) { for (let i = labs.length - 1; i >= 0; i--) if (labs[i].dynamic === "landl") { labs[i].el.remove(); labs.splice(i, 1); } list.forEach((d) => mkLabel({ id: "landl_" + d.id, text: d.text, x: d.x, y: 4.6, z: d.z, cls: "tag", max: 95, act: d.act, dynamic: "landl" })); },
+    setDynLabels(group, list) { const g = "dl_" + group; for (let i = labs.length - 1; i >= 0; i--) if (labs[i].dynamic === g) { labs[i].el.remove(); labs.splice(i, 1); } list.forEach((d) => mkLabel({ id: g + "_" + d.id, text: d.text, x: d.x, y: d.y || 4.6, z: d.z, cls: d.cls || "tag", max: d.max || 95, act: d.act, dynamic: g })); },
     setCarry(w, colors) { carry[w] = colors || []; },
     setBags(n) { bagState.n = n || 0; },
     setSpeedMul(m) { me.speedMul = m; },
@@ -804,20 +844,6 @@
     resetTime() { st.timeOffset = 0; sessionStorage.removeItem("osw_toff"); return updateSky(); },
     setPartnerSpace(sp) { pa.space = sp || null; },
     addNpc(def) { if (!npc[def.id]) { OSW.NPCS.push(def); OSW.NPC_BY[def.id] = def; createNpc(def); } return npc[def.id]; },
-    setKids(list) {
-      const want = {}; list.forEach((k) => (want[k.id] = k));
-      Object.keys(kidState).forEach((id) => { const k = want[id], c = kidState[id]; if (!k || c.at !== k.at || c.stage !== k.stage || c.name !== k.name || c.g !== k.g) { W.removeNpc("kid_" + id); delete kidState[id]; } });
-      const cols = ["#ff7aa8", "#4dabf7", "#7ac74f", "#ffb347", "#b565b0", "#e5484d"], hairs = ["#2a1d12", "#6b4423", "#1b1b1b", "#a0522d"];
-      list.forEach((k) => {
-        if (kidState[k.id]) return;
-        let h = 0; for (const ch of String(k.id)) h += ch.charCodeAt(0);
-        const girl = k.g === "girl", baby = k.stage === "baby", teen = k.stage === "teen", sch = k.at === "school", roam = k.roam || (sch ? [0, 1216, 6.5] : [6, -4.5, baby ? 1.6 : 3.8]);
-        const look = { gender: k.g, color: cols[h % cols.length], hair: hairs[h % hairs.length], hairStyle: girl ? "ponytail" : "short", scale: baby ? 0.42 : teen ? 0.86 : 0.66 };
-        if (!girl) look.pants = "#2f6fb5"; if (sch && !baby) look.outfit = "school";
-        W.addNpc({ id: "kid_" + k.id, name: (baby ? "👶 " : sch ? "🎒 " : "") + k.name, emoji: "🧒", look, pos: [roam[0] + (h % 5) * 0.4, roam[1]], face: 0, roam, speed: baby ? 1.0 : 1.7, act: "family", lines: ["🎈"], roamKid: 1 });
-        kidState[k.id] = { at: k.at, stage: k.stage, name: k.name, g: k.g };
-      });
-    },
     removeNpc(id) { const i = OSW.NPCS.findIndex((n) => n.id === id); if (i > -1) OSW.NPCS.splice(i, 1); delete npc[id]; for (let k = labs.length - 1; k >= 0; k--) if (labs[k].dynamic === id || labs[k].dynamic === "m" + id) { labs[k].el.remove(); labs.splice(k, 1); } },
     npcGoto(id, x, z, cb) { const o = npc[id]; if (!o) return false; o.tx = null; o.route = []; o.over = { x, z, cb, t0: performance.now() }; return true; },
     npcProps(id, props) { const o = npc[id]; if (o) Object.assign(o, props); },

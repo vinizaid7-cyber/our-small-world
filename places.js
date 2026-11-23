@@ -93,7 +93,7 @@
     const sw = (k) => `<div class="field"><label>${{ wall: "لون الجدران", roof: "لون السقف", door: "لون الباب", emoji: "شعار البيت" }[k]}</label><div class="swatches">${SW[k].map((c) => k === "emoji" ? `<button style="background:#fff;font-size:20px" class="${homeDraft.emoji === c ? "on" : ""}" data-act="home-pick" data-k="emoji" data-v="${c}">${c}</button>` : `<button style="background:${c}" class="${homeDraft[k] === c ? "on" : ""}" data-act="home-pick" data-k="${k}" data-v="${c}" aria-label="${c}"></button>`).join("")}</div></div>`;
     ui.openModal(`<h3>🏡 بيتنا</h3>
       <div class="row hint" style="margin-bottom:10px"><span>📚 ${total} شي محفوظ</span>${P.days() != null ? `<span>💞 ${P.days()} يوم</span>` : ""}</div>
-      <div class="row" style="margin-bottom:10px"><button class="btn alt sm" data-act="g-family">👨‍👩‍👧 العيلة والأولاد</button></div>
+      <div class="row" style="margin-bottom:10px"><button class="btn alt sm" data-act="g-family">🎮 الأنشطة المشتركة</button><button class="btn alt sm" data-act="g-fam-open" data-k="designs">🛋️ تصاميم البيت</button></div>
       <div class="field"><label>اسم بيتكم</label><input class="in" id="homeName" value="${esc(homeDraft.name)}" maxlength="30"></div>
       ${tplField}${sw("wall")}${sw("roof")}${sw("door")}${sw("emoji")}
       <div class="field"><label>تاريخ بداية حكايتكم</label><input type="date" class="in" id="startIn" value="${esc(startDate() || "")}" max="${OSW.todayKey()}"></div>

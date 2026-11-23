@@ -1,10 +1,12 @@
-/* الأماكن من جوّا: بيتنا (5 غرف بس)، الدكان، محل الأناقة */
+/* الأماكن من جوّا: بيتنا (14 غرفة بـ V11)، الدكان، محل الأناقة */
 (function () {
   const OSW = window.OSW, R = OSW.R, Builder = OSW.Builder, PI = Math.PI, dk = OSW.col.dk, lt = OSW.col.lt;
   /* البيت: شبكة 3×2 — فوق: النوم | الذكريات | المطبخ — تحت: الصالون (عريض) | الشرفة */
-  const HOME = (OSW.HOME = { ox: 405.5, oz: 0, cols: 4, rows: 2, rw: 11, rd: 9, wh: 1.15, wt: 0.3, door: 3.2 });
-  const X0 = HOME.ox - (HOME.cols * HOME.rw) / 2, X1 = X0 + HOME.cols * HOME.rw, Z0 = HOME.oz - (HOME.rows * HOME.rd) / 2, Z1 = Z0 + HOME.rows * HOME.rd;
-  const gx = (c) => X0 + c * HOME.rw, gz = (r) => Z0 + r * HOME.rd;
+  /* V11: الشبكة صارت 5×3. الغرف القديمة بقيت بنفس الإحداثيات بالضبط (عشان تصاميم الأثاث المحفوظة ما تتحرك):
+     الصف القديم r0..r1 والأعمدة c0..c3. الغرف الجديدة: صف علوي r=-1 (حمام، مكتب، ألعاب، كراج، حديقة) وعمود c4 (ضيوف، تراس). */
+  const HOME = (OSW.HOME = { ox: 405.5, oz: 0, cols: 5, rows: 3, rw: 11, rd: 9, wh: 1.15, wt: 0.3, door: 3.2 });
+  const X0 = HOME.ox - (4 * HOME.rw) / 2, X1 = X0 + HOME.cols * HOME.rw, Z0 = HOME.oz - HOME.rd - HOME.rd, Z1 = HOME.oz + HOME.rd;
+  const gx = (c) => X0 + c * HOME.rw, gz = (r) => Z0 + (r + 1) * HOME.rd;
   const DEF = [
     { id: "bedroom", n: "غرفة النوم", e: "🛏️", c0: 0, c1: 1, r0: 0, r1: 1, wall: "#e4d3f3", floor: "#c4aedb", tile: "#d3c1e5" },
     { id: "memories", n: "غرفة الذكريات", e: "📷", c0: 1, c1: 2, r0: 0, r1: 1, wall: "#fbd3e2", floor: "#e5aec3", tile: "#efc3d4" },
@@ -13,8 +15,16 @@
     { id: "balcony", n: "الشرفة", e: "🌿", c0: 2, c1: 3, r0: 1, r1: 2, wall: "#d2eec9", floor: "#9fc592", tile: "#afd2a2" },
     { id: "draw", n: "غرفة تحدي الرسم", e: "🎨", c0: 3, c1: 4, r0: 0, r1: 1, wall: "#ffe1b8", floor: "#f0c78f", tile: "#f7d6a5" },
     { id: "dressing", n: "غرفة الأزياء", e: "👗", c0: 3, c1: 4, r0: 1, r1: 2, wall: "#f3d6f5", floor: "#c9a6d6", tile: "#d8b8e3" },
+    /* ---- V11: غرف جديدة ---- */
+    { id: "bath", n: "الحمّام", e: "🛁", cat: "bath", c0: 0, c1: 1, r0: -1, r1: 0, wall: "#d9f1f5", floor: "#b8dfe6", tile: "#c9e9ee" },
+    { id: "office", n: "المكتب", e: "💼", cat: "office", c0: 1, c1: 2, r0: -1, r1: 0, wall: "#e9e2d0", floor: "#b99468", tile: "#c6a176" },
+    { id: "gameroom", n: "غرفة الألعاب", e: "🎮", cat: "game", c0: 2, c1: 3, r0: -1, r1: 0, wall: "#d9d3f5", floor: "#5a4f8f", tile: "#665aa0" },
+    { id: "garage", n: "الكراج", e: "🔧", cat: "garage", c0: 3, c1: 4, r0: -1, r1: 0, wall: "#e2e5e9", floor: "#9aa1a9", tile: "#a7aeb6" },
+    { id: "garden", n: "الحديقة الداخلية", e: "🌳", cat: "garden", c0: 4, c1: 5, r0: -1, r1: 0, wall: "#d6efc8", floor: "#7fb56d", tile: "#8cc378" },
+    { id: "guest", n: "غرفة الضيوف", e: "🛌", cat: "bed", c0: 4, c1: 5, r0: 0, r1: 1, wall: "#d7e6fa", floor: "#a9bfe0", tile: "#b8cbe8" },
+    { id: "terrace", n: "التراس", e: "🌇", cat: "balcony", c0: 4, c1: 5, r0: 1, r1: 2, wall: "#fde6c9", floor: "#c89b66", tile: "#d4a874" },
   ];
-  const rooms = (HOME.rooms = DEF.map((d) => { const x0 = gx(d.c0), x1 = gx(d.c1), z0 = gz(d.r0), z1 = gz(d.r1); return { id: d.id, name: d.n, emoji: d.e, wall: d.wall, floor: d.floor, tile: d.tile, x0, x1, z0, z1, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, keep: [] }; }));
+  const rooms = (HOME.rooms = DEF.map((d) => { const x0 = gx(d.c0), x1 = gx(d.c1), z0 = gz(d.r0), z1 = gz(d.r1); return { id: d.id, name: d.n, emoji: d.e, cat: d.cat, wall: d.wall, floor: d.floor, tile: d.tile, x0, x1, z0, z1, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, keep: [] }; }));
   HOME.byId = Object.fromEntries(rooms.map((r) => [r.id, r]));
   HOME.bounds = { x0: X0, x1: X1, z0: Z0, z1: Z1 };
   const living = HOME.byId.living, bedroom = HOME.byId.bedroom, kitchen = HOME.byId.kitchen;
@@ -23,6 +33,9 @@
   const dv = (x, z) => doors.push({ x, z, v: true }), dh = (x, z) => doors.push({ x, z, v: false });
   dv(gx(1), gz(0) + HOME.rd / 2); dv(gx(2), gz(0) + HOME.rd / 2); dv(gx(2), gz(1) + HOME.rd / 2); dv(gx(3), gz(0) + HOME.rd / 2); dv(gx(3), gz(1) + HOME.rd / 2); dh(gx(3) + HOME.rw / 2, gz(1));
   dh(gx(0) + HOME.rw / 2, gz(1)); dh(gx(1) + HOME.rw / 2, gz(1)); dh(gx(2) + HOME.rw / 2, gz(1));
+  for (let c = 0; c < 5; c++) dh(gx(c) + HOME.rw / 2, gz(0));                       // من الصف العلوي للصف الأوسط
+  for (let c = 1; c < 5; c++) dv(gx(c), gz(-1) + HOME.rd / 2);                       // بين غرف الصف العلوي
+  dv(gx(4), gz(0) + HOME.rd / 2); dv(gx(4), gz(1) + HOME.rd / 2); dh(gx(4) + HOME.rw / 2, gz(1)); // عمود الضيوف والتراس
   doors.push({ x: HOME.exitDoor.x, z: HOME.exitDoor.z, v: false, exit: true });
   HOME.roomAt = (x, z) => rooms.find((r) => x >= r.x0 && x < r.x1 && z >= r.z0 && z < r.z1);
   const ov = (a, b, m = 0) => a.x0 < b.x1 - m && a.x1 > b.x0 + m && a.z0 < b.z1 - m && a.z1 > b.z0 + m;
@@ -89,7 +102,10 @@
     wallLine(B, boxes, gx(1), gz(0), gx(1), gz(1), [gz(0) + HOME.rd / 2]);
     wallLine(B, boxes, gx(2), gz(0), gx(2), gz(2), [gz(0) + HOME.rd / 2, gz(1) + HOME.rd / 2]);
     wallLine(B, boxes, gx(3), gz(0), gx(3), gz(2), [gz(0) + HOME.rd / 2, gz(1) + HOME.rd / 2]);
-    wallLine(B, boxes, X0, gz(1), X1, gz(1), [gx(0) + HOME.rw / 2, gx(1) + HOME.rw / 2, gx(2) + HOME.rw / 2, gx(3) + HOME.rw / 2]);
+    wallLine(B, boxes, X0, gz(1), X1, gz(1), [0, 1, 2, 3, 4].map((c) => gx(c) + HOME.rw / 2));
+    wallLine(B, boxes, X0, gz(0), X1, gz(0), [0, 1, 2, 3, 4].map((c) => gx(c) + HOME.rw / 2));
+    [1, 2, 3, 4].forEach((c) => wallLine(B, boxes, gx(c), gz(-1), gx(c), gz(0), [gz(-1) + HOME.rd / 2]));
+    wallLine(B, boxes, gx(4), gz(0), gx(4), gz(2), [gz(0) + HOME.rd / 2, gz(1) + HOME.rd / 2]);
     B.box(eg.x - hg - 0.1, 0, eg.z, 0.3, 2.6, 0.5, "#8d6e63"); B.box(eg.x + hg + 0.1, 0, eg.z, 0.3, 2.6, 0.5, "#8d6e63"); B.box(eg.x, 2.4, eg.z, HOME.door + 0.7, 0.35, 0.5, "#8d6e63"); B.box(eg.x, 0.02, eg.z - 1.1, 2.4, 0.03, 1.0, "#c0584c");
     B.sphere(eg.x, 2.75, eg.z, 0.2, 0.2, 0.2, "#ffe7a0", 6, 1);
     act("exit", eg.x, 1.2, eg.z - 0.3, 2.4, eg.x, eg.z - 2.0);
@@ -193,7 +209,12 @@
     B.disc(dsr.cx - 1.2, 0.02, dsr.cz + 1.2, 2.0, "#e9d0f0", 20);
     keepAt(dsr, dsr.cx + 1.4, dsr.z0, dsr.x1, dsr.z0 + 3.0); keepAt(dsr, dsr.x0, wz - 1.0, dsr.cx - 1.9, dsr.z1); keepAt(dsr, dsr.cx - 0.3, dsr.cz - 1.0, dsr.cx + 0.8, dsr.cz + 1.6);
 
-    return { id: "home", mesh: B.build(R.gl), boxes, acts, labels, poi, bounds: HOME.bounds, spawn: { x: eg.x, z: eg.z - 3.0 }, exitAt: "home", env: "warm", camDist: 25, camPitch: 1.22, npcs: [] };
+    /* --- V11: لمسات ثابتة للغرف الجديدة (شكل بس، ما بتمنع وضع الأثاث) --- */
+    { const gd = HOME.byId.garden; B.box(gd.cx, 0.01, gd.cz, 1.6, 0.02, gd.z1 - gd.z0 - 1.2, "#d4cbb6"); B.box(gd.cx, 0, gd.z0 + 0.75, gd.x1 - gd.x0 - 1.2, 0.7, 0.5, "#3f8f4a"); for (let i = 0; i < 5; i++) B.sphere(gd.x0 + 1.6 + i * 1.9, 0.78, gd.z0 + 0.75, 0.18, 0.14, 0.18, ["#ff7aa8", "#ffd23f", "#fff", "#c77dff", "#ff8c42"][i], 5, 0.2); }
+    { const gr = HOME.byId.garage; for (let i = -1; i <= 1; i++) B.box(gr.cx + i * 3.2, 0.01, gr.cz + 0.6, 0.14, 0.02, gr.z1 - gr.z0 - 3.2, "#e9c46a"); B.box(gr.cx, 0, gr.z0 + 0.5, gr.x1 - gr.x0 - 3, 1.0, 0.08, "#b8bfc7"); }
+    { const tr = HOME.byId.terrace; B.box(tr.cx, 0, tr.z1 - 0.4, tr.x1 - tr.x0 - 0.8, 0.8, 0.08, "#8a5a3b"); for (let i = 0; i < 9; i++) B.box(tr.x0 + 0.6 + i * 1.2, 0, tr.z1 - 0.4, 0.08, 0.8, 0.1, "#6b4a30"); }
+    { const bt = HOME.byId.bath; for (let i = 0; i < 6; i++) B.box(bt.x0 + 1.1 + i * 1.7, 0.02, bt.z1 - 0.5, 0.9, 0.02, 0.5, i % 2 ? "#ffffff" : "#8fd0e0"); }
+    return { id: "home", mesh: B.build(R.gl), boxes, acts, labels, poi, bounds: HOME.bounds, spawn: { x: eg.x, z: eg.z - 3.0 }, exitAt: "home", env: "warm", camDist: 28, camPitch: 1.22, npcs: [] };
   }
 
   const SH = { ox: 500, oz: 0, hw: 10, hd: 8 };

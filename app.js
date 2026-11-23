@@ -250,6 +250,7 @@
     if (k === "plot") return plotAct(+v);
     if (k === "land" && OSW.lands) return OSW.lands.open(v);
     if (k === "lshed" && OSW.logi) return OSW.logi.shedAct(v);
+    if (k === "co" && OSW.agri) return OSW.agri.act(v);
     if (k === "exit") return exitInterior();
     if (act === "wedding") return goPlace("wedding");
     if (k === "console") return openConsole(v);
@@ -350,7 +351,15 @@
     snd.onclick = () => { const on = OSW.audio.toggle(); snd.textContent = on ? "🔊" : "🔇"; ui.toast(on ? "الصوت شغّال 🎶" : "الصوت مسكّر", "", 1500); };
     $("#btnAch").onclick = () => !busyNav && goPlace("ach"); $("#btnMenu").onclick = () => !busyNav && goPlace("gate");
     $("#btnTasks").onclick = () => !busyNav && goPlace("tasks"); $("#btnChat").onclick = () => OSW.chat.toggle(); $("#btnFurn").onclick = () => !busyNav && P.open("furniture"); $("#placeRot").onclick = () => rotateFurn(); $("#placeCancel").onclick = () => cancelPlacing();
-    const sp = $("#btnSprint"); sp.onpointerdown = (e) => { e.preventDefault(); W.setSprint(true); sp.classList.add("on"); }; const spOff = () => { W.setSprint(false); sp.classList.remove("on"); }; sp.onpointerup = spOff; sp.onpointerleave = spOff; sp.onpointercancel = spOff; $("#coinPill").onclick = () => !busyNav && goPlace("inv"); $("#needPill").onclick = () => !busyNav && P.open("needs"); $("#dayPill").onclick = () => !busyNav && goPlace("plaza");
+    const sp = $("#btnSprint"); let spPid = null, spLatch = false, spLast = 0;
+    // زر الركض: اضغط وامسك ليركض، أو اضغط مرتين بسرعة ليبقى الركض شغّال (اضغط مرة وحدة ليوقف). بيتصفّر لو الإصبع انرفع أو التطبيق راح بالخلفية.
+    const spSet = (on) => { W.setSprint(on); sp.classList.toggle("on", on); };
+    sp.onpointerdown = (e) => { e.preventDefault(); if (spLatch) { spLatch = false; spSet(false); spPid = null; sp.classList.remove("latched"); return; } const now = performance.now(); spPid = e.pointerId; try { sp.setPointerCapture(e.pointerId); } catch (_) {} if (now - spLast < 400) { spLatch = true; sp.classList.add("latched"); } spLast = now; spSet(true); };
+    const spUp = (e) => { if (e && e.pointerId !== spPid) return; spPid = null; if (!spLatch) spSet(false); };
+    sp.onpointerup = spUp; sp.onpointercancel = spUp; sp.onlostpointercapture = spUp; sp.oncontextmenu = (e) => e.preventDefault();
+    const spReset = () => { spPid = null; spLatch = false; sp.classList.remove("latched"); spSet(false); };
+    addEventListener("blur", spReset); document.addEventListener("visibilitychange", () => { if (document.hidden) spReset(); });
+    $("#coinPill").onclick = () => !busyNav && goPlace("inv"); $("#needPill").onclick = () => !busyNav && P.open("needs"); $("#dayPill").onclick = () => !busyNav && goPlace("plaza");
     $("#guide").onclick = guideTalk;
     $("#zoomctl").onclick = (e) => {
       const b = e.target.closest("[data-z]"); if (!b) return; const z = b.dataset.z;

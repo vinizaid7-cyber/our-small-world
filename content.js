@@ -294,7 +294,6 @@
     puffer: { n: "جاكيت شتوي منفوخ", e: "🧥", price: 150, kind: "outfit", cat: "daily", style: "puffer", speed: 0.95, c1: "#e8a33d", c2: "#2f3a4a", note: "دافي للشتاء (-5% سرعة)" },
     poncho: { n: "بونشو صوف", e: "🧶", price: 110, kind: "outfit", cat: "daily", style: "poncho", speed: 0.97, c1: "#c0642a", c2: "#3b3b4f", note: "دافي ومزركش" },
     track: { n: "بدلة رياضية حمرا", e: "🏅", price: 130, kind: "outfit", cat: "daily", style: "sport", speed: 1.2, c1: "#e63946", c2: "#2a2a35", note: "ركض أسرع (+20%)" },
-    school: { n: "لبس المدرسة", e: "🎒", price: 95, kind: "outfit", cat: "daily", style: "school", speed: 1, c1: "#f4f4f6", c2: "#243a6b", note: "قميص أبيض وكحلي" },
     // --- تراثي ---
     bisht: { n: "بشت وثوب", e: "🧕", price: 280, kind: "outfit", cat: "trad", style: "bisht", speed: 0.88, c1: "#f4f1e8", c2: "#f4f1e8", gender: "boy", note: "للمناسبات الكبيرة (-12% سرعة)" },
     abaya: { n: "عباية مطرزة", e: "🖤", price: 260, kind: "outfit", cat: "trad", style: "abaya", speed: 0.85, c1: "#1f1f28", c2: "#1f1f28", gender: "girl", note: "أنيقة بتطريز ذهبي (-15% سرعة)" },

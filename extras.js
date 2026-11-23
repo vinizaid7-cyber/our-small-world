@@ -34,6 +34,7 @@
   // بتنحسب مع باقي أحداث اللعبة (fold): استلام مكافأة هدف أو مكافأة الأسبوع الكاملة
   X.fold = (ty, e, d, t, a, day, S, H) => {
     if (OSW.logi && OSW.logi.fold(ty, e, d, t, a, day, S, H)) return true;
+    if (OSW.agri && OSW.agri.fold(ty, e, d, t, a, day, S, H)) return true;
     if (ty === "snap") return true;
     if (ty === "wgoal") {
       const wg = S.wg || (S.wg = {}), w = weekOf(t);

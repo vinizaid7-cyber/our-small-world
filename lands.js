@@ -114,8 +114,8 @@
     ["🏡 الساحة والبيت", [["home", "🏡", "بيتنا"], ["fountain", "⛲", "النافورة"], ["plaza", "🎠", "الساحة"], ["tree", "🌳", "الشجرة الكبيرة"], ["flowers", "🌹", "ورد الحب"], ["garden", "🌷", "الحديقة"], ["lighthouse", "🗼", "المنارة"]]],
     ["🛒 الخدمات", [["shop", "🏪", "بقالة سعدون"], ["orders", "📋", "طلبات الناس"], ["prices", "📈", "لائحة الأسعار"], ["cars", "🚗", "معرض السيارات"], ["gate", "⚙️", "بوابة القرية"]]],
     ["🌾 المزرعة والأراضي", [["farm", "🌾", "المزرعة"], ["cart", "🛒", "عربة المزرعة"], ["pens", "🐄", "الحظائر"], ["lands", "🏞️", "سوق الأراضي"], ["farmup", "⬆️", "تطويرات المزرعة"]]],
-    ["🏝️ الجزيرة الثانية (بالسيارة)", [["school", "🏫", "المدرسة"], ["butcher", "🥩", "ملحمة أبو سليمان"], ["boutique", "👗", "محل الأناقة"], ["fishing", "🎣", "صيد السمك"], ["acts", "🎈", "فعاليات الأولاد"]]],
-    ["👨‍👩‍👧 العيلة", [["family", "👨‍👩‍👧", "العيلة والأولاد"], ["fridge", "🧊", "الثلاجة والطبخ"], ["mypets", "🐾", "حيواناتنا"], ["kiosk", "💰", "كشك الوجبات"]]],
+    ["🏝️ الجزيرة الثانية (بالسيارة)", [["butcher", "🥩", "ملحمة أبو سليمان"], ["boutique", "👗", "محل الأناقة"], ["fishing", "🎣", "صيد السمك"], ["acts", "🎈", "نزهات الجزيرة"]]],
+    ["🎮 حياتنا المشتركة", [["hub", "🎮", "الأنشطة المشتركة"], ["city", "🏙️", "دليل المدينة"], ["designs", "🛋️", "تصاميم البيت"], ["fridge", "🧊", "الثلاجة والطبخ"], ["mypets", "🐾", "حيواناتنا"], ["kiosk", "💰", "كشك الوجبات"]]],
   ];
   G.openers.map = () => {
     ui().openModal(`<h3>🗺️ خريطة القرية</h3><p class="hint">كل مكان بالقرية منظّم هون. اضغط عشان تروح له أو تفتحه مباشرة.</p>` + MAP.map(([t, list]) => `<b>${t}</b><div class="seg" style="margin:6px 0 10px;flex-wrap:wrap">${list.map(([id, e, n]) => `<button data-act="g-fam-lmap" data-id="${id}">${e} ${n}</button>`).join("")}</div>`).join(""));
@@ -133,7 +133,7 @@
       case "g-fam-lgo": { const p = W().S.poi["land:" + d.id]; ui().closeModal(); if (W().mode !== "out") return toast("اطلعوا من البيت أول 🚪"); if (W()._int.me.veh) return toast("🚪 انزلوا من السيارة أول"); if (p) W().goTo(p.x, p.z); return; }
       case "g-fam-lup": return busy(async () => { await G.do("farm_up", { k: d.k }); sfx("fanfare"); ui().hearts && ui().hearts(UPS[d.k].e, 10); toast(`${UPS[d.k].e} تطوّرت المزرعة!`, "gold"); });
       case "g-fam-ldsell": return busy(async () => { await G.do("dsell", { item: d.item }); for (let i = 1; i < +d.q; i++) await G.do("dsell", { item: d.item }); sfx("coin"); toast("🪙 انباعت!"); });
-      case "g-fam-lmap": { const id = d.id; ui().closeModal(); if (["lands", "farmup", "kiosk", "mypets", "acts", "family", "fridge"].includes(id)) return OSW.app.goPlace(id); return OSW.app.goPlace(id); }
+      case "g-fam-lmap": { const id = d.id; ui().closeModal(); if (["lands", "farmup", "kiosk", "mypets", "acts", "hub", "city", "designs", "fridge"].includes(id)) return OSW.app.goPlace(id); return OSW.app.goPlace(id); }
       case "g-fam-lharvest": return busy(async () => {
         const v = G.view(), s = G.state(); let have = G.carryOf(db().uid).length, n = 0; const max = G.carryMax();
         for (let i = 0; i < 48 && have < max; i++) { const p = v.plots[i]; if (p && p.ripe && L.owned(i)) { await G.do("harvest", { plot: i }); have++; n++; } }
