@@ -218,6 +218,8 @@
         const n = need(a, t); add(d.item, -1); n.food = Math.min(100, n.food + f.food * 1.2); n.drink = Math.min(100, n.drink + f.drink * 1.2); mark();
       } else if (ty === "sip") {
         const n = need(a, t); if (t - (n.sip || 0) < 90000) return; n.sip = t; n.drink = Math.min(100, n.drink + 18); mark();
+      } else if (ty === "cfg_adj") {
+        const n = Math.floor(+d.n); if (n >= 1 && n <= 1000000) S.coins += n;
       } else if (ty === "together") {
         S.tog[day] = (S.tog[day] || 0) + 1; if (S.tog[day] <= 10) S.coins += 3;
       } else if (OSW.fam) {
