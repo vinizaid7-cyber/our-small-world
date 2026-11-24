@@ -129,7 +129,7 @@
     if (ev.remote && ev.table === "entries" && ev.type === "INSERT" && ev.row && ev.row.house === "chat" && ev.row.author !== db.uid) { OSW.chat.incoming(ev.row); return; }
     if (ev.remote && ev.table === "entries" && ev.type === "INSERT" && ev.row && ev.row.author !== db.uid) {
       const n = ui.prof(ev.row.author).name, game = ev.row.house === "game";
-      if (game && ["story", "together", "harvest", "plant", "sell", "buy", "order", "stash", "cart_load", "sellcrate", "acollect", "acarry", "adrop", "psell", "dstroke", "fish", "cfg_adj"].includes(ev.row.title)) return;
+      if (game && ["story", "together", "harvest", "plant", "sell", "buy", "order", "stash", "cart_load", "sellcrate", "acollect", "acarry", "adrop", "psell", "dstroke", "fish"].includes(ev.row.title)) return;
       const inside = ui.state.room === ev.row.house;
       if (!inside) { ui.toast("💌 " + esc(n) + ": " + NICE(ev.row), "love", 4500); OSW.audio.sfx("ding"); }
       notify("عالمنا الصغير", `${n}: ${NICE(ev.row)}`);
