@@ -217,6 +217,8 @@
       } else if (ty === "eat") {
         const f = FOOD[d.item]; if (!f || (S.inv[d.item] || 0) < 1) return;
         const n = need(a, t); add(d.item, -1); n.food = Math.min(100, n.food + f.food * 1.2); n.drink = Math.min(100, n.drink + f.drink * 1.2); mark();
+        // V12: بونص سرعة مؤقت حسب جودة الأكل (غالي = أقوى وأطول)، سقفه +10% و6 دقايق، ومش بيتراكم ولا بيدوم
+        if (f.price >= 5) (S.buff = S.buff || {})[a] = { until: t + Math.min(360000, 120000 + f.price * 10000), mul: 1 + Math.min(0.1, f.price / 250), item: d.item };
       } else if (ty === "sip") {
         const n = need(a, t); if (t - (n.sip || 0) < 90000) return; n.sip = t; n.drink = Math.min(100, n.drink + 18); mark();
       } else if (ty === "together") {
@@ -259,9 +261,11 @@
   G.animalCarry = (uid) => (G.state().acarry[uid] || []);
   const mine = (day, ty) => !!((G.state().acts[day] || {})[db.uid + ":" + ty]);
   G.has = (id) => (G.state().inv[id] || 0) >= 1;
+  G.buffMul = (u) => { const b = ((G.state().buff || {})[u || db.uid]); return b && Date.now() < b.until ? b.mul : 1; };
+  G.buffLeft = (u) => { const b = ((G.state().buff || {})[u || db.uid]); return b && Date.now() < b.until ? b.until - Date.now() : 0; };
   G.speedMul = () => {
     const lk = (db.kv["look:" + db.uid] || {}), o = OSW.CLOTHES[lk.outfit || "casual"] || OSW.CLOTHES.casual;
-    return (o.speed || 1) * Math.pow(0.92, G.carryOf(db.uid).length) * Math.pow(0.88, G.animalCarry(db.uid).length) * G.needMul();
+    return (o.speed || 1) * Math.pow(0.92, G.carryOf(db.uid).length) * Math.pow(0.88, G.animalCarry(db.uid).length) * G.needMul() * G.buffMul();
   };
 
   /* ---------- تنفيذ الأفعال ---------- */

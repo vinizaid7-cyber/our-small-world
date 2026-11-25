@@ -47,6 +47,10 @@
       last = key; lastAt = Date.now(); lp.t = Date.now(); ui().saveMy({ lastPos: lp }).catch(() => {});
     } catch (e) { /* أفضل جهد */ }
   };
+  /* بونص الأكل: توست عند الأكل + تحديث السرعة لما يخلص */
+  const G = OSW.game, baseDo = G.do; let hadBuff = false;
+  G.do = async (type, data) => { const r = await baseDo(type, data); if (type === "eat") { const m = G.buffMul(); if (m > 1) { ui().toast("⚡ بونص سرعة +" + Math.round((m - 1) * 100) + "% لمدة " + Math.ceil(G.buffLeft() / 60000) + " د", "gold", 3500); hadBuff = true; } } return r; };
+  setInterval(() => { const on = G.buffMul() > 1; if (hadBuff && !on) { hadBuff = false; OSW.world.setSpeedMul(G.speedMul()); } }, 4000);
   setInterval(() => P.save(false), 8000);
   document.addEventListener("visibilitychange", () => { if (document.hidden) P.save(true); });
   addEventListener("pagehide", () => P.save(true));

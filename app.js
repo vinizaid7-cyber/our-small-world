@@ -371,7 +371,7 @@
     $("#guide").onclick = guideTalk;
     $("#zoomctl").onclick = (e) => {
       const b = e.target.closest("[data-z]"); if (!b) return; const z = b.dataset.z;
-      if (z === "in") W.zoomBy(1.25); else if (z === "out") W.zoomBy(1 / 1.25); else if (z === "walk") toggleWalk(); else if (W.mode === "in") { W.resetCam(); } else { W.resetCam(); W.goTo(0, 8); }
+      if (z === "in") W.zoomBy(1.25); else if (z === "out") W.zoomBy(1 / 1.25); else if (z === "walk") toggleWalk(); else if (z === "fp") { if (W.mode === "in" && !W.isFirstPerson()) return ui.toast("المنظور الأول للقرية والمدينة بس 👁️"); W.setFirstPerson(!W.isFirstPerson()); ui.toast(W.isFirstPerson() ? "👁️ منظور الشخص الأول — اسحب الشاشة للتلفّت" : "رجعنا للمنظور العادي"); } else if (W.mode === "in") { W.resetCam(); } else { W.resetCam(); W.goTo(0, 8); }
     };
   }
 

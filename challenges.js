@@ -73,7 +73,7 @@
     D("y", "y_deliver", "deliver", 120, 850, "🚚 عقد التصدير الكبير: 120 توصيلة", { badge: "b_export" }), D("y", "y_order", "order", 120, 780, "🏅 أفضل خدمة: 120 طلب زبون", { badge: "b_service" }),
   ]);
   const DEF = (C.DEF = {}); DEFS.forEach((d) => { d.t = d.t.replace(String(d.n), "{n}"); DEF[d.id] = d; });
-  const BADGES = (C.BADGES = { b_harvest: ["🥇", "حصّاد الموسم"], b_tourist: ["🧳", "سائح الموسم"], b_farmer: ["🧑‍🌾", "مزارع السنة"], b_tycoon: ["💼", "قطب الشركة"], b_explorer: ["🗺️", "رحّالة السنة"], b_duo: ["💞", "ثنائي السنة"], b_export: ["🚢", "ملك التصدير"], b_service: ["⭐", "أفضل خدمة"] });
+  const BADGES = (C.BADGES = { b_harvest: ["🥇", "حصّاد الموسم"], b_tourist: ["🧳", "سائح الموسم"], b_farmer: ["🧑‍🌾", "مزارع السنة"], b_tycoon: ["💼", "قطب الشركة"], b_explorer: ["🗺️", "رحّالة السنة"], b_duo: ["💞", "ثنائي السنة"], b_export: ["🚢", "ملك التصدير"], b_service: ["⭐", "أفضل خدمة"], b_streak: ["🔥", "شعلة الثنائي"] });
   const METRIC_AR = { harvest: "قطفة", plant: "زراعة", deliver: "توصيلة", visit: "زيارة", sale: "عملية بيع", income: "🪙", order: "طلب", fish: "سمكة", act: "نشاط مشترك", photo: "تصوير", eat: "وجبة", buy: "شراء" };
 
   const hash = (s) => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
@@ -90,7 +90,7 @@
   };
 
   /* ============ الحالة (fold) ============ */
-  const root = (S) => S.chal || (S.chal = { m: {}, claimed: {}, done: {}, hist: [], badges: {}, feed: [] });
+  const root = (S) => { const R = S.chal || (S.chal = { m: {}, claimed: {}, done: {}, hist: [], badges: {}, feed: [] }); R.days = R.days || {}; return R; };
   const feedPush = (S, o) => { const R = root(S); R.feed.push(o); if (R.feed.length > 80) R.feed.splice(0, R.feed.length - 80); };
   const prog = (S, a, sc, key, m) => { const u = root(S).m[a]; return (u && u[sc] && u[sc][key] && u[sc][key][m]) || 0; };
   C.bump = (S, a, t, metric, n) => {
@@ -110,7 +110,8 @@
   const BYTYPE = { afeed: "feed", acollect: "collect", order: "order", eat: "eat" };
   C.snap = (S) => ({ c: S.coins, h: S.harvests, p: S.plants, f: S.fished || 0, cn: S.cityN || 0, ou: S.outings || 0, cm: S.cityMeals || 0, hn: S.hotelNights || 0, dv: S.cart ? S.cart.deliveries : 0, by: S.buys });
   C.track = (S, sn, ty, e, d, t, a, day) => {
-    if (ty === "chal_claim") return claim(S, d, t, a);
+    if (ty !== "needinit" && ty !== "chal_claim") markDay(S, a, day);
+    if (ty === "chal_claim") return d && d.id === "streak" ? claimStreak(S, d, t, a) : claim(S, d, t, a);
     const gain = S.coins - sn.c;
     C.bump(S, a, t, "harvest", S.harvests - sn.h); C.bump(S, a, t, "plant", S.plants - sn.p); C.bump(S, a, t, "fish", (S.fished || 0) - sn.f);
     C.bump(S, a, t, "buy", S.buys - sn.by); C.bump(S, a, t, "deliver", (S.cart ? S.cart.deliveries : 0) - sn.dv);
@@ -133,6 +134,28 @@
     feedPush(S, { id: "claim:" + ck, t, a, k: "claim", c: def.id, p: key });
   }
 
+
+  /* ============ سلسلة الأيام المشتركة 💞🔥 ============
+     يوم "محسوب" = الاثنين لعبوا فيه. السلسلة = أيام متتالية محسوبة (اليوم الحالي بينتظر الشريك فما بيكسر السلسلة).
+     مراحل بمكافآت صغيرة بتنصرف مرة وحدة لكل لاعب بنفس نظام الـclaim. */
+  C.STREAK = { 3: [30, null], 7: [80, null], 14: [150, null], 30: [400, "b_streak"], 60: [900, null] };
+  const markDay = (S, a, day) => { const R = root(S); (R.days[a] = R.days[a] || {})[day] = 1; };
+  C.streakAt = (S, t) => {
+    const R = root(S), us = Object.keys(R.days); if (us.length < 2) return 0;
+    const both = (d) => us.every((u) => R.days[u][d]); let d = dayKey(t); if (!both(d)) d--;
+    let n = 0; while (both(d)) { n++; d--; } return n;
+  };
+  C.streak = (t) => C.streakAt(G.state(), t || Date.now());
+  function claimStreak(S, d, t, a) {
+    const n = +d.key, m = C.STREAK[n]; if (!m || C.streakAt(S, t) < n) return;
+    const R = root(S), ck = a + "|streak|" + n; if (R.claimed[ck]) return;
+    R.claimed[ck] = t; S.coins += m[0]; if (m[1]) R.badges[m[1]] = t;
+    R.hist.push({ a, id: "streak", sc: "k", key: String(n), t, coins: m[0], items: {}, badge: m[1] });
+    feedPush(S, { id: "claim:" + ck, t, a, k: "claim", c: "streak", p: String(n) });
+  }
+  C.streakList = (uid) => { const S = G.state(), R = S.chal || root({}), cur = C.streak(); uid = uid || db().uid;
+    return Object.keys(C.STREAK).map(Number).map((n) => ({ n, coins: C.STREAK[n][0], badge: C.STREAK[n][1], claimed: !!R.claimed[uid + "|streak|" + n], claimable: cur >= n && !R.claimed[uid + "|streak|" + n] })); };
+
   /* ============ واجهة الاستعلام ============ */
   const S0 = () => G.state().chal || root({});
   C.list = (uid, t) => {
@@ -143,10 +166,14 @@
     }); });
     return out;
   };
-  C.claimable = (uid) => (db() && db().me ? C.list(uid).filter((x) => x.claimable).length : 0);
+  C.claimable = (uid) => (db() && db().me ? C.list(uid).filter((x) => x.claimable).length + C.streakList(uid).filter((x) => x.claimable).length : 0);
   C.history = (uid) => S0().hist.filter((h) => h.a === (uid || db().uid)).slice().reverse();
   C.feed = () => S0().feed.slice().reverse();
   C.badges = () => S0().badges;
+  // تنبيهات حيّة من حالة اللعبة الحقيقية (مش وهمية): محاصيل جاهزة، حظيرة، سقاية، تحديات جاهزة
+  C.alerts = () => { const b = G.badges || {}, out = [], n = C.claimable(); if (n) out.push(["🎁", `${n} مكافأة تحدي جاهزة للاستلام`, "challenges"]);
+    if (b.farm) out.push(["🌾", `${b.farm} محصول جاهز للقطف بالمزرعة`, "farm"]); if (b.pens) out.push(["🐄", "الحظيرة: في منتجات أو حيوانات بدها أكل", "pens"]);
+    if (b.flowers) out.push(["💦", "ورود الحب بدها سقاية منك", "flowers"]); if (b.butcher) out.push(["🥩", `${b.butcher} خروف جاهز للملحمة`, "butcher"]); return out; };
   C.title = (def, key) => def.t.replace("{s}", SEAS_AR[String(key).split("-")[0]] || "").replace("{n}", key == null || key === "" ? def.n : C.eff(def, key).n);
 
   /* ============ النوافذ ============ */
@@ -155,6 +182,7 @@
   const who = (u) => esc((ui().prof && ui().prof(u) && ui().prof(u).name) || "؟");
   const FEED_TXT = (f) => {
     const me = f.a === db().uid ? "أنت" : who(f.a), def = DEF[f.c];
+    if (f.c === "streak") return `🔥 ${me} استلمت مكافأة سلسلة ${f.p} يوم`;
     if (f.k === "done") return `✅ ${me} خلّصت تحدي: ${esc(C.title(def, f.p))}`;
     if (f.k === "claim") return `🎁 ${me} استلمت مكافأة (${esc(C.title(def, f.p))})`;
     if (f.k === "invite") return `💌 ${me} دعوت لنشاط مشترك${G && OSW.act && OSW.act.GAMES[f.c] ? ": " + OSW.act.GAMES[f.c].n : ""}`;
@@ -168,16 +196,18 @@
     let body = "";
     if (tab === "now") {
       const L = C.list();
-      body = C.SCALES.map(([sc, nm, ic]) => { const rows = L.filter((x) => x.sc === sc); if (!rows.length) return "";
+      const cur = C.streak(), SL = C.streakList(), nx = SL.find((x) => !x.claimed);
+      body = `<div class="irow"><span class="ie">🔥</span><div class="iname"><b>سلسلة الأيام المشتركة: ${cur} ${cur === 1 ? "يوم" : "يوم"}</b><small>لعبتوا الاثنين بنفس اليوم؟ السلسلة بتكبر 💞${nx ? ` · الجاي: ${nx.n} أيام = 🪙 ${nx.coins}${nx.badge ? " + " + BADGES[nx.badge][0] : ""}` : ""}</small></div><div class="ib">${SL.filter((x) => x.claimable).slice(0, 1).map((x) => `<button class="btn sm gold" style="min-height:44px;min-width:64px" data-act="g-chal-claim" data-id="streak" data-key="${x.n}">استلم</button>`).join("")}</div></div>` + C.SCALES.map(([sc, nm, ic]) => { const rows = L.filter((x) => x.sc === sc); if (!rows.length) return "";
         return `<div class="sep"></div><b>${ic} ${nm}</b> <small class="hint">· ينتهي بعد ${left(rows[0].end - now)}</small><div class="items">${rows.map((x) => {
           const pc = Math.round((x.p / x.n) * 100), unit = METRIC_AR[x.def.m] || "";
           return `<div class="irow ${x.claimed ? "done" : ""}"><span class="ie">${x.claimed ? "✅" : x.done ? "🎁" : "🎯"}</span><div class="iname"><b>${esc(C.title(x.def, x.key))}</b><div class="progress" style="height:7px;margin:3px 0"><i style="width:${pc}%"></i></div><small>${x.p}/${x.n} ${unit} · المكافأة: ${rewardTxt(x.def, x.E)}</small></div><div class="ib">${x.claimed ? "<small>استلمت</small>" : x.claimable ? `<button class="btn sm gold" style="min-height:44px;min-width:64px" data-act="g-chal-claim" data-id="${x.def.id}" data-key="${x.key}">استلم</button>` : ""}</div></div>`; }).join("")}</div>`; }).join("");
       const bd = Object.keys(C.badges()).map((k) => BADGES[k] && `<span title="${esc(BADGES[k][1])}" style="font-size:26px">${BADGES[k][0]}</span>`).join(" ");
       if (bd) body += `<div class="sep"></div><b>🏅 أوسمتكم</b><div>${bd}</div>`;
     } else if (tab === "hist") {
-      const H = C.history(); body = H.length ? `<div class="items">${H.slice(0, 40).map((h) => `<div class="irow"><span class="ie">✅</span><div class="iname"><b>${esc(C.title(DEF[h.id], h.key))}</b><small>${esc(OSW.fmtDateTime(new Date(h.t).toISOString()))} · 🪙 ${h.coins}${Object.keys(h.items).length ? " · 🛋️" : ""}${h.badge ? " · " + BADGES[h.badge][0] : ""}</small></div></div>`).join("")}</div>` : `<div class="empty"><span class="big">📜</span>لسا ما استلمت مكافآت. كملوا تحدي وبيظهر هون!</div>`;
+      const H = C.history(); body = H.length ? `<div class="items">${H.slice(0, 40).map((h) => `<div class="irow"><span class="ie">✅</span><div class="iname"><b>${h.id === "streak" ? "🔥 سلسلة " + h.key + " يوم" : esc(C.title(DEF[h.id], h.key))}</b><small>${esc(OSW.fmtDateTime(new Date(h.t).toISOString()))} · 🪙 ${h.coins}${Object.keys(h.items).length ? " · 🛋️" : ""}${h.badge ? " · " + BADGES[h.badge][0] : ""}</small></div></div>`).join("")}</div>` : `<div class="empty"><span class="big">📜</span>لسا ما استلمت مكافآت. كملوا تحدي وبيظهر هون!</div>`;
     } else {
-      const F = C.feed().slice(0, 30); body = F.length ? `<div class="items">${F.map((f) => `<div class="irow"><div class="iname"><b>${FEED_TXT(f)}</b><small>${esc(OSW.timeAgo(new Date(f.t).toISOString()))}</small></div></div>`).join("")}</div>` : `<div class="empty"><span class="big">🔔</span>ما في أحداث لسا</div>`;
+      const al = C.alerts(), F = C.feed().slice(0, 30);
+      body = (al.length ? `<b>⏰ الآن</b><div class="items">${al.map((x) => `<div class="irow"><span class="ie">${x[0]}</span><div class="iname"><b>${x[1]}</b></div><div class="ib"><button class="btn sm alt" style="min-height:44px" data-act="g-go" data-k="${x[2]}">روح</button></div></div>`).join("")}</div><div class="sep"></div><b>🕘 آخر الأحداث</b>` : "") + (F.length ? `<div class="items">${F.map((f) => `<div class="irow"><div class="iname"><b>${FEED_TXT(f)}</b><small>${esc(OSW.timeAgo(new Date(f.t).toISOString()))}</small></div></div>`).join("")}</div>` : `<div class="empty"><span class="big">🔔</span>ما في أحداث لسا</div>`);
     }
     ui().openModal(`<h3>🏆 التحديات${cl ? ` <span class="hint">· ${cl} جاهز للاستلام 🎁</span>` : ""}</h3><div class="row" style="gap:6px;margin:6px 0">${tabs}</div>${body}`);
     OSW.places.noRefresh = OSW.places.noRefresh || {}; OSW.places.noRefresh.challenges = false;

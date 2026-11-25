@@ -526,3 +526,6 @@ html,body{touch-action:pan-x pan-y}
 .ch-btns button[data-ch=exit]{background:#ffd9d9}
 @media (orientation:portrait){.ch-btns{top:calc(150px + var(--sat))}}
 @media (orientation:portrait){.ch-speed{bottom:calc(190px + var(--sab))}}
+
+/* V12: عمود التحكم صار 7 أزرار (مع 👁️): نصغّره وننزّله شوي عالشاشات القصيرة عشان ما يتداخل مع أزرار الأعلى */
+@media (max-height:700px){#zoomctl{top:calc(50% + 28px)}#zoomctl button{width:40px;height:40px;font-size:18px}#zoomctl{gap:6px}}
