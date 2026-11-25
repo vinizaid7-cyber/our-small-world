@@ -236,7 +236,7 @@ void main(){
     return true;
   };
   R.resize = () => {
-    const cap = OSW.gfx && OSW.gfx.dprCap(), dpr = cap ? Math.min(window.devicePixelRatio || 1, cap) : Math.min(window.devicePixelRatio || 1, window.innerWidth < 700 ? 1.0 : 1.5);
+    const dpr = Math.min(window.devicePixelRatio || 1, window.innerWidth < 700 ? 1.0 : 1.5);
     const w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
     if (R.canvas.width !== w || R.canvas.height !== h) { R.canvas.width = w; R.canvas.height = h; }
     R.gl.viewport(0, 0, w, h); R.aspect = w / h;

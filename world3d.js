@@ -14,7 +14,6 @@
   const meshes = {};
   const carry = { me: [], partner: [] }, bagState = { n: 0 }, cartS = { colors: [], prev: [], lastT: 0, anim: null, home: { x: -18.5, z: -12.6 } }, crateCache = {};
   let mode = "out", curInt = null, floorHandler = null, selFurn = null, crowd = null;
-  let fpv = false; // V12: منظور الشخص الأول بالمشي
   const inNpcs = [], furn = { list: [], boxes: [], acts: [] };
   const curSpace = () => (mode === "in" && curInt ? curInt.id : null);
   const animals = {}, acarry = { me: [], partner: [] }, ANS = { cow: { sp: 0.75, sc: 1.1, r: 1.0, graze: 1.1, sleep: 0.75 }, sheep: { sp: 0.85, sc: 1.05, r: 0.8, graze: 1.0, sleep: 0.65 }, chicken: { sp: 1.5, sc: 1.4, r: 0.4, graze: 0.8, sleep: 0.55 } };
@@ -463,8 +462,7 @@
       ["pitch", "dist", "tx", "ty", "tz"].forEach((k) => (cam[k] = a.f[k] + (a.to[k] - a.f[k]) * e)); cam.yaw = a.f.yaw + angDiff(a.f.yaw, a.to.yaw) * e;
       if (t >= 1) { const r = a.res; cam.anim = null; if (r) r(); }
     } else if (cam.follow) {
-      const k = 1 - Math.exp(-dt * 7); cam.tx += (me.x - cam.tx) * k; cam.tz += (me.z - cam.tz) * k; cam.ty += ((fpv ? 1.62 : 1.5) - cam.ty) * k;
-      if (fpv && !me.veh) { cam.fp = true; cam.dist = 0.35; } else if (cam.fp && !me.veh) cam.fp = false;
+      const k = 1 - Math.exp(-dt * 7); cam.tx += (me.x - cam.tx) * k; cam.tz += (me.z - cam.tz) * k; cam.ty += (1.5 - cam.ty) * k;
     }
   }
   function tweenCam(to, ms) {
@@ -520,7 +518,7 @@
     const dxp = pa.x - me.x, dzp = pa.z - me.z, sideMe = Math.cos(me.ry) * dxp - Math.sin(me.ry) * dzp, sideP = Math.cos(pa.ry) * -dxp - Math.sin(pa.ry) * -dzp;
     const showLink = same && pa.vis && !pa.inside && !pa.sleep && (holding || (pa.hold && hy(dxp, dzp) < 4));
     if (pa.ch && pa.vis && !pa.inside && same && !pa.veh) { OSW.drawChar(pa.ch, pa.x, pa.z, pa.ry, pa.phase, pa.mv, t, pa.sleep ? 0.55 : 1, null, 1, 0, pa.sit && mode === "in" ? { sit: true } : carry.partner.length ? { carry: true } : showLink ? { hold: sideP >= 0 ? 1 : -1 } : null); drawCarried(pa, carry.partner, null); drawAnimalsCarried(pa, acarry.partner); }
-    if (me.ch && !me.veh && !(fpv && cam.fp)) { OSW.drawChar(me.ch, me.x, me.z, me.ry, me.phase, me.mv, t, 1, null, 1, 0, me.sit ? { sit: true } : carry.me.length ? { carry: true } : showLink ? { hold: sideMe >= 0 ? 1 : -1 } : null); drawCarried(me, carry.me, bagState.n); drawAnimalsCarried(me, acarry.me); }
+    if (me.ch && !me.veh) { OSW.drawChar(me.ch, me.x, me.z, me.ry, me.phase, me.mv, t, 1, null, 1, 0, me.sit ? { sit: true } : carry.me.length ? { carry: true } : showLink ? { hold: sideMe >= 0 ? 1 : -1 } : null); drawCarried(me, carry.me, bagState.n); drawAnimalsCarried(me, acarry.me); }
     if (showLink) { const mx = (me.x + pa.x) / 2, mz = (me.z + pa.z) / 2, len = Math.max(0.4, hy(dxp, dzp) - 0.9); M.trs(mx, 1.0, mz, Math.atan2(dxp, dzp), 0, 0, 1, 1, len, m1); R.draw(meshes.link, m1); }
   }
   function drawInside(t) {
@@ -554,9 +552,9 @@
     if (st.night > 0.5) for (let i = 0; i < 22; i++) { const a = t * 0.3 + i * 1.7; M.trs(-40 + ((i * 37) % 80) + Math.cos(a) * 2, 0.9 + Math.sin(a * 1.4) * 0.5, -20 + ((i * 53) % 70) + Math.sin(a) * 2, 0, 0, 0, 1, 1, 1, m1); R.draw(meshes.fly, m1); }
     // عربة المزرعة (وبتتحرك لما الاثنين يسحبوها)
     drawCart(t);
-    OSW.veh.drawAll(t); drawIsle(t); if (OSW.logi) OSW.logi.draw(t); if (OSW.agri && OSW.agri.draw) OSW.agri.draw(t); if (OSW.deliv && OSW.deliv.draw) OSW.deliv.draw(t); if (OSW.city) OSW.city.draw(t);
+    OSW.veh.drawAll(t); drawIsle(t); if (OSW.logi) OSW.logi.draw(t); if (OSW.agri && OSW.agri.draw) OSW.agri.draw(t); if (OSW.city) OSW.city.draw(t);
     // شخصيات
-    OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o && (!OSW.gfx || OSW.gfx.showNpc(d, o, me))) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc, o.dance ? Math.abs(Math.sin(t * 5 + o.phase)) * 0.16 : 0); });
+    OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc, o.dance ? Math.abs(Math.sin(t * 5 + o.phase)) * 0.16 : 0); });
     Object.values(animals).forEach((a) => drawAnimal(a, t)); Object.values(pets3).forEach((o) => drawPet(o, t));
     M.trs(pet.x, Math.abs(Math.sin(pet.phase)) * 0.08 * pet.mv, pet.z, pet.ry, 0, 0, 1.3, 1.3, 1.3, m1); R.draw(meshes.cat, m1);
     drawPeople(t);
@@ -566,7 +564,7 @@
       R.shadow(true, L, 0.34 - 0.14 * st.night);
       R.draw(D.main); R.draw(D.foliage, null, null, 1, 1.6);
       ["tree", "home", "flowers"].forEach((k) => D[k] && R.draw(D[k], null, null, 1, 0));
-      OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o && (!OSW.gfx || OSW.gfx.showNpc(d, o, me))) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc, 0); });
+      OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc, 0); });
       Object.values(animals).forEach((a) => drawAnimal(a, t)); Object.values(pets3).forEach((o) => drawPet(o, t));
       drawPeople(t); drawCart(t); OSW.veh.drawAll(t, true); if (OSW.life) OSW.life.draw(t);
       R.shadow(false);
@@ -575,7 +573,7 @@
     R.blend(true);
     R.draw(D.shadow, null, [0, 0, 0], 0.2);
     Object.values(animals).forEach((a) => OSW.drawShadow(a.x, a.z, ANS[a.kind].r * a.size * 0.9)); Object.values(pets3).forEach((o) => OSW.drawShadow(o.x, o.z, 0.45 * o.sc));
-    OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o && (!OSW.gfx || OSW.gfx.showNpc(d, o, me))) OSW.drawShadow(o.x, o.z, 0.6 * o.sc); }); OSW.drawShadow(pet.x, pet.z, 0.5);
+    OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o) OSW.drawShadow(o.x, o.z, 0.6 * o.sc); }); OSW.drawShadow(pet.x, pet.z, 0.5);
     if (pa.vis && !pa.inside) OSW.drawShadow(pa.x, pa.z, 0.62); OSW.drawShadow(me.x, me.z, 0.62);
     if (W.lit && st.night > 0.35) { M.trs(75, 12.1, -2, t * 0.9, 0, 0, 1, 1, 1, m1); R.draw(meshes.beam, m1, [1, 1, 1], 0.2 * st.night); }
     if (tapMark && tapMark.life > 0) { const b = tapMark; M.trs(b.x, 0.2, b.z, 0, 0, 0, 0.8 + (1.6 - b.life) * 0.25, 1, 0.8 + (1.6 - b.life) * 0.25, m1); R.draw(meshes.ring || (meshes.ring = (() => { const bb = new Builder(); bb.cyl(0, 0.12, 0, 1.0, 1.0, 0.02, "#ffffff", 20); bb.cyl(0, 0.13, 0, 0.8, 0.8, 0.03, "#000000", 20); return bb.build(R.gl); })()), m1, [1, 0.9, 0.4], clamp(b.life, 0, 1) * 0.6); }
@@ -814,8 +812,6 @@
     setCarry(w, colors) { carry[w] = colors || []; },
     setBags(n) { bagState.n = n || 0; },
     setSpeedMul(m) { me.speedMul = m; },
-    setFirstPerson(on) { fpv = !!on; if (fpv) { cam.pitch = 0.22; cam.follow = true; } else { cam.fp = false; cam.dist = 17; cam.pitch = 0.55; } },
-    isFirstPerson() { return fpv; },
     setSprint(v) { me.sprint = !!v; },
     setCart(colors, last) {
       const prev = cartS.colors; cartS.colors = colors || [];
