@@ -103,6 +103,7 @@
       const t = new Date(e.created_at).getTime(), d = e.data || {}, day = dayKey(t), a = e.author, ty = e.title;
       if (OSW.agri) OSW.agri.pre(S, t); // الشركة الزراعية: تقدّم الزمن (عمال/مصانع/مشاكل) قبل كل حدث
       const mark = () => { (S.acts[day] = S.acts[day] || {})[a + ":" + ty] = 1; };
+      const _ch = OSW.chal ? OSW.chal.snap(S) : null; // V12: تتبّع التحديات (حدث ناجح فقط بيوصل لآخر الدالة)
       if (ty === "buy") {
         const it = ITEM[d.id]; if (!it || it.crop || !(d.qty >= 1 && d.qty <= 99)) return; if (it.cloth && ((S.inv[d.id] || 0) >= 1 || d.qty !== 1)) return;
         const prevShop = G.shopId; G.shopId = d.shop || null; const c = cost(it.price, d.qty, S.buys); G.shopId = prevShop; if (S.coins < c) return;
@@ -216,15 +217,16 @@
       } else if (ty === "eat") {
         const f = FOOD[d.item]; if (!f || (S.inv[d.item] || 0) < 1) return;
         const n = need(a, t); add(d.item, -1); n.food = Math.min(100, n.food + f.food * 1.2); n.drink = Math.min(100, n.drink + f.drink * 1.2); mark();
+        // V12: بونص سرعة مؤقت حسب جودة الأكل (غالي = أقوى وأطول)، سقفه +10% و6 دقايق، ومش بيتراكم ولا بيدوم
+        if (f.price >= 5) (S.buff = S.buff || {})[a] = { until: t + Math.min(360000, 120000 + f.price * 10000), mul: 1 + Math.min(0.1, f.price / 250), item: d.item };
       } else if (ty === "sip") {
         const n = need(a, t); if (t - (n.sip || 0) < 90000) return; n.sip = t; n.drink = Math.min(100, n.drink + 18); mark();
-      } else if (ty === "cfg_adj") {
-        const n = Math.floor(+d.n); if (n >= 1 && n <= 1000000) S.coins += n;
       } else if (ty === "together") {
         S.tog[day] = (S.tog[day] || 0) + 1; if (S.tog[day] <= 10) S.coins += 3;
       } else if (OSW.fam) {
         if (!OSW.fam.fold(ty, e, d, t, a, day, S, { add, mark }) && !(OSW.lands && OSW.lands.fold(ty, e, d, t, a, day, S, { add, mark })) && OSW.extras) OSW.extras.fold(ty, e, d, t, a, day, S, { add, mark });
       }
+      if (_ch) OSW.chal.track(S, _ch, ty, e, d, t, a, day);
     });
     return S;
   }
@@ -259,9 +261,11 @@
   G.animalCarry = (uid) => (G.state().acarry[uid] || []);
   const mine = (day, ty) => !!((G.state().acts[day] || {})[db.uid + ":" + ty]);
   G.has = (id) => (G.state().inv[id] || 0) >= 1;
+  G.buffMul = (u) => { const b = ((G.state().buff || {})[u || db.uid]); return b && Date.now() < b.until ? b.mul : 1; };
+  G.buffLeft = (u) => { const b = ((G.state().buff || {})[u || db.uid]); return b && Date.now() < b.until ? b.until - Date.now() : 0; };
   G.speedMul = () => {
     const lk = (db.kv["look:" + db.uid] || {}), o = OSW.CLOTHES[lk.outfit || "casual"] || OSW.CLOTHES.casual;
-    return (o.speed || 1) * Math.pow(0.92, G.carryOf(db.uid).length) * Math.pow(0.88, G.animalCarry(db.uid).length) * G.needMul();
+    return (o.speed || 1) * Math.pow(0.92, G.carryOf(db.uid).length) * Math.pow(0.88, G.animalCarry(db.uid).length) * G.needMul() * G.buffMul();
   };
 
   /* ---------- تنفيذ الأفعال ---------- */
@@ -291,7 +295,7 @@
     const ripe = v.plots.filter((p) => p && p.ripe).length, lowH = ["hajji", "hajjeh"].some((w) => v.m[w].up || Math.min(v.m[w].food, v.m[w].drink) < 40) ? 1 : 0;
     const av2 = G.animalsView(); G.badges = { farm: ripe,  flowers: v.myWater ? 0 : 1, pens: av2.reduce((n, a) => n + a.units, 0) + (av2.some((a) => !a.fed) ? 1 : 0), butcher: av2.filter((a) => a.mature && a.kind === "sheep").length };
     const pill = document.getElementById("coinNum"); if (pill) pill.textContent = s.coins;
-    const tb = document.getElementById("taskBadge"); if (tb) { const n = G.tasks().filter((t) => !t.done).length; tb.textContent = n; tb.hidden = !n; }
+    const tb = document.getElementById("taskBadge"); if (tb) { const n = G.tasks().filter((t) => !t.done).length + (OSW.chal ? OSW.chal.claimable() : 0); tb.textContent = n; tb.hidden = !n; }
     OSW.app && OSW.app.updateBadges && OSW.app.updateBadges();
     G.checkGifts();
   };
@@ -470,7 +474,7 @@
     tasks() {
       const ts = G.tasks(), done = ts.filter((t) => t.done).length;
       ui.openModal(`<h3>✅ مهام اليوم</h3><div class="progress" style="margin-bottom:10px"><i style="width:${(done / ts.length) * 100}%"></i></div><p class="hint">${done === ts.length ? "يوم مثالي! 🎉 ما قصّرتوا بشي" : `${done} من ${ts.length} — كملوا عشان يكون يومكم مثالي`}</p>` + ts.map((t) => `<button class="irow taskrow ${t.done ? "done" : ""}" data-act="g-go" data-k="${t.go}"><span class="ie">${t.done ? "✅" : t.e}</span><div class="iname"><b>${esc(t.t)}</b></div></button>`).join("") +
-        `<div class="sep"></div><div class="row"><button class="btn alt" data-act="g-orders">📋 طلبات الأهل</button><button class="btn alt" data-act="g-inv">🎒 مخزني</button><button class="btn alt" data-act="g-wardrobe">👗 الخزانة</button></div>`);
+        `<div class="sep"></div><div class="row"><button class="btn alt" data-act="g-orders">📋 طلبات الأهل</button><button class="btn alt" data-act="g-inv">🎒 مخزني</button><button class="btn alt" data-act="g-wardrobe">👗 الخزانة</button></div><div class="row" style="margin-top:8px"><button class="btn gold" style="width:100%" data-act="g-go" data-k="challenges">🏆 التحديات${OSW.chal && OSW.chal.claimable() ? " (" + OSW.chal.claimable() + " جاهز 🎁)" : ""}</button></div>`);
     },
     inv() {
       const s = G.state(), items = Object.keys(s.inv).filter((k) => s.inv[k] > 0 && ITEM[k] && !ITEM[k].cloth), got = s.gifts.filter((g) => g.from !== db.uid);

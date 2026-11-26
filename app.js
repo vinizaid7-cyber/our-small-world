@@ -83,9 +83,11 @@
     W.onTogether = () => { if (db.partner && db.uid < db.partner.id) G.do("together", {}).then(() => ui.toast("💞 مشيتوا سوا: +3🪙", "love")).catch(() => {}); };
     W.onAct = onAct;
     updatePresence();
-    W.setInputEnabled(false); W.spawnMe(0, 40); W.goTo(0, 9);
+    const plan = OSW.plife ? OSW.plife.plan() : { mode: "village" }; // V12: بداية آمنة (بيت للجديد، آخر مكان صالح للراجع)
+    W.setInputEnabled(false); if (plan.mode === "out") W.spawnMe(plan.x, plan.z); else { W.spawnMe(0, 40); W.goTo(0, 9); }
     OSW.audio.resumeIfEnabled();
     await W.intro(); W.setInputEnabled(true); introDone = true;
+    if (plan.mode === "home") { await startInHome(); OSW.plife && OSW.plife.after(plan); }
     const per = W.period(W.updateSky().hour);
     let line = tpl(rand(OSW.GREET[per]), { name: db.me.name });
     const un = totalUnread(), pend = G.tasks().filter((t) => !t.done && !t.soft);
@@ -129,7 +131,7 @@
     if (ev.remote && ev.table === "entries" && ev.type === "INSERT" && ev.row && ev.row.house === "chat" && ev.row.author !== db.uid) { OSW.chat.incoming(ev.row); return; }
     if (ev.remote && ev.table === "entries" && ev.type === "INSERT" && ev.row && ev.row.author !== db.uid) {
       const n = ui.prof(ev.row.author).name, game = ev.row.house === "game";
-      if (game && ["story", "together", "harvest", "plant", "sell", "buy", "order", "stash", "cart_load", "sellcrate", "acollect", "acarry", "adrop", "psell", "dstroke", "fish", "cfg_adj"].includes(ev.row.title)) return;
+      if (game && ["story", "together", "harvest", "plant", "sell", "buy", "order", "stash", "cart_load", "sellcrate", "acollect", "acarry", "adrop", "psell", "dstroke", "fish"].includes(ev.row.title)) return;
       const inside = ui.state.room === ev.row.house;
       if (!inside) { ui.toast("💌 " + esc(n) + ": " + NICE(ev.row), "love", 4500); OSW.audio.sfx("ding"); }
       notify("عالمنا الصغير", `${n}: ${NICE(ev.row)}`);
@@ -290,6 +292,12 @@
     await sleep(80); $("#curtain").classList.remove("on"); W.setInputEnabled(true); busyNav = false;
     if (id === "home") guideSay("بيتكم من جوّا! 🏡 خمس غرف: النوم (فيه رف الصور والأغاني)، الذكريات، المطبخ، الصالون، الشرفة. اضغط 🛋️ للأثاث 😴", 6500);
   }
+  // V12: بداية جوّا البيت بدون المشي للباب (لاعب جديد أو رجوع للبيت)
+  async function startInHome() {
+    if (busyNav) return; busyNav = true; W.setInputEnabled(false); $("#curtain").classList.add("on"); await sleep(330);
+    W.enter("home"); G.sync3d(); db.track("in:home"); $("#btnFurn").hidden = false;
+    await sleep(80); $("#curtain").classList.remove("on"); W.setInputEnabled(true); busyNav = false;
+  }
   async function exitInterior() {
     if (busyNav || W.mode !== "in") return; busyNav = true; W.setInputEnabled(false); cancelPlacing(); OSW.audio.sfx("door");
     $("#curtain").classList.add("on"); await sleep(330); W.leave(); $("#btnFurn").hidden = true; db.track("village");
@@ -327,7 +335,7 @@
     W.sleepTo(7.5); G.sync3d(); await sleep(600); f.classList.remove("on"); W.setInputEnabled(true); busyNav = false;
     ui.toast("☀️ صباح الخير! نمتوا زي الملوك", "gold", 4000); ui.hearts("💤", 10); ui.saveMy({ slept: (ui.my().slept || 0) + 1 }); P.checkAchievements();
   }
-  Object.assign(app, { startPlacing, cancelPlacing, rotateFurn, sleep: goSleep, enterInterior, exitInterior });
+  Object.assign(app, { startPlacing, cancelPlacing, rotateFurn, sleep: goSleep, enterInterior, exitInterior, startInHome });
 
   /* ---------- الإشعارات والتثبيت والنسخ الاحتياطي ---------- */
   function notify(title, body) {
@@ -363,7 +371,7 @@
     $("#guide").onclick = guideTalk;
     $("#zoomctl").onclick = (e) => {
       const b = e.target.closest("[data-z]"); if (!b) return; const z = b.dataset.z;
-      if (z === "in") W.zoomBy(1.25); else if (z === "out") W.zoomBy(1 / 1.25); else if (z === "walk") toggleWalk(); else if (W.mode === "in") { W.resetCam(); } else { W.resetCam(); W.goTo(0, 8); }
+      if (z === "in") W.zoomBy(1.25); else if (z === "out") W.zoomBy(1 / 1.25); else if (z === "walk") toggleWalk(); else if (z === "fp") { if (W.mode === "in" && !W.isFirstPerson()) return ui.toast("المنظور الأول للقرية والمدينة بس 👁️"); W.setFirstPerson(!W.isFirstPerson()); ui.toast(W.isFirstPerson() ? "👁️ منظور الشخص الأول — اسحب الشاشة للتلفّت" : "رجعنا للمنظور العادي"); } else if (W.mode === "in") { W.resetCam(); } else { W.resetCam(); W.goTo(0, 8); }
     };
   }
 
