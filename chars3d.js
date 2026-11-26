@@ -32,12 +32,9 @@
       if (an === "dino") { for (let i = 0; i < 4; i++) body.box(0, 1.0 - i * 0.22, -0.24, 0.1, 0.16, 0.14, "#e8a33d"); body.box(0, 0.3, -0.34, 0.14, 0.14, 0.36, topC); }
       if (an === "panda") body.box(0, 0.62, 0, 0.66, 0.16, 0.42, "#2b2b2b");
     }
-    else if (girl && stl === "casual") { body.push(0, 0.58, 0, 0, 0, 0, 1, 1, 0.6); body.cyl(0, 0, 0, 0.26, 0.3, 0.68, shirt, 14); body.pop(); [-1, 1].forEach((sd) => body.sphere(sd * 0.285, 1.2, 0, 0.1, 0.1, 0.1, skin, 7)); body.cyl(0, 0.34, 0, 0.5, 0.32, 0.5, shirt, 10); body.cyl(0, 0.34, 0, 0.51, 0.51, 0.05, dk(shirt, 0.25), 10); }
+    else if (girl && stl === "casual") { body.box(0, 0.62, 0, 0.58, 0.62, 0.34, shirt); body.cyl(0, 0.34, 0, 0.5, 0.32, 0.5, shirt, 10); body.cyl(0, 0.34, 0, 0.51, 0.51, 0.05, dk(shirt, 0.25), 10); }
     else {
-      if (stl === "casual") { // جذع بيضاوي مستدير + أكتاف (بدل الصندوق)
-        body.push(0, 0.56, 0, 0, 0, 0, 1, 1, 0.58); body.cyl(0, 0, 0, 0.3, 0.335, 0.78, topC, 14); body.cyl(0, 0, 0, 0.325, 0.325, 0.1, dk(topC, 0.2), 14); body.pop();
-        [-1, 1].forEach((sd) => body.sphere(sd * 0.31, 1.22, 0, 0.115, 0.12, 0.115, topC, 7));
-      } else { body.box(0, 0.6, 0, 0.62, 0.74, 0.36, topC); body.box(0, 0.56, 0, 0.64, 0.12, 0.38, dk(topC, 0.2)); }
+      body.box(0, 0.6, 0, 0.62, 0.74, 0.36, topC); body.box(0, 0.56, 0, 0.64, 0.12, 0.38, dk(topC, 0.2));
       if (stl === "hoodie") { body.sphere(0, 1.28, -0.2, 0.27, 0.2, 0.2, topC, 7); body.box(0, 0.55, 0.19, 0.42, 0.2, 0.03, dk(topC, 0.25)); }
       if (stl === "sport") { body.box(-0.32, 0.6, 0, 0.04, 0.72, 0.38, "#fff"); body.box(0.32, 0.6, 0, 0.04, 0.72, 0.38, "#fff"); body.box(0, 0.9, 0.19, 0.14, 0.14, 0.02, "#ffd23f"); }
       if (stl === "jacket") { body.box(0, 0.66, 0.19, 0.24, 0.68, 0.02, "#eee"); body.box(-0.2, 1.24, 0.17, 0.2, 0.1, 0.08, dk(topC, 0.2)); body.box(0.2, 1.24, 0.17, 0.2, 0.1, 0.08, dk(topC, 0.2)); }
@@ -62,8 +59,7 @@
     }
     if (look.apron) body.box(0, 0.6, 0.19, 0.5, 0.6, 0.04, look.apron);
     if (look.sash) body.box(0, 0.86, 0.19, 0.64, 0.1, 0.04, look.sash);
-    body.cyl(0, 1.26, 0, 0.085, 0.075, 0.16, skin, 8); // رقبة
-    body.sphere(-0.315, 1.61, 0, 0.045, 0.07, 0.05, skin, 6); body.sphere(0.315, 1.61, 0, 0.045, 0.07, 0.05, skin, 6); // آذان
+    body.box(0, 1.28, 0, 0.16, 0.1, 0.16, skin); // رقبة
     // الرأس
     body.sphere(0, 1.62, 0, 0.32, 0.33, 0.31, skin, 10);
     body.sphere(-0.115, 1.66, 0.28, 0.045, 0.055, 0.03, "#2a2030", 5); body.sphere(0.115, 1.66, 0.28, 0.045, 0.055, 0.03, "#2a2030", 5);
@@ -121,15 +117,9 @@
     });
 
     // الأطراف (نقطة الدوران بالأعلى)
-    const leg = (b, x) => {
-      b.cyl(0, -0.34, 0, 0.092, 0.112, 0.35, pantsC, 9); b.sphere(0, -0.335, 0.005, 0.098, 0.098, 0.098, pantsC, 7); b.cyl(0, -0.62, 0, 0.07, 0.09, 0.3, pantsC, 9); b.sphere(0, 0, 0, 0.115, 0.1, 0.115, pantsC, 7);
-      const sk = (look.acc || []).find((k) => OSW.SHOEX && OSW.SHOEX[k]); if (sk) OSW.SHOEX[sk](b, look); else { const sc = look.shoe || SHOE[stl] || "#3b2f2f"; b.sphere(0, -0.58, 0.05, 0.115, 0.09, 0.17, sc, 8); b.box(0, -0.67, 0.05, 0.215, 0.05, 0.33, dk(sc, 0.25)); }
-    };
+    const leg = (b, x) => { b.box(0, -0.62, 0, 0.2, 0.55, 0.2, pantsC); const sk = (look.acc || []).find((k) => OSW.SHOEX && OSW.SHOEX[k]); if (sk) OSW.SHOEX[sk](b, look); else b.box(0, -0.66, 0.05, 0.23, 0.12, 0.32, look.shoe || SHOE[stl] || "#3b2f2f"); };
     leg(legL, 0); leg(legR, 0);
-    const arm = (b, cane) => {
-      b.sphere(0, -0.01, 0, 0.105, 0.105, 0.105, sleeveC, 7); b.cyl(0, -0.27, 0, 0.062, 0.078, 0.27, sleeveC, 8); b.sphere(0, -0.27, 0, 0.07, 0.07, 0.07, sleeveC, 6); b.cyl(0, -0.52, 0, 0.05, 0.064, 0.26, sleeveC, 8); b.sphere(0, -0.58, 0.01, 0.078, 0.082, 0.078, skin, 7);
-      if (cane) { b.cyl(0.04, -1.5, 0.1, 0.03, 0.03, 1.55, "#7a5236", 5); b.sphere(0.04, 0.05, 0.1, 0.06, 0.05, 0.06, "#7a5236", 5); }
-    };
+    const arm = (b, cane) => { b.box(0, -0.5, 0, 0.16, 0.5, 0.16, sleeveC); b.sphere(0, -0.56, 0, 0.09, 0.09, 0.09, skin, 6); if (cane) { b.cyl(0.04, -1.5, 0.1, 0.03, 0.03, 1.55, "#7a5236", 5); b.sphere(0.04, 0.05, 0.1, 0.06, 0.05, 0.06, "#7a5236", 5); } };
     arm(armL, false); arm(armR, !!look.cane);
     if (!look.elder && girl) { /* كم قصير للبنت */ }
     const ch = { cane: !!look.cane, body: body.build(gl), legL: legL.build(gl), legR: legR.build(gl), armL: armL.build(gl), armR: armR.build(gl), h: look.hairStyle === "keffiyeh" ? 2.15 : 2.1 };
