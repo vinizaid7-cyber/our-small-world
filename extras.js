@@ -33,6 +33,7 @@
 
   // بتنحسب مع باقي أحداث اللعبة (fold): استلام مكافأة هدف أو مكافأة الأسبوع الكاملة
   X.fold = (ty, e, d, t, a, day, S, H) => {
+    if (OSW.legend && OSW.legend.fold(ty, e, d, t, a, day, S, H)) return true;
     if (OSW.logi && OSW.logi.fold(ty, e, d, t, a, day, S, H)) return true;
     if (OSW.agri && OSW.agri.fold(ty, e, d, t, a, day, S, H)) return true;
     if (ty === "snap") return true;
@@ -273,7 +274,7 @@
 
   /* ---- الأزرار والتشغيل ---- */
   function badgeTick() {
-    try { const b = $("#xBadge"); if (!b) return; const n = X.goalStatus().goals.filter((g) => g.done && !g.claimed).length; b.textContent = n; b.hidden = !n; } catch (e) { /* */ }
+    try { const b = $("#xBadge"); if (!b) return; const n = X.goalStatus().goals.filter((g) => g.done && !g.claimed).length + (OSW.legend ? OSW.legend.badge() : 0); b.textContent = n; b.hidden = !n; } catch (e) { /* */ }
   }
   function buildHud() {
     const z = $("#zoomctl"); if (!z || $("#btnExtras")) return;

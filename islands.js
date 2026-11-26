@@ -74,7 +74,7 @@
   };
 
   /* ---------- تحميل/تحرير الجزر ---------- */
-  const LOAD = () => (C && C.low ? 260 : 360), UNLOAD = () => LOAD() + 140;
+  const LOAD = () => (C && C.low ? 420 : 700), UNLOAD = () => LOAD() + 160;
   const distTo = (me, isl) => Math.max(0, hy(me.x - isl.c.x, me.z - isl.c.z) - isl.r);
   I.build = (id) => {
     const c = GEN.newCtx(id); GEN.ground(c); GEN.gens[id](c); GEN.fill && GEN.fill(c);

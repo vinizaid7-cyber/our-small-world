@@ -34,7 +34,8 @@
     const t = E.weddingToday(), key = "inv:" + (t && t.day); if (!t || ui.my()[key] || Date.now() > t.end) return;
     ui.saveMy({ [key]: 1 });
     const hh = (x) => { const d = new Date(x + AMMAN), h = d.getUTCHours(); return (h % 12 || 12) + (h >= 12 ? " مساءً" : " صباحاً"); };
-    setTimeout(() => { OSW.audio.sfx("fanfare"); ui.openModal(`<h3>💌 دعوة عرس</h3><div class="pick" style="font-size:22px">يتشرّف <b>${esc(t.g)}</b> و<b>${esc(t.b)}</b><br>بدعوتكم لحضور حفل زفافهم<br><b>اليوم الساعة ${hh(t.start)}</b><br>بالساحة، جنب النافورة 🎉<div class="hint" style="font-size:14px;margin-top:8px">البسوا حلو! البدلة والفستان بيعطوكم مكافأة أنيقة 🤵👗</div></div><div class="row" style="justify-content:center;margin-top:10px"><button class="btn berry" data-act="close-modal">إن شاء الله بنحضر 💞</button></div>`); }, 2500);
+    // V12: ما بنغطّي نافذة مفتوحة (مثلاً مقدّمة اللاعب الجديد أو مكافأة): بنأجّل الدعوة لحد ما تتسكّر
+    const _inv = () => { if (!document.getElementById("modal").hidden) return setTimeout(_inv, 8000); OSW.audio.sfx("fanfare"); ui.openModal(`<h3>💌 دعوة عرس</h3><div class="pick" style="font-size:22px">يتشرّف <b>${esc(t.g)}</b> و<b>${esc(t.b)}</b><br>بدعوتكم لحضور حفل زفافهم<br><b>اليوم الساعة ${hh(t.start)}</b><br>بالساحة، جنب النافورة 🎉<div class="hint" style="font-size:14px;margin-top:8px">البسوا حلو! البدلة والفستان بيعطوكم مكافأة أنيقة 🤵👗</div></div><div class="row" style="justify-content:center;margin-top:10px"><button class="btn berry" data-act="close-modal">إن شاء الله بنحضر 💞</button></div>`); }; setTimeout(_inv, 2500);
   };
 
   /* ---------- أسئلة أهل القرية (مشاهد) ---------- */

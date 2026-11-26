@@ -183,7 +183,7 @@
   }
 
   /* ---------- التحميل التدريجي ---------- */
-  const LOAD_R = () => (C.low ? 120 : 160), UNLOAD_R = () => LOAD_R() + 55;
+  const LOAD_R = () => (C.low ? 180 : 280), UNLOAD_R = () => LOAD_R() + 70;
   const distToBlock = (x, z, bx, bz) => { const o = C.org(bx, bz), dx = Math.max(o.x - x, 0, x - (o.x + G.bs)), dz = Math.max(o.z - z, 0, z - (o.z + G.bs)); return hy(dx, dz); };
   C.update = (me, maxBuild = 1) => {
     const near = me.x > G.x0 - 260 && me.x < G.x1 + 260 && me.z > G.z0 - 260 && me.z < G.z1 + 260;

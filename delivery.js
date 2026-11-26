@@ -52,10 +52,11 @@
     const out = [{ id: "H", n: "بيتنا", e: "🏠", reg: "V" }], L = (OSW.EX && OSW.EX.LANDS) || [], S = G().state();
     L.forEach((Ld, i) => { if (S.lands && S.lands[Ld.id]) out.push({ id: "L" + (i + 1), n: Ld.n, e: "🌾", reg: "V", land: Ld.id }); });
     out.push({ id: "B", n: "موقف الجزيرة", e: "🏝️", reg: "I" });
+    try { if (OSW.sys && OSW.sys.ready()) OSW.sys.destList(S).forEach((d) => out.push(d)); } catch (e) { /* */ }
     return out;
   };
   D.dests = DEST;
-  const destOk = (S, id) => id === "H" || id === "B" || (/^L[1-6]$/.test(id) && !!(S.lands && S.lands["l" + id.slice(1)]));
+  const destOk = (S, id) => id === "H" || id === "B" || (/^L[1-6]$/.test(id) && !!(S.lands && S.lands["l" + id.slice(1)])) || !!(OSW.sys && OSW.sys.ownsDest(S, id));
 
   /* ---------------- أنواع الحمولة (واجهة للحسابات الثانية) ---------------- */
   D.CARGO = {
@@ -77,7 +78,7 @@
   D.fmt = fmt;
   const clsOf = (it) => ((D.CARGO[it.kind] || D.CARGO.car).cls(it));
   const lenOf = (it) => ((D.CARGO[it.kind] || D.CARGO.car).len(it));
-  const regOf = (dest) => (dest === "B" ? "I" : "V");
+  const regOf = (dest) => (dest === "B" || (OSW.sys && OSW.sys.isDest(dest)) ? "I" : "V");
 
   /* ---------------- الطرق (شبكة شوارع القرية + الطريق الطويل) ---------------- */
   const NODES = { gate: [0, 98], c73: [0, 73], c57: [0, 57], w57: [-74, 57], e57: [74, 57], w34: [-74, 34.5], e34: [74, 34.5], c34: [0, 34.5], c14: [0, 14] };
@@ -87,7 +88,7 @@
     while (q.length) { const c = q.shift(); if (c === to) break; EDGES.forEach(([a, b]) => { const n = a === c ? b : b === c ? a : null; if (n && !(n in prev)) { prev[n] = c; q.push(n); } }); }
     const path = []; for (let c = to; c; c = prev[c]) path.unshift(c); return path.map((k) => NODES[k]);
   };
-  const lotOut = (k) => { const L = V() && V().LOTS[k]; if (!L) return null; return L.out || { x: L.cx + (k === "A" || k === "H" ? -4.5 : 4.5), z: L.cz + 2 }; };
+  const lotOut = (k) => { if (OSW.sys && OSW.sys.isDest(k)) OSW.sys.ensureLot(k); const L = V() && V().LOTS[k]; if (!L) return null; if (L.out) return L.out; return L.out || { x: L.cx + (k === "A" || k === "H" ? -4.5 : 4.5), z: L.cz + 2 }; };
   D.lotOut = lotOut;
   const lenPts = (pts) => { let s = 0; for (let i = 1; i < pts.length; i++) s += hy(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return s; };
   const rcache = {};
@@ -96,6 +97,16 @@
     const key = sup + ">" + dest; if (rcache[key]) return rcache[key];
     const out = lotOut(dest) || lotOut("H") || { x: 8.5, z: -28 };
     let pts = [], gateIdx = 0;
+    if (OSW.sys && OSW.sys.isDest(dest)) {                                    // الجزيرة الزراعية: الطريق الطويل ← جسر BRG_AGRI ← طرق الجزيرة ← القطعة
+      const pl = OSW.sys.plan(dest.slice(3));
+      if (pl) {
+        if (sup === "import") pts.push(PORT.slice(), [20, 1190], [0, 1120], [0, 1085]); else pts.push(HUB.mid.slice());
+        pts.push([0, pl.zEW], [-3, pl.zEW]); pl.pts.forEach((q) => pts.push(q.slice()));
+        const cl = [pts[0]]; for (let i = 1; i < pts.length; i++) if (hy(pts[i][0] - cl[cl.length - 1][0], pts[i][1] - cl[cl.length - 1][1]) > 0.5) cl.push(pts[i]);
+        const tot = lenPts(cl), gi = cl.findIndex((q) => Math.abs(q[0] - pl.gateX) < 0.6 && Math.abs(q[1] - pl.zEW) < 0.6), gsA = gi >= 0 ? lenPts(cl.slice(0, gi + 1)) : tot - 120, la = cl[cl.length - 1], pr = cl[cl.length - 2] || la;
+        return (rcache[key] = { pts: cl, len: tot, gateS: clamp(gsA, 0, tot), park: { x: la[0], z: la[1], h: Math.atan2(la[0] - pr[0], la[1] - pr[1]) } });
+      }
+    }
     if (sup === "import") pts.push(PORT.slice(), [20, 1190], [0, 1120]); else pts.push(HUB.mid.slice());
     if (dest === "B") { pts.push([0, 1088]); pts.push([out.x, out.z]); }
     else {
@@ -152,8 +163,8 @@
   /* ---------------- التسعير والتقدير ---------------- */
   D.kmOf = (sup, dest) => {
     const out = lotOut(dest) || { x: 0, z: 0 };
-    if (sup === "import") return 1700 + (dest === "B" ? 0 : 90);
-    if (dest === "B") return 90;
+    if (sup === "import") return 1700 + (dest === "B" || (OSW.sys && OSW.sys.isDest(dest)) ? 0 : 90);
+    if (dest === "B" || (OSW.sys && OSW.sys.isDest(dest))) return 90;
     return Math.round(4 + hy(out.x + 23, out.z - 86) * 0.06);
   };
   // أسباب عدم التوفر
@@ -268,6 +279,7 @@
         const it = d.item || {}, kind = D.CARGO[it.kind || "car"] ? it.kind || "car" : null; if (!kind) return true;
         const item = Object.assign({}, it, { kind }); if (!D.CARGO[kind].ok(S, item)) return true;
         const sup = D.SUPPLIERS[d.sup] ? d.sup : null, P = D.PROV[d.prov], SV = D.SVC[d.svc]; if (!sup || !P || !SV) return true;
+        if (OSW.sys && OSW.sys.isDest(d.dest)) OSW.sys.ensureLot(d.dest);
         if (!destOk(S, d.dest) || !(V() && V().LOTS[d.dest])) return true;           // الوجهة موجودة وملك اللاعب ومدخلها متاح
         if (D.avail(item, sup, d.dest, d.prov, d.svc)) return true;                    // الحمولة تناسب الشاحنة/الخدمة
         if (SS.orders[e.id]) return true;                                              // ما بنكرر
@@ -288,7 +300,7 @@
     if (ty === "ship_recv") {
       if (o.done || o.cancelled) return true;
       if (t < o.plan.T.unl1 - 2500) return true;                                   // لازم ينتهي التفريغ أول
-      let dest = o.dest; if (!(V() && V().LOTS[dest])) { dest = "H"; o.rerouted = true; }
+      let dest = o.dest; if (OSW.sys && OSW.sys.isDest(dest)) OSW.sys.ensureLot(dest); if (!(V() && V().LOTS[dest])) { dest = "H"; o.rerouted = true; }
       D.CARGO[o.item.kind].grant(S, o.item, dest, o, H); o.done = true; o.doneAt = t;
       if (o.plan.late) refund(S, Math.round(o.ship * D.LATE_REFUND));              // تعويض عن تأخير كبير
       const r = (SS.rep[o.prov] = SS.rep[o.prov] || { n: 0, sum: 0 }); r.n++; r.sum += o.plan.late ? 2.5 : o.plan.delayMs ? 3.8 : 5;

@@ -181,6 +181,7 @@
         <button class="btn alt" data-act="export">💾 نسخة احتياطية</button>
       </div>
       <p class="hint">الإشعارات بتظهر لما التطبيق مفتوح بالخلفية. للإشعارات والتطبيق مسكّر بتحتاج خطوة إضافية (شوف README).</p>
+      <button class="btn gold" style="width:100%;min-height:44px" data-act="g-go" data-k="settings">🎛️ الإعدادات (رسوميات وسهولة استخدام)</button>
       <div class="sep"></div>
       <div class="row">${db.mode === "demo" ? `<button class="btn alt" data-act="switch-user">🔁 بدّل الحساب (تجريبي)</button>` : ""}<button class="btn alt" data-act="logout">تسجيل خروج</button></div>`);
   }

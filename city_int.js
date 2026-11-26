@@ -52,6 +52,7 @@
     return I;
   }
   const npc = (id, ref, x, z, act, face) => ({ id, ref, x, z, face: face || 0, act });
+  C.hall = hall; C.intNpc = npc; // مكشوفة لوحدة الجزر (islands_int.js) بدون تعديل السلوك
 
   /* ===== الفندق: اللوبي ===== */
   const ROOMS = (C.ROOMS = { std: { n: "غرفة عادية", e: "🛏️", price: 40, food: 85, note: "سرير مزدوج وتلفزيون وشرفة" }, fam: { n: "غرفة عائلية", e: "🛌", price: 65, food: 92, note: "غرفة واسعة وفطور أكبر" }, suite: { n: "جناح ملكي", e: "👑", price: 110, food: 100, note: "أفخم جناح بإطلالة بانورامية وفطور ملوكي" } });
