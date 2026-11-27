@@ -166,7 +166,7 @@
   };
 
   /* ---------- كلمة سر: بتفتح نافذة إضافة مصاري ---------- */
-  Y.SECRET = "money2026";                       // غيّرها من هون
+  Y.SECRET = "money2026"; Y.SECRETS = [Y.SECRET, "1220"];                       // غيّرها من هون
   Y.addCoins = (n) => G().do("sys_cheat_coins", { n: Math.floor(Number(n)) });
   Y.openCheat = () => {
     UI().openModal(`<h3>🪙 إضافة مصاري</h3><p class="hint">رصيدكم هلأ: <b>${G().state().coins}</b></p>
@@ -188,7 +188,7 @@
       return gc(a, el);
     };
     // كلمة السر بالشات: ما بتنبعت للشريك، بتفتح النافذة بس
-    if (OSW.chat && OSW.chat.send && !OSW.chat._sysw) { const os = OSW.chat.send; OSW.chat.send = function (txt) { if (String(txt || "").trim() === Y.SECRET) { const i = document.getElementById("chatIn"); if (i) i.value = ""; const c = document.getElementById("chat"); if (c) c.hidden = true; Y.openCheat(); return Promise.resolve(); } return os.apply(this, arguments); }; OSW.chat._sysw = 1; }
+    if (OSW.chat && OSW.chat.send && !OSW.chat._sysw) { const os = OSW.chat.send; OSW.chat.send = function (txt) { if (Y.SECRETS.indexOf(String(txt || "").trim()) >= 0) { const i = document.getElementById("chatIn"); if (i) i.value = ""; const c = document.getElementById("chat"); if (c) c.hidden = true; Y.openCheat(); return Promise.resolve(); } return os.apply(this, arguments); }; OSW.chat._sysw = 1; }
     if (ISL() && ISL().on) ISL().on((e) => { if (e.type === "parcel" && e.id && Y.ready()) { Y.openParcel(e.id); return true; } return false; });
   };
   const X = OSW.extras; if (X && X.start) { const st = X.start; X.start = function () { const r = st.apply(X, arguments); try { Y.install(); } catch (e) { console.error(e); } return r; }; } else setTimeout(() => { try { Y.install(); } catch (e) { /* */ } }, 0);
