@@ -186,7 +186,7 @@
   /* ---------- الرسّام ---------- */
   const VS = `attribute vec3 aPos;attribute vec3 aNor;attribute vec3 aCol;attribute float aEm;
 uniform mat4 uVP;uniform mat4 uModel;uniform vec3 uSunDir;uniform vec3 uSunCol;uniform vec3 uAmbTop;uniform vec3 uAmbBot;uniform vec3 uCam;
-uniform float uNight;uniform float uFogN;uniform float uFogF;uniform vec4 uTint;uniform float uSway;uniform float uTime;uniform mediump float uShadow;uniform vec3 uShDir;
+uniform mediump float uNight;uniform float uFogN;uniform float uFogF;uniform vec4 uTint;uniform float uSway;uniform float uTime;uniform mediump float uShadow;uniform vec3 uShDir;
 varying vec3 vCol;varying float vFog;varying vec3 vWp;varying vec3 vNor;varying float vEm;
 void main(){
   vec4 wp=uModel*vec4(aPos,1.0);
@@ -229,8 +229,21 @@ void main(){
   const R = (OSW.R = { gl: null, canvas: null, vp: new Float32Array(16), ivp: new Float32Array(16), eye: [0, 0, 0], u: {}, drawn: 0 });
   const mdl = new Float32Array(16);
   R.init = (canvas) => {
-    let gl = canvas.getContext("webgl", { alpha: true, premultipliedAlpha: true, antialias: false, stencil: true, powerPreference: "high-performance" }) || canvas.getContext("experimental-webgl");
+    /* محاولات متدرّجة: بعض المتصفحات/الـiframe/الأجهزة الضعيفة ترفض الإعدادات الصارمة */
+    const tries = [
+      { alpha: true, premultipliedAlpha: true, antialias: false, stencil: true, powerPreference: "high-performance" },
+      { alpha: true, premultipliedAlpha: true, antialias: false, stencil: true },
+      { alpha: true, premultipliedAlpha: true, antialias: false, stencil: false },
+      { alpha: true, antialias: false },
+      {}
+    ];
+    let gl = null;
+    for (const a of tries) {
+      try { gl = canvas.getContext("webgl", a) || canvas.getContext("experimental-webgl", a); } catch (e) { gl = null; }
+      if (gl) break;
+    }
     if (!gl) return false;
+    R.hasStencil = !!(gl.getContextAttributes && gl.getContextAttributes() && gl.getContextAttributes().stencil);
     R.gl = gl; R.canvas = canvas;
     const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
     const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, FS));
@@ -263,7 +276,7 @@ void main(){
   R.shadow = (on, dir, alpha) => {
     const gl = R.gl, u = R.u;
     R._noCull = !!on;
-    if (on) { gl.uniform1f(u.uShadow, 1); gl.uniform3fv(u.uShDir, dir); gl.uniform1f(u.uShA, alpha); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.enable(gl.STENCIL_TEST); gl.clearStencil(0); gl.clear(gl.STENCIL_BUFFER_BIT); gl.stencilFunc(gl.NOTEQUAL, 1, 255); gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE); }
+    if (on) { gl.uniform1f(u.uShadow, 1); gl.uniform3fv(u.uShDir, dir); gl.uniform1f(u.uShA, alpha); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); if (R.hasStencil) { gl.enable(gl.STENCIL_TEST); gl.clearStencil(0); gl.clear(gl.STENCIL_BUFFER_BIT); gl.stencilFunc(gl.NOTEQUAL, 1, 255); gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE); } }
     else { gl.uniform1f(u.uShadow, 0); gl.disable(gl.STENCIL_TEST); gl.disable(gl.BLEND); gl.depthMask(true); }
   };
   R.blend = (on) => { const gl = R.gl; if (on) { gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); } else { gl.disable(gl.BLEND); gl.depthMask(true); } };
