@@ -123,7 +123,7 @@
 
   /* ---------- أحداث البيانات ---------- */
   let syncTimer, achTimer;
-  const NICE = (e) => (e.house === "game" ? ({ water: "سقى ورود الحب 💦", feed: "أطعم الحجّي والحجّة 🍞", plant: "زرع بالمزرعة 🌱", harvest: "قطف من المزرعة 🧺", sell: "باع محاصيل 🪙", buy: "اشترى من سعدون 🏪", gift: "أرسل هدية 🎁", order: "سلّم طلب لأهل القرية 📋", abuy: "اشترى حيوان للمزرعة 🐑", afeed: "أطعم الحيوانات 🌾", asell: "باع للملحمة 🥩", draw: "سلّم رسمة التحدي 🎨", cart_pull: "عم يسحب العربة! 🛒 اضغط «اسحب» الحين" }[e.title] || "لعب بالمزرعة") : ({ comment: "علّق على شي", fountain: "جاوب سؤال النافورة", wish: "رمى عملة بالنافورة", light: "ضوّى المنارة 🔦", board: "علّق ورقة بالساحة" }[e.house] || ("أضاف شي بـ" + (OSW.HOUSE[e.house] ? OSW.HOUSE[e.house].name : "القرية"))));
+  const NICE = (e) => (e.house === "game" ? ({ water: "سقى ورود الحب 💦", feed: "أطعم الحجّي والحجّة 🍞", plant: "زرع بالمزرعة 🌱", harvest: "قطف من المزرعة 🧺", sell: "باع محاصيل 🪙", buy: "اشترى من سعدون 🏪", gift: "أرسل هدية 🎁", order: "سلّم طلب لأهل القرية 📋", abuy: "اشترى حيوان للمزرعة 🐑", afeed: "أطعم الحيوانات 🌾", asell: "باع للملحمة 🥩", draw: "سلّم رسمة التحدي 🎨", cart_pull: "عم يسحب العربة! 🛒 اضغط «اسحب» الحين", hist_dig: "نقّب في موقع أثري ⛏️", hist_restore: "رمّم قطعة أثرية 🏺", hist_exhibit: "عرض أثراً بالمتحف 🏛️", hist_caravan: "سيّر قافلة تجارية 🐪", hist_monument: "ساهم ببناء المعلم التاريخي 🕌", hist_coop_tomb: "فعّل مفتاح الغرفة السرية 🗝️", hist_craft: "صنع تحفة تاريخية ⚒️" }[e.title] || "لعب بالمزرعة") : ({ comment: "علّق على شي", fountain: "جاوب سؤال النافورة", wish: "رمى عملة بالنافورة", light: "ضوّى المنارة 🔦", board: "علّق ورقة بالساحة" }[e.house] || ("أضاف شي بـ" + (OSW.HOUSE[e.house] ? OSW.HOUSE[e.house].name : "القرية"))));
   function onChange(ev) {
     if (!ready) return;
     clearTimeout(syncTimer); syncTimer = setTimeout(() => { syncAll(); app.refreshAvatars(); updatePresence(); ui.room.refreshSoon(); P.refresh(); }, 90);
@@ -131,7 +131,7 @@
     if (ev.remote && ev.table === "entries" && ev.type === "INSERT" && ev.row && ev.row.house === "chat" && ev.row.author !== db.uid) { OSW.chat.incoming(ev.row); return; }
     if (ev.remote && ev.table === "entries" && ev.type === "INSERT" && ev.row && ev.row.author !== db.uid) {
       const n = ui.prof(ev.row.author).name, game = ev.row.house === "game";
-      if (game && ["story", "together", "harvest", "plant", "sell", "buy", "order", "stash", "cart_load", "sellcrate", "acollect", "acarry", "adrop", "psell", "dstroke", "fish"].includes(ev.row.title)) return;
+      if (game && ["story", "together", "harvest", "plant", "sell", "buy", "order", "stash", "cart_load", "sellcrate", "acollect", "acarry", "adrop", "psell", "dstroke", "fish", "hist_craft", "hist_sellcraft", "hist_quest", "hist_dig_tool", "hist_mount", "hist_era"].includes(ev.row.title)) return;
       const inside = ui.state.room === ev.row.house;
       if (!inside) { ui.toast("💌 " + esc(n) + ": " + NICE(ev.row), "love", 4500); OSW.audio.sfx("ding"); }
       notify("عالمنا الصغير", `${n}: ${NICE(ev.row)}`);
@@ -153,7 +153,7 @@
 
   /* ---------- الحضور والشريك ---------- */
   function onPos(p) { if (ready && db.partner && p.u === db.partner.id) { const pr = db.presence[db.partner.id]; if (!pr || !OSW.HOUSE[pr.where]) W.remote(p); } }
-  const PLACE_NAMES = { village: "بالقرية", fountain: "عند النافورة", plaza: "بالساحة", tree: "عند الشجرة", home: "ببيتكم", garden: "بالحديقة", lighthouse: "عند المنارة", gate: "عند البوابة", ach: "بالإنجازات", shop: "عند سعدون", farm: "بالمزرعة", flowers: "عند ورود الحب", hajji: "عند الحجّي", tasks: "بالمهام", orders: "بالطلبات", inv: "بالمخزن", pens: "بحظيرة المزرعة", fishing: "عالمرسى 🎣", butcher: "عند الملحمة", draw: "بغرفة الرسم" };
+  const PLACE_NAMES = { village: "بالقرية", fountain: "عند النافورة", plaza: "بالساحة", tree: "عند الشجرة", home: "ببيتكم", garden: "بالحديقة", lighthouse: "عند المنارة", gate: "عند البوابة", ach: "بالإنجازات", shop: "عند سعدون", farm: "بالمزرعة", flowers: "عند ورود الحب", hajji: "عند الحجّي", tasks: "بالمهام", orders: "بالطلبات", inv: "بالمخزن", pens: "بحظيرة المزرعة", fishing: "عالمرسى 🎣", butcher: "عند الملحمة", draw: "بغرفة الرسم", hist_atlas: "بدار السلام التاريخية 🏛️", hist_craft: "بأسواق الحرفيين ⚒️", hist_arch: "بمواقع التنقيب الأثرية ⛏️", hist_museum: "بالمتحف الخاص 🏛️" };
   function updatePresence() {
     if (!ready) return;
     const el = $("#presence"), p = db.partner;
@@ -162,7 +162,7 @@
     if (pr) {
       const inHouse = OSW.HOUSE[pr.where] ? "house:" + pr.where : null, sp = /^in:/.test(pr.where || "") ? pr.where.slice(3) : null;
       W.setPartnerSpace(sp);
-      el.classList.add("on"); $("#presenceText").textContent = `${p.name} موجود هلأ · ${inHouse ? "في " + OSW.HOUSE[pr.where].name : sp ? { home: "ببيتكم من جوّا", shop: "جوّا الدكان", boutique: "بمحل الأناقة", police: "بمركز الشرطة" }[sp] || "جوّا" : PLACE_NAMES[pr.where] || "بالقرية"}`;
+      el.classList.add("on"); $("#presenceText").textContent = `${p.name} موجود هلأ · ${inHouse ? "في " + OSW.HOUSE[pr.where].name : sp ? { home: "ببيتكم من جوّا", shop: "جوّا الدكان", boutique: "بمحل الأناقة", police: "بمركز الشرطة", hist_palace: "بقصر الحاكم", hist_library: "ببيت الحكمة", hist_museum: "بالمتحف الخاص", hist_hammam: "بالحمّام التاريخي", hist_citadel: "بالقلعة العسكرية", hist_khan: "بخان القوافل", hist_souq: "بالسوق التاريخي" }[sp] || "جوّا" : PLACE_NAMES[pr.where] || "بالقرية"}`;
       W.setPartnerState({ visible: true, sleeping: false, inside: inHouse });
       if (inHouse && W.S.poi[inHouse]) W.remote({ x: W.S.poi[inHouse].x, z: W.S.poi[inHouse].z, ry: 0 });
     } else {
@@ -270,6 +270,7 @@
     if (k === "pet") { OSW.audio.sfx("heart"); ui.hearts("🐱", 6); W.say("pet", rand(["مياوو 😻", "بدي سمكة 🐟", "فركلي راسي 💕", "بحبكم! مياو"]), 3500); return; }
     if (k === "mypet") { const p = OSW.game.state().pets.find((x) => x.id === v); if (!p) return; const PT = OSW.game.PETS[p.kind]; OSW.audio.sfx("heart"); ui.hearts(PT.e, 6); W.say("pet:" + v, (p.name ? p.name + ": " : "") + rand(PT.says), 3500); return; }
     if (k === "npc") return npcTalk(v);
+    if (k === "hist" && OSW.history && OSW.history.act) return OSW.history.act(v);
     return goPlace(k);
   }
   function npcTalk(id) {

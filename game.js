@@ -224,7 +224,7 @@
       } else if (ty === "together") {
         S.tog[day] = (S.tog[day] || 0) + 1; if (S.tog[day] <= 10) S.coins += 3;
       } else if (OSW.fam) {
-        if (!OSW.fam.fold(ty, e, d, t, a, day, S, { add, mark }) && !(OSW.lands && OSW.lands.fold(ty, e, d, t, a, day, S, { add, mark })) && OSW.extras) OSW.extras.fold(ty, e, d, t, a, day, S, { add, mark });
+        if (!OSW.fam.fold(ty, e, d, t, a, day, S, { add, mark }) && !(OSW.lands && OSW.lands.fold(ty, e, d, t, a, day, S, { add, mark })) && !(OSW.extras && OSW.extras.fold(ty, e, d, t, a, day, S, { add, mark })) && OSW.history && OSW.history.fold) OSW.history.fold(ty, e, d, t, a, day, S, { add, mark });
       }
       if (_ch) OSW.chal.track(S, _ch, ty, e, d, t, a, day);
     });
@@ -269,7 +269,7 @@
   };
 
   /* ---------- تنفيذ الأفعال ---------- */
-  G.do = async (type, data) => { await db.addEntry({ house: "game", title: type, data }); G.sync3d(); if (OSW.places) OSW.places.refresh(); if (OSW.app) OSW.app.checkAchievements(); };
+  G.do = async (type, data, opts) => { await db.addEntry({ house: "game", title: type, data, unlock_at: (opts && opts.unlock_at) || null }); G.sync3d(); if (OSW.places) OSW.places.refresh(); if (OSW.app) OSW.app.checkAchievements(); };
   const toast = (m, c) => ui.toast(m, c || "");
   const needCoins = (n) => { const c = G.state().coins; if (c < n) { toast(`ما معك مصاري كفاية 🪙 (بدك ${n}، معك ${c})`); OSW.audio.sfx("pop"); return true; } return false; };
 
@@ -279,7 +279,6 @@
     const v = G.view(), s = v.s;
     const key = JSON.stringify([v.plots.map((p) => p && [p.crop, Math.round(p.progress * 12)]), v.streak, v.completeNow, v.wilt, Object.keys(s.lands || {})]); if (OSW.lands) OSW.lands.syncLabels();
     if (G._k3 !== key) { G._k3 = key; W.setFarm(v.plots.map((p) => p && { crop: p.crop, progress: p.progress, color: p.color, size: 1 })); W.setFlowers(v.streak, v.completeNow, v.wilt); }
-    ["hajji", "hajjeh"].filter(() => false).forEach((w) => { const m = v.m[w], lo = Math.min(m.food, m.drink); W.setNpcMood(w, v.m[w].up ? "😠" : lo < 25 ? "😢" : lo < 55 ? "😐" : "😊", lo < 40 || v.m[w].up ? "❗" : ""); });
     W.setCarry("me", G.carryOf(db.uid).map((c) => CROPS[c.crop].c)); if (db.partner) W.setCarry("partner", G.carryOf(db.partner.id).map((c) => CROPS[c.crop].c));
     W.setCart(s.cart.crates.map((c) => CROPS[c.crop].c), s.cart.last);
     W.setSpeedMul(G.speedMul());
@@ -292,11 +291,12 @@
     const fk = JSON.stringify(G.furnList()); if (G._fk !== fk) { G._fk = fk; W.setFurniture(G.furnList()); }
     const lc = s.lastCloth, bags = lc && lc.a === db.uid && (ui.my().bagsSeen || 0) < lc.t ? Math.min(3, db.entries.filter((e) => e.house === "game" && e.title === "buy" && e.author === db.uid && new Date(e.created_at).getTime() > (ui.my().bagsSeen || 0) && /^cl_/.test((e.data || {}).id)).length) : 0;
     W.setBags(bags);
-    const ripe = v.plots.filter((p) => p && p.ripe).length, lowH = ["hajji", "hajjeh"].some((w) => v.m[w].up || Math.min(v.m[w].food, v.m[w].drink) < 40) ? 1 : 0;
-    const av2 = G.animalsView(); G.badges = { farm: ripe,  flowers: v.myWater ? 0 : 1, pens: av2.reduce((n, a) => n + a.units, 0) + (av2.some((a) => !a.fed) ? 1 : 0), butcher: av2.filter((a) => a.mature && a.kind === "sheep").length };
+    const ripe = v.plots.filter((p) => p && p.ripe).length;
+    const av2 = G.animalsView(); G.badges = { farm: ripe, flowers: v.myWater ? 0 : 1, pens: av2.reduce((n, a) => n + a.units, 0) + (av2.some((a) => !a.fed) ? 1 : 0), butcher: av2.filter((a) => a.mature && a.kind === "sheep").length };
     const pill = document.getElementById("coinNum"); if (pill) pill.textContent = s.coins;
     const tb = document.getElementById("taskBadge"); if (tb) { const n = G.tasks().filter((t) => !t.done).length + (OSW.chal ? OSW.chal.claimable() : 0); tb.textContent = n; tb.hidden = !n; }
     OSW.app && OSW.app.updateBadges && OSW.app.updateBadges();
+    OSW.history && OSW.history.sync3d && OSW.history.sync3d(s);
     G.checkGifts();
   };
   setInterval(() => { try { if (db && db.me) G.sync3d(); } catch (e) {} }, 15000);

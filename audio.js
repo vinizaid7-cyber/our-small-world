@@ -5,6 +5,16 @@
   let enabled = localStorage.getItem("osw_sound") === "1";
   const PENT = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25];
 
+  const ERA_SCALES = {
+    modern: { notes: PENT, type: "sine" },
+    ancient: { notes: [220, 261.63, 293.66, 329.63, 392.0, 440.0, 523.25], type: "triangle" },
+    classical: { notes: [293.66, 329.63, 349.23, 392.0, 440.0, 493.88, 587.33], type: "sine" },
+    islamic: { notes: [261.63, 293.66, 319.0, 349.23, 392.0, 440.0, 478.0, 523.25], type: "triangle" },
+    medieval: { notes: [246.94, 293.66, 329.63, 369.99, 440.0, 493.88, 587.33], type: "triangle" },
+    renaissance: { notes: [261.63, 293.66, 329.63, 349.23, 392.0, 440.0, 493.88, 523.25], type: "sine" },
+  };
+  let curEra = "modern";
+
   function ensure() {
     if (!ctx) {
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -57,6 +67,12 @@
     boom: () => { noise(1.4, 0.4, 240); tone(70, 0.9, "sine", 0.25, 0, false); },
     rooster: () => [[620, 0], [780, 0.18], [700, 0.34], [920, 0.5], [560, 0.82]].forEach(([f, a]) => tone(f, 0.22, "sawtooth", 0.04, a, false)),
     owl: () => { tone(420, 0.4, "sine", 0.05, 0, false); tone(340, 0.55, "sine", 0.05, 0.5, false); },
+    hammer: () => { [0, 0.22].forEach((a) => { tone(920, 0.16, "triangle", 0.11, a, false); tone(1480, 0.22, "sine", 0.07, a, true); noise(0.06, 0.08, 1200, a); }); },
+    pottery: () => { noise(0.24, 0.06, 650); tone(260, 0.3, "sine", 0.06, 0.05); },
+    dig: () => { noise(0.18, 0.1, 420); noise(0.16, 0.07, 900, 0.12); },
+    chisel: () => { [0, 0.16].forEach((a) => { tone(1350, 0.1, "triangle", 0.08, a, false); noise(0.05, 0.06, 2000, a); }); },
+    caravan_bell: () => { [698, 932, 698].forEach((f, i) => tone(f, 0.45, "sine", 0.09, i * 0.24, true)); },
+    waterwheel: () => noise(0.45, 0.045, 480),
   };
   // صوت المطر (حلقة ضجيج ناعمة)
   let rainSrc = null, rainGain = null;
@@ -74,8 +90,13 @@
   }
   function ambientTick() {
     if (!enabled) return;
-    const n = PENT[Math.floor(Math.random() * PENT.length)];
-    tone(n / (Math.random() < 0.3 ? 2 : 1), 2.2, "sine", 0.05);
+    const sc = ERA_SCALES[curEra] || ERA_SCALES.modern;
+    const n = sc.notes[Math.floor(Math.random() * sc.notes.length)];
+    tone(n / (Math.random() < 0.35 ? 2 : 1), curEra === "islamic" ? 1.8 : 2.2, sc.type, curEra === "modern" ? 0.05 : 0.055);
+    if (curEra !== "modern" && Math.random() < 0.35) {
+      const n2 = sc.notes[Math.floor(Math.random() * sc.notes.length)];
+      tone(n2, 0.9, "triangle", 0.032, 0.32, true);
+    }
     if (night < 0.5 && Math.random() < 0.25) { // عصافير
       const b = 2200 + Math.random() * 900;
       [0, 0.09, 0.2].forEach((a, i) => tone(b + i * 150, 0.07, "sine", 0.03, a, false));
@@ -86,7 +107,7 @@
     if (hr >= 5 && hr <= 7 && Math.random() < 0.04) SFX.rooster();
     if (night >= 0.5 && Math.random() < 0.06) SFX.owl();
     if (Math.random() < 0.1) noise(2.6, 0.022, 500);
-    timer = setTimeout(ambientTick, 1300 + Math.random() * 2600);
+    timer = setTimeout(ambientTick, (curEra === "modern" ? 1300 : 1050) + Math.random() * 2200);
   }
   OSW.audio = {
     get enabled() { return enabled; },
@@ -100,13 +121,15 @@
     radio() {
       if (this._radio) { clearInterval(this._radio); this._radio = null; return false; }
       if (!enabled) this.set(true);
-      const sc = [262, 294, 330, 392, 440, 523, 587, 659]; let k = 3;
+      const sc = (ERA_SCALES[curEra] || ERA_SCALES.modern).notes; let k = 3;
       const play = () => { for (let i = 0; i < 4; i++) { k = Math.max(0, Math.min(sc.length - 1, k + Math.floor(Math.random() * 5) - 2)); tone(sc[k], 0.55, "triangle", 0.045, i * 0.5, true); } tone(sc[0] / 2, 1.8, "sine", 0.05, 0, true); };
       play(); this._radio = setInterval(play, 2000); return true;
     },
     rain: rainSet,
     sfx(name) { if (enabled && SFX[name]) SFX[name](); },
     setNight(d) { night = d; },
+    setEra(era) { curEra = ERA_SCALES[era] ? era : "modern"; },
+    getEra() { return curEra; },
     resumeIfEnabled() { if (enabled) { ensure(); clearTimeout(timer); ambientTick(); } },
   };
 })();

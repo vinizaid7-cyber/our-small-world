@@ -1,0 +1,6 @@
+{
+  "name": "عالمنا الصغير V14 — التاريخ الحي",
+  "description": "عالم ثلاثي الأبعاد لشخصين فقط يجمع القرية والمدينة والجزر وحضارة تاريخية متكاملة مع الآثار والحرف والقوافل والمتحف الخاص.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

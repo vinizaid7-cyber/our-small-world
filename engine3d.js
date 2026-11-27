@@ -187,33 +187,40 @@
   const VS = `attribute vec3 aPos;attribute vec3 aNor;attribute vec3 aCol;attribute float aEm;
 uniform mat4 uVP;uniform mat4 uModel;uniform vec3 uSunDir;uniform vec3 uSunCol;uniform vec3 uAmbTop;uniform vec3 uAmbBot;uniform vec3 uCam;
 uniform float uNight;uniform float uFogN;uniform float uFogF;uniform vec4 uTint;uniform float uSway;uniform float uTime;uniform mediump float uShadow;uniform vec3 uShDir;
-varying vec3 vCol;varying float vFog;
+varying vec3 vCol;varying float vFog;varying vec3 vWp;varying vec3 vNor;varying float vEm;
 void main(){
   vec4 wp=uModel*vec4(aPos,1.0);
   wp.x+=sin(uTime*1.3+wp.z*0.4)*uSway*max(aPos.y,0.0)*0.02;
   vec3 n=normalize(mat3(uModel[0].xyz,uModel[1].xyz,uModel[2].xyz)*aNor);
   if(uShadow>0.5){
     float far=length(wp.xz-uCam.xz);
-    if((n.y>0.85&&wp.y<0.7)||far>130.0||wp.y<-0.5){gl_Position=vec4(2.0,2.0,2.0,1.0);vFog=1.0;vCol=vec3(0.0);return;}
+    if((n.y>0.85&&wp.y<0.7)||far>130.0||wp.y<-0.5){gl_Position=vec4(2.0,2.0,2.0,1.0);vFog=1.0;vCol=vec3(0.0);vWp=vec3(0.0);vNor=vec3(0.0,1.0,0.0);vEm=0.0;return;}
     float s=(0.16-wp.y)/uShDir.y; wp.xz+=uShDir.xz*s; wp.y=0.16;
-    vFog=clamp((far-uFogN)/(uFogF-uFogN),0.0,1.0);vCol=vec3(0.0);gl_Position=uVP*wp;return;
+    vFog=clamp((far-uFogN)/(uFogF-uFogN),0.0,1.0);vCol=vec3(0.0);vWp=wp.xyz;vNor=n;vEm=0.0;gl_Position=uVP*wp;return;
   }
   float nd=dot(n,-uSunDir);
   float d=clamp((nd+0.22)/1.22,0.0,1.0);d=d*d*(3.0-2.0*d);
-  float ao=1.0;
+  float ao=0.92+0.08*clamp(wp.y*0.35,0.0,1.0);
   float sky=n.y*0.5+0.5;
   vec3 amb=mix(uAmbBot,uAmbTop,sky)*ao;
   vec3 base=aCol*uTint.rgb;
-  vec3 lit=base*(amb+uSunCol*d*0.92*mix(1.0,ao,0.5));
-  vCol=mix(lit,base*1.6,aEm*uNight);
+  vec3 lit=base*(amb+uSunCol*d*0.95*mix(1.0,ao,0.45));
+  vec3 viewDir=normalize(uCam-wp.xyz);
+  float rim=pow(1.0-max(dot(n,viewDir),0.0),3.0);
+  lit+=uSunCol*rim*(0.06*(1.0-uNight*0.75))*max(sky,0.2);
+  vCol=mix(lit,base*1.68+vec3(0.12,0.07,0.02)*aEm,aEm*uNight);
   float dist=length(wp.xyz-uCam);
   vFog=clamp((dist-uFogN)/(uFogF-uFogN),0.0,1.0);
+  vWp=wp.xyz;vNor=n;vEm=aEm;
   gl_Position=uVP*wp;
 }`;
-  const FS = `precision mediump float;varying vec3 vCol;varying float vFog;uniform float uAlpha;uniform float uShadow;uniform float uShA;
+  const FS = `precision mediump float;varying vec3 vCol;varying float vFog;varying vec3 vWp;varying vec3 vNor;varying float vEm;uniform float uAlpha;uniform float uShadow;uniform float uShA;uniform float uNight;
 void main(){
   if(uShadow>0.5){gl_FragColor=vec4(0.0,0.0,0.0,uShA*(1.0-vFog));return;}
-  vec3 c=vCol;
+  float wallSide=1.0-abs(vNor.y);
+  float tex=sin(vWp.x*2.1+vWp.z*1.7)*sin(vWp.y*3.2+vWp.z*0.9);
+  vec3 c=vCol*(1.0+tex*0.026*(0.4+0.6*wallSide));
+  c+=vec3(0.04,0.025,0.008)*(vEm*uNight);
   c=c/(1.0+c*0.28)*1.28;
   float a=(1.0-vFog)*uAlpha;
   gl_FragColor=vec4(c*a,a);

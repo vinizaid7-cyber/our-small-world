@@ -529,3 +529,27 @@ html,body{touch-action:pan-x pan-y}
 
 /* V12: عمود التحكم صار 7 أزرار (مع 👁️): نصغّره وننزّله شوي عالشاشات القصيرة عشان ما يتداخل مع أزرار الأعلى */
 @media (max-height:700px){#zoomctl{top:calc(50% + 28px)}#zoomctl button{width:40px;height:40px;font-size:18px}#zoomctl{gap:6px}}
+
+/* ===== V14: التحديث التاريخي (الأطلس، العصور، المهن، الآثار، القوافل، المعالم) ===== */
+.hst-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:linear-gradient(135deg,#fff5dc,#f3e2bc);border:2px solid #d9b56a;margin-bottom:8px}
+.hst-ev{display:flex;flex-direction:column;gap:2px;font-size:13px}.hst-ev b{color:#6a3d00}
+.hst-era-tag{font-size:13px;font-weight:700;padding:4px 10px;border-radius:99px;background:#fff;border:1px solid #d9b56a;color:#4a2e08}
+.hst-tabs{margin-bottom:10px}
+.hst-alert{padding:8px 12px;border-radius:12px;background:#fff1cc;border:1px solid #e0a21a;font-size:13px;margin-bottom:10px;color:#5a3700}
+.hst-zgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:8px 0 12px}
+.hst-zbtn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:right;padding:10px 12px;border-radius:14px;background:#fff;border:2px solid #e7d9bc;cursor:pointer;transition:transform .12s,border-color .15s}
+.hst-zbtn:hover{transform:translateY(-1px);border-color:#c9963a}
+.hst-zbtn.on{background:linear-gradient(#fff6dc,#ffeab8);border-color:#c9963a}
+.hst-zbtn small{font-size:11px;color:#7a6240}
+.hst-list{display:flex;flex-direction:column;gap:10px;margin:8px 0}
+.hst-era-card,.hst-site-card{background:#fff;border:2px solid #e7d9bc;border-radius:16px;padding:12px}
+.hst-era-card.on,.hst-site-card.on{border-color:var(--ec,#168077);background:linear-gradient(180deg,#fffdf8,#f7f1e1)}
+.hst-eh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
+.hst-eh small{font-size:12px;color:#6e5735;font-weight:700}
+.hst-emeta{display:grid;grid-template-columns:1fr;gap:3px;font-size:12px;color:#534128;background:#fbf6e9;padding:8px;border-radius:10px;margin-top:6px}
+.hst-prof-box{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-radius:14px;background:#f8f0dc;border:1px solid #dcc48e;margin:8px 0}
+.hst-prof-box small{display:block;color:#6b5435;font-size:12px}
+.hst-pz-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:6px}
+.hst-bar{width:100%;height:10px;border-radius:99px;background:#ebdcb9;overflow:hidden;margin-top:6px}
+.hst-bar i{display:block;height:100%;background:linear-gradient(90deg,#168077,#e6b94a);border-radius:99px}
+

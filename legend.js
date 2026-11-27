@@ -95,13 +95,21 @@
 
   O.lgcap = () => {
     const s = L.state(), mine = capsForMe(), sent = capsFromMe(), now = Date.now();
+    const sealedAll = (db().sealed || []).filter((x) => x.house === "game" && x.title === "lg_cap" && !s.caps[x.id]);
+    const sealedIn = sealedAll.filter((x) => x.author !== me() && pa() && x.author === pa().id);
+    const sealedOut = sealedAll.filter((x) => x.author === me());
     const mineRows = mine.map((c) => {
       const op = !!s.opened[c.id], ready = !op && now >= c.open, left = Math.ceil((c.open - now) / 86400000);
       const sub = op ? `انفتحت · من ${esc(nameOf(c.from))}` : ready ? `جاهزة! من ${esc(nameOf(c.from))}` : `🔒 بتنفتح ${fmt(c.open)} (باقي ${left} يوم)`;
       const btn = op ? `<button class="btn sm alt" data-act="g-lgd-read" data-id="${c.id}">اقرأ</button>` : ready ? `<button class="btn sm gold" data-act="g-lgd-unseal" data-id="${c.id}">🎁 افتح +${CAP_COINS}🪙</button>` : `<span class="tag">🔒</span>`;
       return irow(c.emo, `رسالة ${op || ready ? "إلك" : "مختومة"}`, sub, btn);
-    }).join("");
-    const sentRows = sent.map((c) => irow(c.emo, `أرسلت لـ${esc(nameOf(c.to))}`, `${now >= c.open ? "انفتحت/جاهزة" : "🔒 بتنفتح"} ${fmt(c.open)}`, "")).join("");
+    }).concat(sealedIn.map((c) => {
+      const openMs = new Date(c.unlock_at).getTime(), left = Math.max(1, Math.ceil((openMs - now) / 86400000));
+      return irow("💌", "رسالة مختومة", `🔒 بتنفتح ${fmt(openMs)} (باقي ${left} يوم)`, `<span class="tag">🔒</span>`);
+    })).join("");
+    const sentRows = sent.map((c) => irow(c.emo, `أرسلت لـ${esc(nameOf(c.to))}`, `${now >= c.open ? "انفتحت/جاهزة" : "🔒 بتنفتح"} ${fmt(c.open)}`, ""))
+      .concat(sealedOut.map((c) => irow("💌", `أرسلت لـ${esc(pa() ? pa().name : "شريكك")}`, `🔒 بتنفتح ${fmt(new Date(c.unlock_at).getTime())}`, "")))
+      .join("");
     ui().openModal(`<h3>💌 كبسولة الزمن</h3><p class="hint">اكتب رسالة وحدد تاريخ، وما بتنفتح عند شريكك إلا بهالتاريخ ⏳</p>
       <button class="btn berry" style="width:100%" data-act="g-lgd-open" data-k="lgcapnew">✍️ اكتب كبسولة جديدة</button>
       <b style="display:block;margin-top:10px">📥 إلي</b><div class="items" style="margin:6px 0">${mineRows || '<div class="empty">ما في رسائل إلك لسا</div>'}</div>
@@ -154,7 +162,7 @@
         const text = val("#lgText"), v = val("#lgDate"), m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
         if (!text) return toast("اكتب الرسالة أول 😊"); if (!m) return toast("اختار تاريخ");
         const open = new Date(+m[1], +m[2] - 1, +m[3], 0, 0, 0).getTime(); if (open <= Date.now()) return toast("لازم التاريخ بالمستقبل ⏳");
-        await G().do("lg_cap", { to: pa() ? pa().id : me(), open, text, emo: "💌" }); sfx("magic"); hearts("💌", 10); toast("🔒 انختمت الكبسولة", "gold"); P().open("lgcap");
+        await G().do("lg_cap", { to: pa() ? pa().id : me(), open, text, emo: "💌" }, { unlock_at: new Date(open).toISOString() }); sfx("magic"); hearts("💌", 10); toast("🔒 انختمت الكبسولة", "gold"); P().open("lgcap");
       });
       case "g-lgd-unseal": return busy(async () => { await G().do("lg_open", { cap: d.id }); const c = L.state().caps[d.id]; if (c && L.state().opened[c.id]) { sfx("fanfare"); hearts("💌", 14); toast(`🎁 +${CAP_COINS}🪙`, "gold"); L.showLetter(d.id); } else toast("⏳ لسا ما حان وقتها (ساعة جهازك أسرع من السيرفر؟)"); });
       case "g-lgd-read": return L.showLetter(d.id);

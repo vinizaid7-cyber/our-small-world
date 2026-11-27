@@ -189,6 +189,15 @@
       db._mv = sb.channel("osw-move", { config: { broadcast: { self: false } } });
       db._mv.on("broadcast", { event: "pos" }, (m) => db.emit("pos", m.payload)).on("broadcast", { event: "draw" }, (m) => db.emit("draw", m.payload)).on("broadcast", { event: "voice" }, (m) => db.emit("voice", m.payload)).subscribe((st) => { db._mvOk = st === "SUBSCRIBED"; });
       setInterval(() => db.touchSeen(), 120000);
+      let lastResume = Date.now();
+      const resync = () => {
+        if (document.hidden || !db.me || Date.now() - lastResume < 15000) return;
+        lastResume = Date.now();
+        db.reload().catch(() => {});
+        db.touchSeen();
+      };
+      document.addEventListener("visibilitychange", resync);
+      window.addEventListener("online", resync);
     }
     db.track = (where) => { if (db._pres) db._pres.track({ where, name: db.me.name, t: Date.now() }); };
     db.sendDraw = (p) => { if (db._mvOk && db._mv) db._mv.send({ type: "broadcast", event: "draw", payload: Object.assign({ u: db.uid }, p) }); };

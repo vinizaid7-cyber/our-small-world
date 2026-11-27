@@ -527,6 +527,7 @@
   }
   function drawInside(t) {
     const D = S.dyn; R.draw(curInt.mesh); if (D.furn) R.draw(D.furn);
+    if (OSW.history && OSW.history.drawInside) OSW.history.drawInside(curInt, t);
     inNpcs.forEach((o) => OSW.drawChar(o.ch, o.x, o.z, o.ry, 0, 0, t, 1, null, 1));
     if (curInt.id === "home") { let ii = 0; Object.values(pets3).forEach((o) => { if (o.mode !== "home") return; const sp = curInt.spawn, q = { x: sp.x - 3.5 + (ii % 5) * 1.7, z: sp.z + 1.4 + Math.floor(ii / 5) * 1.5, ry: o.ry, phase: o.phase + t * 0.2, v: 0, mv: 0, pitch: 0.05, kind: o.kind, vi: o.vi, sc: o.sc, ph0: o.ph0, id: o.id }; ii++; drawPet(q, t); }); }
     drawPeople(t);
@@ -550,13 +551,13 @@
     // طاحونة وقطار وغيوم وطيور
     M.trs(OSW.EX.WINDMILL.x, 8.4, OSW.EX.WINDMILL.z + 2.4, 0, 0, t * 0.7, 1, 1, 1, m1); R.draw(meshes.blades, m1);
     const ph = (Math.sin(t * 0.12) + 1) / 2; M.trs(36 + ph * 22, 0.2, 7.9, 0, 0, 0, 1, 1, 1, m1); R.draw(meshes.train, m1);
-    for (let i = 0; i < 0; i++) { const x = ((t * (1.2 + i * 0.25) + i * 52) % 280) - 120; M.trs(x, 38 + (i % 3) * 5, -50 + i * 18, 0, 0, 0, 1.4 + (i % 2) * 0.5, 1, 1.4, m1); R.draw(meshes.cloud, m1, [1, 1, 1], 0.92 - st.night * 0.55); }
+    for (let i = 0; i < 8; i++) { const x = ((t * (1.2 + i * 0.25) + i * 52) % 280) - 120; M.trs(x, 38 + (i % 3) * 5, -50 + i * 18, 0, 0, 0, 1.4 + (i % 2) * 0.5, 1, 1.4, m1); R.draw(meshes.cloud, m1, [1, 1, 1], 0.92 - st.night * 0.55); }
     if (st.night < 0.6) for (let i = 0; i < 4; i++) { const a = t * 0.18 + i * 1.6, rr = 34 + i * 7; M.trs(Math.cos(a) * rr, 22 + i * 2, Math.sin(a) * rr * 0.7 + 8, -a, 0, Math.sin(t * 6 + i) * 0.35, 1, 1, 1, m1); R.draw(meshes.bird, m1); }
     for (let i = 0; i < 6; i++) { const cx = i < 3 ? S.pos.flowers.x : S.pos.farm.x, cz = i < 3 ? S.pos.flowers.z : S.pos.farm.z, a = t * (0.6 + i * 0.1) + i * 2; M.trs(cx + Math.cos(a) * (3 + i % 3), 1.2 + Math.sin(a * 2) * 0.4, cz + Math.sin(a * 1.3) * 4, a, 0, Math.sin(t * 14 + i) * 0.6, 1, 1, 1, m1); R.draw(meshes.bf, m1); }
     if (st.night > 0.5) for (let i = 0; i < 22; i++) { const a = t * 0.3 + i * 1.7; M.trs(-40 + ((i * 37) % 80) + Math.cos(a) * 2, 0.9 + Math.sin(a * 1.4) * 0.5, -20 + ((i * 53) % 70) + Math.sin(a) * 2, 0, 0, 0, 1, 1, 1, m1); R.draw(meshes.fly, m1); }
     // عربة المزرعة (وبتتحرك لما الاثنين يسحبوها)
     drawCart(t);
-    OSW.veh.drawAll(t); drawIsle(t); if (OSW.logi) OSW.logi.draw(t); if (OSW.agri && OSW.agri.draw) OSW.agri.draw(t); if (OSW.deliv && OSW.deliv.draw) OSW.deliv.draw(t); if (OSW.city) OSW.city.draw(t); if (OSW.islands) OSW.islands.draw(t);
+    OSW.veh.drawAll(t); drawIsle(t); if (OSW.logi) OSW.logi.draw(t); if (OSW.agri && OSW.agri.draw) OSW.agri.draw(t); if (OSW.deliv && OSW.deliv.draw) OSW.deliv.draw(t); if (OSW.city) OSW.city.draw(t); if (OSW.islands) OSW.islands.draw(t); if (OSW.history && OSW.history.draw) OSW.history.draw(t);
     // شخصيات
     OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o && (!OSW.gfx || OSW.gfx.showNpc(d, o, me))) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc, o.dance ? Math.abs(Math.sin(t * 5 + o.phase)) * 0.16 : 0); });
     Object.values(animals).forEach((a) => drawAnimal(a, t)); Object.values(pets3).forEach((o) => drawPet(o, t));
@@ -570,7 +571,7 @@
       ["tree", "home", "flowers"].forEach((k) => D[k] && R.draw(D[k], null, null, 1, 0));
       OSW.NPCS.forEach((d) => { const o = npc[d.id]; if (o && (!OSW.gfx || OSW.gfx.showNpc(d, o, me))) OSW.drawChar(o.ch, o.x, o.z, o.ry, o.phase, o.mv, t, 1, null, o.sc, 0); });
       Object.values(animals).forEach((a) => drawAnimal(a, t)); Object.values(pets3).forEach((o) => drawPet(o, t));
-      drawPeople(t); drawCart(t); OSW.veh.drawAll(t, true); if (OSW.life) OSW.life.draw(t);
+      drawPeople(t); drawCart(t); OSW.veh.drawAll(t, true); if (OSW.life) OSW.life.draw(t); if (OSW.history && OSW.history.drawShadow) OSW.history.drawShadow(t);
       R.shadow(false);
     }
     // شفّاف: ظلال + شعاع المنارة + علامة اللمس
@@ -596,6 +597,7 @@
     if (pa.vis && !pa.sleep && !pa.inside && hy(me.x - pa.x, me.z - pa.z) < 4.2) { together += dt; if (together > 45 && W.onTogether) { together = 0; W.onTogether(); } } else together = Math.max(0, together - dt * 0.5);
     if (tapMark && tapMark.life > 0) tapMark.life -= dt;
     if (OSW.city && OSW.city.tick) OSW.city.tick(dt, mode, curInt);
+    if (OSW.history && OSW.history.tick) OSW.history.tick(dt, mode, curInt);
     camStep(dt); drawScene(); updateLabels(); updateActBtn(performance.now()); fxFrame();
     if (W._snapCb) { const cb = W._snapCb; W._snapCb = null; cb(); }
   }

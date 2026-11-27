@@ -8,6 +8,7 @@
   const toast = (m, c) => ui().toast(m, c || "");
   const rnd = (a) => a[Math.floor(Math.random() * a.length)];
   const cl = (v, a, b) => Math.max(a, Math.min(b, v));
+  const left = (ms) => { const m = Math.max(1, Math.ceil(ms / MIN)); return m >= 60 ? Math.floor(m / 60) + " س " + (m % 60) + " د" : m + " د"; };
 
   /* ---------- الأكل والطبخ ---------- */
   const D = (id, n, e, need, food, drink, joy) => ({ id, n, e, need, food, drink, joy, dish: 1 });

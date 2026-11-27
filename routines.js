@@ -27,9 +27,12 @@
   /* ---------- مسار بنقاط وسيطة (نفس منطق الشمال/الجنوب بـ stepNpc) ---------- */
   const south = (z) => z > 31;
   function viaPoints(from, to) {
-    if (south(from.z) && !south(to.z)) return [{ x: from.x * 0.3, z: 34.5 }, { x: 0, z: 33 }, { x: 0, z: 27 }, to];
-    if (!south(from.z) && south(to.z)) return [{ x: 0, z: 27 }, { x: 0, z: 33 }, { x: to.x * 0.5, z: 34.5 }, to];
-    return [to];
+    const pad = OSW.deliv && OSW.deliv.activePad && OSW.deliv.activePad();
+    let dest = to;
+    if (pad && Math.hypot(to.x - pad.x, to.z - pad.z) < 4.5) dest = { x: to.x + (to.x >= pad.x ? 3.5 : -3.5), z: to.z + 2.5 };
+    if (south(from.z) && !south(dest.z)) return [{ x: from.x * 0.3, z: 34.5 }, { x: 0, z: 33 }, { x: 0, z: 27 }, dest];
+    if (!south(from.z) && south(dest.z)) return [{ x: 0, z: 27 }, { x: 0, z: 33 }, { x: dest.x * 0.5, z: 34.5 }, dest];
+    return [dest];
   }
   /* كل مرحلة: ننتظر وصول world3d (مسافة < 2.4) أو "شبه وصول" إذا علقت الشخصية بعائق قرب الهدف
      (ثابتة ~2.5 ثانية وعلى بعد < 4.5) — بدل ما نستنى مهلة الـ45 ثانية. */
