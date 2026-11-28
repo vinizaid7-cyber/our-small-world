@@ -1,131 +1,24 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#141642">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>عالمنا الصغير</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Cairo:wght@400;600;700&family=Lalezar&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <div id="sky"><div id="stars"></div><div id="sun"></div><div id="moon"></div></div>
-  <div id="world"><canvas id="gl"></canvas><div id="labels"></div></div>
-  <canvas id="fx"></canvas>
-
-  <header id="hud" hidden>
-    <div class="hud-top">
-      <div class="pills">
-        <div class="pill" id="dayPill" title="عدّاد الأيام">💞 <b id="dayNum">0</b> <span>يوم</span></div>
-        <div class="pill gold" id="coinPill" title="مصاريكم">🪙 <b id="coinNum">0</b></div>
-        <div class="pill need" id="needPill" title="جوعك وعطشك">🍞 <b id="foodNum">100</b> 💧 <b id="drinkNum">100</b> <span class="eatb">🍽️ كُل</span></div>
-      </div>
-      <div class="hud-btns">
-        <button id="btnChat" class="rbtn" aria-label="الشات">💬<i id="chatBadge" class="rb" hidden>0</i></button>
-        <button id="btnTasks" class="rbtn" aria-label="مهام اليوم">✅<i id="taskBadge" class="rb" hidden>0</i></button>
-        <button id="btnHist" class="rbtn" aria-label="التاريخ الحي">🏛️<i id="histBadge" class="rb" hidden>0</i></button>
-        <button id="btnSound" class="rbtn" aria-label="الصوت">🔇</button>
-        <button id="btnAch" class="rbtn" aria-label="الإنجازات">🏅</button>
-        <button id="btnMenu" class="rbtn" aria-label="القائمة">⚙️</button>
-      </div>
-    </div>
-    <div class="pill presence" id="presence"><i class="dot"></i><span id="presenceText"></span></div>
-  </header>
-
-  <div id="zoomctl" hidden>
-    <button data-z="in" aria-label="تقريب">＋</button>
-    <button data-z="out" aria-label="تبعيد">－</button>
-    <button data-z="walk" aria-label="امشوا سوا" id="btnWalk">🤝</button>
-    <button data-z="fp" aria-label="منظور الشخص الأول" id="btnFp">👁️</button>
-    <button data-z="home" aria-label="للساحة">🏡</button>
-  </div>
-  <div id="joy" hidden><div id="joyKnob"></div></div>
-  <button id="btnSprint" class="sprint" hidden aria-label="ركض"><span>🏃</span><small>ركض</small></button>
-  <button id="btnFurn" class="furnbtn" hidden aria-label="الأثاث">🛋️</button>
-  <div id="placeBar" hidden><span id="placeTxt"></span><button id="placeRot">🔄</button><button id="placeCancel">✖</button></div>
-  <div id="sleepFade"><span>💤</span></div>
-  <section id="chat" hidden><div class="chat-head"><b>💬 شات</b><button id="chatClose" aria-label="إغلاق">✕</button></div><div id="chatList"></div><div id="chatEmo"></div><form id="chatForm"><input id="chatIn" autocomplete="off" maxlength="400" placeholder="اكتب رسالة…"><button class="btn berry" type="submit">أرسل</button></form></section>
-
-  <div id="guide" hidden role="button" tabindex="0" aria-label="دليل القرية"><span class="gcat">🐱</span><span id="guideText"></span></div>
-
-  <div id="curtain"></div>
-
-  <section id="room" hidden aria-live="polite">
-    <div class="room-head" id="roomHead"></div>
-    <div class="room-body" id="roomBody"></div>
-  </section>
-
-  <div id="sheet" class="overlay" hidden><div class="sheet-card" id="sheetCard"></div></div>
-  <div id="modal" class="overlay" hidden><div class="modal-card" id="modalCard"></div></div>
-  <div id="lightbox" hidden></div>
-  <div id="toasts" aria-live="polite"></div>
-
-  <div id="auth" class="fullscreen" hidden><div class="auth-card" id="authCard"></div></div>
-  <div id="loading"><div class="ld-house">🏡</div><p>عالمنا الصغير</p></div>
-
-  <script src="config.js"></script>
-  <script src="util.js"></script>
-  <script src="data.js"></script>
-  <script src="content.js"></script>
-  <script src="engine3d.js"></script>
-  <script src="audio.js"></script>
-  <script src="scene_houses.js"></script>
-  <script src="scene_extra.js"></script>
-  <script src="scene_world.js"></script>
-  <script src="chars3d.js"></script>
-  <script src="furniture.js"></script>
-<script src="furniture2.js"></script>
-  <script src="interior.js"></script>
-  <script src="world3d.js"></script>
-  <script src="ui.js"></script>
-  <script src="game.js"></script>
-  <script src="chat.js"></script>
-  <script src="events.js"></script>
-  <script src="draw.js"></script>
-  <script src="vehicles.js"></script>
-  <script src="places.js"></script>
-  <script src="family.js"></script>
-<script src="activities.js"></script>
-<script src="activities2.js"></script>
-<script src="wardrobe.js"></script>
-<script src="city_guide.js"></script>
-<script src="challenges.js"></script>
-<script src="playerlife.js"></script>
-<script src="settings.js"></script>
-  <script src="lands.js"></script>
-  <script src="life.js"></script>
-  <script src="voice.js"></script>
-  <script src="logi.js"></script>
-  <script src="agri.js"></script>
-  <script src="agri3d.js"></script>
-  <script src="delivery.js"></script>
-  <script src="delivery3d.js"></script>
-  <script src="delivery_ui.js"></script>
-  <script src="extras.js"></script>
-  <script src="legend.js"></script>
-  <script src="city.js"></script>
-  <script src="city_blocks.js"></script>
-  <script src="city_int.js"></script>
-  <script src="islands_data.js"></script>
-  <script src="islands_gen.js"></script>
-  <script src="islands_gen2.js"></script>
-  <script src="islands_gen3.js"></script>
-  <script src="islands.js"></script>
-  <script src="islands_int.js"></script>
-  <script src="systems.js"></script>
-  <script src="routines.js"></script>
-  <script src="history_data.js"></script>
-  <script src="history_world.js"></script>
-  <script src="history_int.js"></script>
-  <script src="history_sys.js"></script>
-  <script src="history_ui.js"></script>
-  <script src="app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Our Small World V15 — عالمنا الصغير: عصر الحضارات الحية</title>
+    <meta name="description" content="عالمنا الصغير V15 — لعبة عالم مفتوح ثلاثية الأبعاد لبناء الحضارات التاريخية وإدارة المصانع والبورصة والموانئ والمركبات." />
+    <meta property="og:title" content="Our Small World V15 — عالمنا الصغير: عصر الحضارات الحية" />
+    <meta property="og:description" content="استكشف ست حضارات حية، ادخل المصانع والبنوك والبورصة، قد أكثر من 25 مركبة، وابنِ مدينتك ثلاثية الأبعاد." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="/icons/icon-192.svg" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-slate-950 text-slate-100 overflow-hidden select-none">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
